@@ -150,9 +150,11 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
         if(grid->lbound[0] != 0){
             if(grid->lbound[0] != PERIODIC){
             if(i == IBEG){
-                for(int l = 0; l < NMOMENTUM; ++l){
-                    MatrixElementNode* curNode = data->matrix[k][j][i][l];
-                    curNode = addElement(curNode, -1.0, k,j,i+1,l);
+                if(grid->lbound[0] != OUTFLOW){
+                    for(int l = 0; l < NMOMENTUM; ++l){
+                        MatrixElementNode* curNode = data->matrix[k][j][i][l];
+                        curNode = addElement(curNode, -1.0, k,j,i+1,l);
+                    }
                 }
                 continue;
             }
@@ -162,9 +164,11 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
         if(grid->rbound[0] != 0){
             if(grid->rbound[0] != PERIODIC){
             if(i == IEND){
-                for(int l = 0; l < NMOMENTUM; ++l){
-                    MatrixElementNode* curNode = data->matrix[k][j][i][l];
-                    //curNode = addElement(curNode, -1.0, k,j,i-1,l);
+                if(grid->rbound[0] != OUTFLOW){
+                    for(int l = 0; l < NMOMENTUM; ++l){
+                        MatrixElementNode* curNode = data->matrix[k][j][i][l];
+                        curNode = addElement(curNode, -1.0, k,j,i-1,l);
+                    }
                 }
                 continue;
             }
@@ -176,9 +180,11 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
         if(grid->lbound[1] != 0){
             if(grid->lbound[1] != PERIODIC){
                 if(j == JBEG){
-                    for(int l = 0; l < NMOMENTUM; ++l){
-                        MatrixElementNode* curNode = data->matrix[k][j][i][l];
-                        //curNode = addElement(curNode, -1.0, k,j + 1,i,l);
+                    if(grid->lbound[1] != OUTFLOW){
+                        for(int l = 0; l < NMOMENTUM; ++l){
+                            MatrixElementNode* curNode = data->matrix[k][j][i][l];
+                            curNode = addElement(curNode, -1.0, k,j + 1,i,l);
+                        }
                     }
                     continue;
                 }
@@ -188,9 +194,11 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
         if(grid->rbound[1] != 0){
             if(grid->rbound[1] != PERIODIC){
                 if(j == JEND){
-                    for(int l = 0; l < NMOMENTUM; ++l){
-                        MatrixElementNode* curNode = data->matrix[k][j][i][l];
-                        //curNode = addElement(curNode, -1.0, k,j - 1,i,l);
+                    if(grid->rbound[1] != OUTFLOW){
+                        for(int l = 0; l < NMOMENTUM; ++l){
+                            MatrixElementNode* curNode = data->matrix[k][j][i][l];
+                            curNode = addElement(curNode, -1.0, k,j - 1,i,l);
+                        }
                     }
                     continue;
                 }
@@ -202,9 +210,11 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
         if(grid->lbound[2] != 0){
             if(grid->lbound[2] != PERIODIC){
                 if(k == KBEG){
-                    for(int l = 0; l < NMOMENTUM; ++l){
-                        MatrixElementNode* curNode = data->matrix[k][j][i][l];
-                        //curNode = addElement(curNode, -1.0, k + 1,j,i,l);
+                    if(grid->lbound[2] != OUTFLOW){
+                        for(int l = 0; l < NMOMENTUM; ++l){
+                            MatrixElementNode* curNode = data->matrix[k][j][i][l];
+                            curNode = addElement(curNode, -1.0, k + 1,j,i,l);
+                        }
                     }
                     continue;
                 }
@@ -214,9 +224,11 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
         if(grid->rbound[2] != 0){
             if(grid->rbound[2] != PERIODIC){
                 if(k == KEND){
-                    for(int l = 0; l < NMOMENTUM; ++l){
-                        MatrixElementNode* curNode = data->matrix[k][j][i][l];
-                        curNode = addElement(curNode, -1.0, k - 1,j,i,l);
+                    if(grid->rbound[2] != OUTFLOW){
+                        for(int l = 0; l < NMOMENTUM; ++l){
+                            MatrixElementNode* curNode = data->matrix[k][j][i][l];
+                            curNode = addElement(curNode, -1.0, k - 1,j,i,l);
+                        }
                     }
                     continue;
                 }
