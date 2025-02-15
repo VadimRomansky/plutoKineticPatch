@@ -1,0 +1,15 @@
+# ----------------------------------------------------------------------
+# Include KIN particles source files
+# ----------------------------------------------------------------------
+
+VPATH        += $(SRC)/Particles/GMRES
+INCLUDE_DIRS += -I$(SRC)/Particles/GMRES
+
+
+OBJ += particles_kin_feedback.o particles_kin_force.o               \
+       particles_kin_update.o       \
+       largeVectorBasis.o \
+       matrixElement.o \
+       specialmath.o      
+
+

@@ -7,3 +7,9 @@ list of changes:
 2) template for turbulent field W(r, k)
 3) Monte-Carlo particles
 4) sparce output (every Nth point) (works only for dbl output)
+5) renaming SZ and SZ
+6) fixed bug with reading multiple files in pypluto and added some plots
+
+Install
+
+merge everything in PLUTO directory
