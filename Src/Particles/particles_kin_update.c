@@ -325,12 +325,12 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
         QUIT_PLUTO(1);
 #endif
 
-        inv_dt_new = fabs(10*divu*(data->p_grid[1] - data->p_grid[0])/data->p_grid[0]);
+        inv_dt_new = fabs(10*divu*data->p_grid[0]/(data->p_grid[1] - data->p_grid[0]));
         inv_dt = MAX(inv_dt, inv_dt_new);
 
         for(int l = 0; l < NMOMENTUM-1; ++l){
             if(l > 0){
-                inv_dt_new = fabs(10*divu*(data->p_grid[l] - data->p_grid[l-1])/data->p_grid[l]);
+                inv_dt_new = fabs(10*divu*data->p_grid[l]/(data->p_grid[l] - data->p_grid[l-1]));
                 inv_dt = MAX(inv_dt, inv_dt_new);
             }
 
