@@ -325,12 +325,61 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
         QUIT_PLUTO(1);
 #endif
 
-        inv_dt_new = fabs(10*divu*data->p_grid[0]/(data->p_grid[1] - data->p_grid[0]));
+        inv_dt_new = fabs(100*divu*data->p_grid[0]/(data->p_grid[1] - data->p_grid[0]));
         inv_dt = MAX(inv_dt, inv_dt_new);
+       
+        double dx1 = 1E100;
+        double dx2 = 1E100;
+        double dx3 = 1E100;
+#if GEOMETRY == CARTESIAN
+        dx1 = grid->x[0][i+1] - grid->x[0][i];
+#if INCLUDE_JDIR
+        dx2 = grid->x[1][j+1] - grid->x[1][j];
+#endif
+#if INCLUDE_KDIR
+        dx3 = grid->x[2][k+1] - grid->x[2][k];
+#endif
+#elif GEOMETRY == CYLINDRICAL
+        dx1 = grid->x[0][i+1] - grid->x[0][i];
+#if INCLUDE_JDIR
+        dx2 = grid->x[1][j+1] - grid->x[1][j];
+#endif
+#if INCLUDE_KDIR
+        dx3 = grid->x[0][i]*(grid->x[2][k+1] - grid->x[2][k]);
+#endif
+
+#elif GEOMETRY == POLAR
+        dx1 = grid->x[0][i+1] - grid->x[0][i];
+#if INCLUDE_JDIR
+        dx2 = grid->x[0][i]*(grid->x[1][j+1] - grid->x[1][j]);
+#endif
+#if INCLUDE_KDIR
+        dx3 = grid->x[2][k+1] - grid->x[2][k];
+#endif
+
+#elif GEOMETRY == SPHERICAL
+        dx1 = grid->x[0][i+1] - grid->x[0][i];
+#if INCLUDE_JDIR
+        dx2 = grid->x[0][i]*(grid->x[1][j+1] - grid->x[1][j]);
+#endif
+#if INCLUDE_KDIR
+        dx3 = grid->x[0][i]*sin(grid->x[1][j])*(grid->x[2][k+1] - grid->x[2][k]);
+#endif
+
+#endif
+
+        inv_dt_new = 2*data->Vc[VX1][k][j][i]/dx1;
+        inv_dt = MAX(inv_dt, inv_dt_new);
+        inv_dt_new = 2*data->Vc[VX2][k][j][i]/dx2;
+        inv_dt = MAX(inv_dt, inv_dt_new);
+
+        inv_dt_new = 2*data->Vc[VX3][k][j][i]/dx3;
+        inv_dt = MAX(inv_dt, inv_dt_new);
+
 
         for(int l = 0; l < NMOMENTUM-1; ++l){
             if(l > 0){
-                inv_dt_new = fabs(10*divu*data->p_grid[l]/(data->p_grid[l] - data->p_grid[l-1]));
+                inv_dt_new = fabs(100*divu*data->p_grid[l]/(data->p_grid[l] - data->p_grid[l-1]));
                 inv_dt = MAX(inv_dt, inv_dt_new);
             }
 
@@ -362,8 +411,12 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
             double Dfront = evaluateDiffusionCoefficient(data, i,j,k+1, data->p_grid[l]);
 #endif
 
-            //inv_dt_new = fabs(4*D/((grid->x[0][i] - grid->x[0][i-1])*(grid->x[0][i] - grid->x[0][i-1])));
-            //inv_dt = MAX(inv_dt, inv_dt_new);
+            inv_dt_new = fabs(2*4*D/(dx1*dx1));
+            inv_dt = MAX(inv_dt, inv_dt_new);
+            inv_dt_new = fabs(2*4*D/(dx2*dx2));
+            inv_dt = MAX(inv_dt, inv_dt_new);
+            inv_dt_new = fabs(2*4*D/(dx3*dx3));
+            inv_dt = MAX(inv_dt, inv_dt_new);
 
             double dp = 0;
             if(divu > 0){
@@ -1113,8 +1166,9 @@ exit(0);
         }
     }
 
-
-    generalizedMinimalResidualMethod(grid, data->matrix, data->rightPart, data->Fkin, data->gmresBasis, NMOMENTUM, 1E-5, MAX_GMRES_ITERATIONS, 1);
+    double precision = 0.1/data->p_grid[NMOMENTUM - 1];
+    precision = 1E-5;
+    generalizedMinimalResidualMethod(grid, data->matrix, data->rightPart, data->Fkin, data->gmresBasis, NMOMENTUM, precision, MAX_GMRES_ITERATIONS, 1);
     //conjugateGradientMethod(grid, data->matrix, data->rightPart, data->Fkin, NMOMENTUM, 1E-5, 50, 1);
 
     TOT_LOOP(k,j,i){
