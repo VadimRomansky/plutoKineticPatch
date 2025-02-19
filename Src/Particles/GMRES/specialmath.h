@@ -30,9 +30,13 @@ void conjugateGradientMethod(Grid* grid, MatrixElementNode***** matrix, double**
                              double precision, int maxIteration, int verbosity);
 
 
-//void transposeSpecialMatrix(MatrixElementNode***** result, MatrixElementNode***** matrix);
+void transposeSpecialMatrix(MatrixElementNode***** result, MatrixElementNode***** matrix, int lnumber);
 
+void biconjugateGradientMethod(Grid* grid, MatrixElementNode***** matrix, double ****rightPart, double ****outvector, int lnumber, double precision,
+                               int maxIteration, int verbosity);
 
+void biconjugateStabilizedGradientMethod(Grid* grid, MatrixElementNode***** matrix, double**** rightPart,
+                                         double**** outVector, int lnumber, double precision, int maxIteration, int verbosity);
 
 bool indexLower(MatrixElement* element, int i, int j, int k, int l);
 bool indexEqual(MatrixElement* element, int i, int j, int k, int l);

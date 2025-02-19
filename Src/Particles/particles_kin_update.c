@@ -146,12 +146,14 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
     DOM_LOOP(k,j,i){
         double divu = 0;
 
+        int maxNU = NMOMENTUM - 1;
+
 #if INCLUDE_IDIR
         if(grid->lbound[0] != 0){
             if(grid->lbound[0] != PERIODIC){
             if(i == IBEG){
                 if(grid->lbound[0] != OUTFLOW){
-                    for(int l = 0; l < NMOMENTUM; ++l){
+                    for(int l = 0; l < maxNU; ++l){
                         MatrixElementNode* curNode = data->matrix[k][j][i][l];
                         curNode = addElement(curNode, -1.0, k,j,i+1,l);
                     }
@@ -165,7 +167,7 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
             if(grid->rbound[0] != PERIODIC){
             if(i == IEND){
                 if(grid->rbound[0] != OUTFLOW){
-                    for(int l = 0; l < NMOMENTUM; ++l){
+                    for(int l = 0; l < maxNU; ++l){
                         MatrixElementNode* curNode = data->matrix[k][j][i][l];
                         curNode = addElement(curNode, -1.0, k,j,i-1,l);
                     }
@@ -181,7 +183,7 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
             if(grid->lbound[1] != PERIODIC){
                 if(j == JBEG){
                     if(grid->lbound[1] != OUTFLOW){
-                        for(int l = 0; l < NMOMENTUM; ++l){
+                        for(int l = 0; l < maxNU; ++l){
                             MatrixElementNode* curNode = data->matrix[k][j][i][l];
                             curNode = addElement(curNode, -1.0, k,j + 1,i,l);
                         }
@@ -195,7 +197,7 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
             if(grid->rbound[1] != PERIODIC){
                 if(j == JEND){
                     if(grid->rbound[1] != OUTFLOW){
-                        for(int l = 0; l < NMOMENTUM; ++l){
+                        for(int l = 0; l < maxNU; ++l){
                             MatrixElementNode* curNode = data->matrix[k][j][i][l];
                             curNode = addElement(curNode, -1.0, k,j - 1,i,l);
                         }
@@ -211,7 +213,7 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
             if(grid->lbound[2] != PERIODIC){
                 if(k == KBEG){
                     if(grid->lbound[2] != OUTFLOW){
-                        for(int l = 0; l < NMOMENTUM; ++l){
+                        for(int l = 0; l < maxNU; ++l){
                             MatrixElementNode* curNode = data->matrix[k][j][i][l];
                             curNode = addElement(curNode, -1.0, k + 1,j,i,l);
                         }
@@ -225,7 +227,7 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
             if(grid->rbound[2] != PERIODIC){
                 if(k == KEND){
                     if(grid->rbound[2] != OUTFLOW){
-                        for(int l = 0; l < NMOMENTUM; ++l){
+                        for(int l = 0; l < maxNU; ++l){
                             MatrixElementNode* curNode = data->matrix[k][j][i][l];
                             curNode = addElement(curNode, -1.0, k - 1,j,i,l);
                         }
@@ -377,7 +379,7 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
         inv_dt = MAX(inv_dt, inv_dt_new);
 
 
-        for(int l = 0; l < NMOMENTUM-1; ++l){
+        for(int l = 0; l < maxNU; ++l){
             if(l > 0){
                 inv_dt_new = fabs(100*divu*data->p_grid[l]/(data->p_grid[l] - data->p_grid[l-1]));
                 inv_dt = MAX(inv_dt, inv_dt_new);
@@ -1168,8 +1170,9 @@ exit(0);
 
     double precision = 0.1/data->p_grid[NMOMENTUM - 1];
     precision = 1E-5;
-    generalizedMinimalResidualMethod(grid, data->matrix, data->rightPart, data->Fkin, data->gmresBasis, NMOMENTUM, precision, MAX_GMRES_ITERATIONS, 1);
+    //generalizedMinimalResidualMethod(grid, data->matrix, data->rightPart, data->Fkin, data->gmresBasis, NMOMENTUM, precision, MAX_GMRES_ITERATIONS, 1);
     //conjugateGradientMethod(grid, data->matrix, data->rightPart, data->Fkin, NMOMENTUM, 1E-5, 50, 1);
+    biconjugateStabilizedGradientMethod(grid, data->matrix, data->rightPart, data->Fkin, NMOMENTUM, precision, MAX_GMRES_ITERATIONS, 1);
 
     TOT_LOOP(k,j,i){
         for(int l = 0; l < NMOMENTUM; ++l){
