@@ -127,23 +127,23 @@ void resize(LargeVectorBasis* basis, int capacityv) {
 
 void clear(LargeVectorBasis* basis) {
     basis->size = 0;
-    /*for (int m = 0; m < basis->capacity; ++m) {
+    for (int m = 0; m < basis->capacity; ++m) {
         for (int i = 0; i < basis->znumber; ++i) {
             for (int j = 0; j < basis->ynumber; ++j) {
                 for(int k = 0; k < basis->xnumber; ++k){
                     for(int l = 0; l < basis->lnumber; ++l){
                         basis->array[m][i][j][k][l] = 0;
                     }
-                    free(basis->array[m][i][j][k]);
+                    //free(basis->array[m][i][j][k]);
                 }
-                free(basis->array[m][i][j]);
+                //free(basis->array[m][i][j]);
             }
-            free(basis->array[m][i]);
+            //free(basis->array[m][i]);
         }
-        free(basis->array[m]);
+        //free(basis->array[m]);
     }
-    free(basis->array);
-    basis->capacity = 0;*/
+    //free(basis->array);
+    //basis->capacity = 0;
 }
 
 void exchangeLargeVector(double**** vector, int lnumber, int *dims, int sz_ptr){
