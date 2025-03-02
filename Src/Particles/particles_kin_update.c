@@ -1170,9 +1170,8 @@ exit(0);
 
     double precision = 0.1/data->p_grid[NMOMENTUM - 1];
     precision = 1E-5;
-    //generalizedMinimalResidualMethod(grid, data->matrix, data->rightPart, data->Fkin, data->gmresBasis, NMOMENTUM, precision, MAX_GMRES_ITERATIONS, 1);
-    //conjugateGradientMethod(grid, data->matrix, data->rightPart, data->Fkin, NMOMENTUM, 1E-5, 50, 1);
-    biconjugateStabilizedGradientMethod(grid, data->matrix, data->rightPart, data->Fkin, NMOMENTUM, precision, MAX_GMRES_ITERATIONS, 1);
+    generalizedMinimalResidualMethod(grid, data->matrix, data->rightPart, data->Fkin, data->gmresBasis, NMOMENTUM, precision, MAX_GMRES_ITERATIONS, 1);
+    //biconjugateStabilizedGradientMethod(grid, data->matrix, data->rightPart, data->Fkin, NMOMENTUM, precision, MAX_GMRES_ITERATIONS, 1);
 
     TOT_LOOP(k,j,i){
         for(int l = 0; l < NMOMENTUM; ++l){
