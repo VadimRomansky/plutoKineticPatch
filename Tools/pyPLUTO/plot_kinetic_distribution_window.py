@@ -21,9 +21,9 @@ def plot_kinetic_distribution_window(ns, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_
                 F[j] = F[j] + P.F[i][j]*P.dV[i]
                 V = V + P.dV[i]
 
-    for j in range(Nmomentum):
-        if(F[j] <= 0):
-            F[j] = 1E-100
+    #for j in range(Nmomentum):
+        #if(F[j] <= 0):
+            #F[j] = 1E-100
     #for i in range(len(y)):
         #y = y/PVmag[i]
 

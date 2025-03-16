@@ -43,9 +43,9 @@ def plot_kinetic_distribution_animated_at_p_along_axis(ns, w_dir, UNIT_DENSITY, 
         if((int(P.j[i]) == jj) and (int(P.k[i]) == kk)):
                 F[int(P.i[i])-3] = P.F[i][ppoint]
 
-    for j in range(Nmomentum):
-        if(F[j] <= 0):
-            F[j] = 1E-100
+    #for j in range(Nmomentum):
+        #if(F[j] <= 0):
+            #F[j] = 1E-100
     #for i in range(len(y)):
         #y = y/PVmag[i]
 

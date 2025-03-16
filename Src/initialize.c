@@ -41,12 +41,14 @@
 static int GetDecompMode (cmdLine *cmd_line, int procs[]);
 #endif
 
+#if (PARTICLES == PARTICLES_KIN) || (TURBULENT_FIELD == YES)
+double p_grid_min = (2*CONST_PI/10.0)*1.0*PARTICLES_MC_E_MC/PARTICLES_MC_C;
+double p_grid_max = (2*CONST_PI/1.0)*1.0*PARTICLES_MC_E_MC/PARTICLES_MC_C;
+#endif
+
 #if TURBULENT_FIELD == YES
 double k_turb_min = 1.0;
 double k_turb_max = 10.0;
-
-double p_grid_min = (2*CONST_PI/10.0)*1.0*PARTICLES_MC_E_MC/PARTICLES_MC_C;
-double p_grid_max = (2*CONST_PI/1.0)*1.0*PARTICLES_MC_E_MC/PARTICLES_MC_C;
 #endif
 
 

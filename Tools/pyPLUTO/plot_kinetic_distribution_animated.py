@@ -76,9 +76,9 @@ def plot_kinetic_distribution_animated(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, U
             for j in range(Nmomentum):
                 F[j] = F[j] + P.F[k][j] * P.dV[k]
                 V = V + P.dV[k]
-        for j in range(Nmomentum):
-            if (F[j] <= 0):
-                F[j] = 1E-100
+        #for j in range(Nmomentum):
+            #if (F[j] <= 0):
+                #F[j] = 1E-100
 
         im1 = ax.plot(p, F)
         ax.plot(p, Fa)

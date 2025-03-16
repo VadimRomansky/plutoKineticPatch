@@ -23,9 +23,9 @@ def plot_kinetic_distribution_animated_window(ntot, w_dir, UNIT_DENSITY, UNIT_LE
                 F[j] = F[j] + P.F[i][j]*P.dV[i]
                 V = V + P.dV[i]
 
-    for j in range(Nmomentum):
-        if(F[j] <= 0):
-            F[j] = 1E-100
+    #for j in range(Nmomentum):
+        #if(F[j] <= 0):
+            #F[j] = 1E-100
     #for i in range(len(y)):
         #y = y/PVmag[i]
     minF = np.amin(F)
@@ -51,9 +51,9 @@ def plot_kinetic_distribution_animated_window(ntot, w_dir, UNIT_DENSITY, UNIT_LE
                     F[j] = F[j] + P.F[k][j] * P.dV[k]
                     V = V + P.dV[k]
 
-        for j in range(Nmomentum):
-            if (F[j] <= 0):
-                F[j] = 1E-100
+        #for j in range(Nmomentum):
+            #if (F[j] <= 0):
+                #F[j] = 1E-100
 
         if(np.amin(F) < minF):
             minF = np.amin(F)
@@ -78,9 +78,9 @@ def plot_kinetic_distribution_animated_window(ntot, w_dir, UNIT_DENSITY, UNIT_LE
             for j in range(Nmomentum):
                 F[j] = F[j] + P.F[k][j] * P.dV[k]
                 V = V + P.dV[k]
-        for j in range(Nmomentum):
-            if (F[j] <= 0):
-                F[j] = 1E-100
+        #for j in range(Nmomentum):
+            #if (F[j] <= 0):
+                #F[j] = 1E-100
 
         im1 = ax.plot(p, F)
         ax.plot(p, Fa)

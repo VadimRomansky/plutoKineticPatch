@@ -102,6 +102,7 @@ double evaluateDiffusionCoefficient(Data* data, int i, int j, int k, double u){
     }
 
     //D = 1E26/(UNIT_LENGTH*UNIT_VELOCITY);
+    D = 1000*D;
 
     return D;
 }
@@ -1162,8 +1163,8 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
             }
 
             if(diagonal < notdiagonal){
-                printf("diagonal = %g < notdiagonal = %g, %d %d %d %d\n", diagonal, notdiagonal, i, j, k, l);
-exit(0);
+                //printf("diagonal = %g < notdiagonal = %g, %d %d %d %d\n", diagonal, notdiagonal, i, j, k, l);
+                //exit(0);
             }
         }
     }

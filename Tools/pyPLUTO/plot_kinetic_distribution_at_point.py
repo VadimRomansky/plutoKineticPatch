@@ -20,9 +20,9 @@ def plot_kinetic_distribution_at_point(ns, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNI
             for j in range(Nmomentum):
                 F[j] = P.F[i][j]
 
-    for j in range(Nmomentum):
-        if(F[j] <= 0):
-            F[j] = 1E-100
+    #for j in range(Nmomentum):
+        #if(F[j] <= 0):
+            #F[j] = 1E-100
     #for i in range(len(y)):
         #y = y/PVmag[i]
 

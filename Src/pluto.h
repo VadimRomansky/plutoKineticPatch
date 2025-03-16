@@ -935,12 +935,14 @@ extern double g_inputParam[32];
 
 #endif
 
+#if (PARTICLES == PARTICLES_KIN) || (TURBULENT_FIELD == YES)
+  extern double p_grid_min;
+  extern double p_grid_max;
+#endif
+
 #if TURBULENT_FIELD == YES
 extern double k_turb_min;
 extern double k_turb_max;
-
-extern double p_grid_min;
-extern double p_grid_max;
 #endif
 
 #endif /* PLUTO_H */
