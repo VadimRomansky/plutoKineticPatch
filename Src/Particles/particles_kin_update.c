@@ -102,7 +102,7 @@ double evaluateDiffusionCoefficient(Data* data, int i, int j, int k, double u){
     }
 
     //D = 1E26/(UNIT_LENGTH*UNIT_VELOCITY);
-    D = 1000*D;
+    D = D;
 
     return D;
 }
@@ -124,6 +124,10 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
     double inv_dt, inv_dt_new;
     inv_dt = 1.e-18;
 
+
+    //crank-nickelson
+    double factor = 0.5;
+
     FlagShock(data, grid);
     //double err = ConsToPrim3D()
 
@@ -141,6 +145,18 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
                 curNode->prev = NULL;
                 data->rightPart[k][j][i][l] = 0.0;
                 data->matrix[k][j][i][l] = curNode;
+
+                curNode = data->rightPartMatrix[k][j][i][l];
+                while(curNode != NULL){
+                    MatrixElementNode* tempNode = curNode;
+                    curNode = curNode->next;
+                    free(tempNode);
+                }
+                curNode = (MatrixElementNode*) malloc(sizeof(MatrixElementNode));
+                curNode->element = createMatrixElement(1.0, k,j,i,l);
+                curNode->next = NULL;
+                curNode->prev = NULL;
+                data->rightPartMatrix[k][j][i][l] = curNode;
         }
     }
 
@@ -389,6 +405,7 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
             data->rightPart[k][j][i][l] = data->Fkin[k][j][i][l];
 
             MatrixElementNode* curNode = data->matrix[k][j][i][l];
+            MatrixElementNode* curNode2 = data->rightPartMatrix[k][j][i][l];
             /*while(curNode != NULL){
                 MatrixElementNode* tempNode = curNode;
                 curNode = curNode->next;
@@ -439,30 +456,34 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
             double value = 0;
 
             if(divu >= 0){
-                value = dt*divu*data->p_grid[l]/(3.0*dp);
+                value = factor*dt*divu*data->p_grid[l]/(3.0*dp);
                 curNode = addElement(curNode, value, k,j,i,l);
+                curNode2 = addElement(curNode2, -value, k, j, i, l);
                 if((value != value) || (value*0 != value*0)){
                     printf("1 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
                 if(l < NMOMENTUM - 1){
-                    value = -dt*divu*data->p_grid[l]/(3.0*dp);
+                    value = -factor*dt*divu*data->p_grid[l]/(3.0*dp);
                     curNode = addElement(curNode, value, k,j,i,l+1);
+                    curNode2 = addElement(curNode2, -value, k, j, i, l+1);
                     if((value != value) || (value*0 != value*0)){
                         printf("2 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                         QUIT_PLUTO(1);
                     }
                 }
             } else {
-                value = -dt*divu*data->p_grid[l]/(3.0*dp);
+                value = -factor*dt*divu*data->p_grid[l]/(3.0*dp);
                 curNode = addElement(curNode, value, k,j,i,l);
+                curNode2 = addElement(curNode2, -value, k, j, i, l);
                 if((value != value) || (value*0 != value*0)){
                     printf("3 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
                 if( l > 0){
-                    value = dt*divu*data->p_grid[l]/(3.0*dp);
+                    value = factor*dt*divu*data->p_grid[l]/(3.0*dp);
                     curNode = addElement(curNode, value, k,j,i,l-1);
+                    curNode2 = addElement(curNode2, -value, k, j, i, l-1);
                     if((value != value) || (value*0 != value*0)){
                         printf("4 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                         QUIT_PLUTO(1);
@@ -471,24 +492,27 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
             }
 
 #if GEOMETRY == CARTESIAN
-            value = dt*(((Dright + D)/(grid->x[0][i+1] - grid->x[0][i]))+((D+Dleft)/(grid->x[0][i] - grid->x[0][i-1])))/(grid->x[0][i+1] - grid->x[0][i-1]);
+            value = factor*dt*(((Dright + D)/(grid->x[0][i+1] - grid->x[0][i]))+((D+Dleft)/(grid->x[0][i] - grid->x[0][i-1])))/(grid->x[0][i+1] - grid->x[0][i-1]);
             curNode = addElement(curNode, value, k,j,i,l);
+            curNode2 = addElement(curNode2, -value, k,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("5 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
 
-            value = -dt*((Dright + D)/(grid->x[0][i+1] - grid->x[0][i]))/(grid->x[0][i+1] - grid->x[0][i-1]);
+            value = -factor*dt*((Dright + D)/(grid->x[0][i+1] - grid->x[0][i]))/(grid->x[0][i+1] - grid->x[0][i-1]);
             curNode = addElement(curNode, value, k, j, i+1, l);
+            curNode2 = addElement(curNode2, -value, k, j, i+1, l);
                 if((value != value) || (value*0 != value*0)){
                     printf("6 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
 
-            value = -dt*((D+Dleft)/(grid->x[0][i] - grid->x[0][i-1]))/(grid->x[0][i+1] - grid->x[0][i-1]);
+            value = -factor*dt*((D+Dleft)/(grid->x[0][i] - grid->x[0][i-1]))/(grid->x[0][i+1] - grid->x[0][i-1]);
             curNode = addElement(curNode, value, k, j, i-1, l);
+            curNode2 = addElement(curNode2, -value, k, j, i-1, l);
                 if((value != value) || (value*0 != value*0)){
                     printf("7 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -496,30 +520,34 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 
 
             if(data->Vc[VX1][k][j][i] > 0){
-                value = dt*data->Vc[VX1][k][j][i]/(grid->x[0][i] - grid->x[0][i-1]);
+                value = factor*dt*data->Vc[VX1][k][j][i]/(grid->x[0][i] - grid->x[0][i-1]);
                 curNode = addElement(curNode, value, k,j,i,l);
+                curNode2 = addElement(curNode2, -value, k,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("8 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
-                value = -dt*data->Vc[VX1][k][j][i-1]/(grid->x[0][i] - grid->x[0][i-1]);
+                value = -factor*dt*data->Vc[VX1][k][j][i-1]/(grid->x[0][i] - grid->x[0][i-1]);
                 curNode = addElement(curNode, value, k,j,i-1,l);
+                curNode2 = addElement(curNode2, -value, k,j,i-1,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("9 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
             } else {
-                value = -dt*data->Vc[VX1][k][j][i]/(grid->x[0][i+1] - grid->x[0][i]);
+                value = -factor*dt*data->Vc[VX1][k][j][i]/(grid->x[0][i+1] - grid->x[0][i]);
                 curNode = addElement(curNode, value, k,j,i,l);
+                curNode2 = addElement(curNode2, -value, k,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("10 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
-                value = dt*data->Vc[VX1][k][j][i+1]/(grid->x[0][i+1] - grid->x[0][i]);
+                value = factor*dt*data->Vc[VX1][k][j][i+1]/(grid->x[0][i+1] - grid->x[0][i]);
                 curNode = addElement(curNode, value, k,j,i+1,l);
+                curNode2 = addElement(curNode2, -value, k,j,i+1,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("11 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -527,24 +555,27 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 
             }
 #if INCLUDE_JDIR
-            value = dt*(((Dtop + D)/(grid->x[1][j+1] - grid->x[1][j]))+((D+Dbottom)/(grid->x[1][j] - grid->x[1][j-1])))/(grid->x[1][j+1] - grid->x[1][j-1]);
+            value = factor*dt*(((Dtop + D)/(grid->x[1][j+1] - grid->x[1][j]))+((D+Dbottom)/(grid->x[1][j] - grid->x[1][j-1])))/(grid->x[1][j+1] - grid->x[1][j-1]);
             curNode = addElement(curNode, value, k,j,i,l);
+            curNode2 = addElement(curNode2, -value, k,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("12 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
 
-            value = -dt*((Dtop + D)/(grid->x[1][j+1] - grid->x[1][j]))/(grid->x[1][j+1] - grid->x[1][j-1]);
+            value = -factor*dt*((Dtop + D)/(grid->x[1][j+1] - grid->x[1][j]))/(grid->x[1][j+1] - grid->x[1][j-1]);
             curNode = addElement(curNode, value, k, j+1, i, l);
+            curNode2 = addElement(curNode2, -value, k, j+1, i, l);
                 if((value != value) || (value*0 != value*0)){
                     printf("13 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
 
-            value = -dt*((D+Dbottom)/(grid->x[1][j] - grid->x[1][j-1]))/(grid->x[1][j+1] - grid->x[1][j-1]);
+            value = -factor*dt*((D+Dbottom)/(grid->x[1][j] - grid->x[1][j-1]))/(grid->x[1][j+1] - grid->x[1][j-1]);
             curNode = addElement(curNode, value, k, j-1, i, l);
+            curNode2 = addElement(curNode2, -value, k, j-1, i, l);
                 if((value != value) || (value*0 != value*0)){
                     printf("14 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -552,30 +583,34 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 
 
             if(data->Vc[VX2][k][j][i] > 0){
-                value = dt*data->Vc[VX2][k][j][i]/(grid->x[1][j] - grid->x[1][j-1]);
+                value = factor*dt*data->Vc[VX2][k][j][i]/(grid->x[1][j] - grid->x[1][j-1]);
                 curNode = addElement(curNode, value, k,j,i,l);
+                curNode2 = addElement(curNode2, -value, k,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("15 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
-                value = -dt*data->Vc[VX2][k][j-1][i]/(grid->x[1][j] - grid->x[1][j-1]);
+                value = -factor*dt*data->Vc[VX2][k][j-1][i]/(grid->x[1][j] - grid->x[1][j-1]);
                 curNode = addElement(curNode, value, k,j-1,i,l);
+                curNode2 = addElement(curNode2, -value, k,j-1,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("16 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
             } else {
-                value = -dt*data->Vc[VX2][k][j][i]/(grid->x[1][j+1] - grid->x[1][j]);
+                value = -factor*dt*data->Vc[VX2][k][j][i]/(grid->x[1][j+1] - grid->x[1][j]);
                 curNode = addElement(curNode, value, k,j,i,l);
+                curNode2 = addElement(curNode2, -value, k,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("17 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
-                value = dt*data->Vc[VX2][k][j+1][i]/(grid->x[1][j+1] - grid->x[1][j]);
+                value = factor*dt*data->Vc[VX2][k][j+1][i]/(grid->x[1][j+1] - grid->x[1][j]);
                 curNode = addElement(curNode, value, k,j+1,i,l);
+                curNode2 = addElement(curNode2, -value, k,j+1,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("18 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -585,24 +620,27 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 #endif
 
 #if INCLUDE_KDIR
-            value = dt*(((Dfront + D)/(grid->x[2][k+1] - grid->x[2][k]))+((D+Dback)/(grid->x[2][k] - grid->x[2][k-1])))/(grid->x[2][k+1] - grid->x[2][k-1]);
+            value = factor*dt*(((Dfront + D)/(grid->x[2][k+1] - grid->x[2][k]))+((D+Dback)/(grid->x[2][k] - grid->x[2][k-1])))/(grid->x[2][k+1] - grid->x[2][k-1]);
             curNode = addElement(curNode, value, k,j,i,l);
+            curNode2 = addElement(curNode2, -value, k,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("19 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
 
-            value = -dt*((Dfront + D)/(grid->x[2][k+1] - grid->x[2][k]))/(grid->x[2][k+1] - grid->x[2][k-1]);
+            value = -factor*dt*((Dfront + D)/(grid->x[2][k+1] - grid->x[2][k]))/(grid->x[2][k+1] - grid->x[2][k-1]);
             curNode = addElement(curNode, value, k+1, j, i, l);
+            curNode2 = addElement(curNode2, -value, k+1, j, i, l);
                 if((value != value) || (value*0 != value*0)){
                     printf("20 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
 
-            value = -dt*((D+Dback)/(grid->x[2][k] - grid->x[2][k-1]))/(grid->x[2][k+1] - grid->x[2][k-1]);
+            value = -factor*dt*((D+Dback)/(grid->x[2][k] - grid->x[2][k-1]))/(grid->x[2][k+1] - grid->x[2][k-1]);
             curNode = addElement(curNode, value, k-1, j, i, l);
+            curNode2 = addElement(curNode2, -value, k-1, j, i, l);
                 if((value != value) || (value*0 != value*0)){
                     printf("21 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -610,30 +648,34 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 
 
             if(data->Vc[VX3][k][j][i] > 0){
-                value = dt*data->Vc[VX3][k][j][i]/(grid->x[2][k] - grid->x[2][k-1]);
+                value = factor*dt*data->Vc[VX3][k][j][i]/(grid->x[2][k] - grid->x[2][k-1]);
                 curNode = addElement(curNode, value, k,j,i,l);
+                curNode2 = addElement(curNode2, -value, k,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("22 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
-                value = -dt*data->Vc[VX3][k-1][j][i]/(grid->x[2][k] - grid->x[2][k-1]);
+                value = -factor*dt*data->Vc[VX3][k-1][j][i]/(grid->x[2][k] - grid->x[2][k-1]);
                 curNode = addElement(curNode, value, k-1,j,i,l);
+                curNode2 = addElement(curNode2, -value, k-1,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("23 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
             } else {
-                value = -dt*data->Vc[VX3][k][j][i]/(grid->x[2][k+1] - grid->x[2][k]);
+                value = -factor*dt*data->Vc[VX3][k][j][i]/(grid->x[2][k+1] - grid->x[2][k]);
                 curNode = addElement(curNode, value, k,j,i,l);
+                curNode2 = addElement(curNode2, -value, k,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("24 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
-                value = dt*data->Vc[VX3][k+1][j][i]/(grid->x[2][k+1] - grid->x[2][k]);
+                value = factor*dt*data->Vc[VX3][k+1][j][i]/(grid->x[2][k+1] - grid->x[2][k]);
                 curNode = addElement(curNode, value, k+1,j,i,l);
+                curNode2 = addElement(curNode2, -value, k+1,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("25 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -643,22 +685,25 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 #endif
 
 #elif GEOMETRY == CYLINDRICAL
-            value = dt*(((grid->x[0][i+1]*Dright + grid->x[0][i]*D)/(grid->x[0][i+1] - grid->x[0][i]))+((grid->x[0][i]*D + grid->x[0][i-1]*Dleft)/(grid->x[0][i] - grid->x[0][i-1])))/(grid->x[0][i]*(grid->x[0][i+1] - grid->x[0][i-1]));
+            value = factor*dt*(((grid->x[0][i+1]*Dright + grid->x[0][i]*D)/(grid->x[0][i+1] - grid->x[0][i]))+((grid->x[0][i]*D + grid->x[0][i-1]*Dleft)/(grid->x[0][i] - grid->x[0][i-1])))/(grid->x[0][i]*(grid->x[0][i+1] - grid->x[0][i-1]));
             curNode = addElement(curNode, value, k,j,i,l);
+            curNode2 = addElement(curNode2, -value, k,j,i,l);
             if((value != value) || (value*0 != value*0)){
                 printf("26 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                 QUIT_PLUTO(1);
             }
 
-            value = -dt*((grid->x[0][i+1]*Dright + grid->x[0][i]*D)/(grid->x[0][i+1] - grid->x[0][i]))/(grid->x[0][i]*(grid->x[0][i+1] - grid->x[0][i-1]));
+            value = -factor*dt*((grid->x[0][i+1]*Dright + grid->x[0][i]*D)/(grid->x[0][i+1] - grid->x[0][i]))/(grid->x[0][i]*(grid->x[0][i+1] - grid->x[0][i-1]));
             curNode = addElement(curNode, value, k, j, i+1, l);
+            curNode2 = addElement(curNode2, -value, k, j, i+1, l);
             if((value != value) || (value*0 != value*0)){
                 printf("27 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                 QUIT_PLUTO(1);
             }
 
-            value = -dt*((grid->x[0][i]*D+grid->x[0][i-1]*Dleft)/(grid->x[0][i] - grid->x[0][i-1]))/(grid->x[0][i]*(grid->x[0][i+1] - grid->x[0][i-1]));
+            value = -factor*dt*((grid->x[0][i]*D+grid->x[0][i-1]*Dleft)/(grid->x[0][i] - grid->x[0][i-1]))/(grid->x[0][i]*(grid->x[0][i+1] - grid->x[0][i-1]));
             curNode = addElement(curNode, value, k, j, i-1, l);
+            curNode2 = addElement(curNode2, -value, k, j, i-1, l);
             if((value != value) || (value*0 != value*0)){
                 printf("28 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                 QUIT_PLUTO(1);
@@ -667,25 +712,29 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
             if(data->Vc[VX1][k][j][i] > 0){
                 value = dt*grid->x[0][i]*data->Vc[VX1][k][j][i]/(grid->x[0][i]*(grid->x[0][i] - grid->x[0][i-1]));
                 curNode = addElement(curNode, value, k,j,i,l);
+                curNode2 = addElement(curNode2, -value, k,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("29 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
-                value = -dt*grid->x[0][i-1]*data->Vc[VX1][k][j][i-1]/(grid->x[0][i]*(grid->x[0][i] - grid->x[0][i-1]));
+                value = -factor*dt*grid->x[0][i-1]*data->Vc[VX1][k][j][i-1]/(grid->x[0][i]*(grid->x[0][i] - grid->x[0][i-1]));
                 curNode = addElement(curNode, value, k,j,i-1,l);
+                curNode2 = addElement(curNode2, -value, k,j,i-1,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("30 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
             } else {
-                value = -dt*grid->x[0][i]*data->Vc[VX1][k][j][i]/(grid->x[0][i]*(grid->x[0][i+1] - grid->x[0][i]));
+                value = -factor*dt*grid->x[0][i]*data->Vc[VX1][k][j][i]/(grid->x[0][i]*(grid->x[0][i+1] - grid->x[0][i]));
                 curNode = addElement(curNode, value, k,j,i,l);
+                curNode2 = addElement(curNode2, -value, k,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("31 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
-                value = dt*grid->x[0][i+1]*data->Vc[VX1][k][j][i+1]/(grid->x[0][i]*(grid->x[0][i+1] - grid->x[0][i]));
+                value = factor*dt*grid->x[0][i+1]*data->Vc[VX1][k][j][i+1]/(grid->x[0][i]*(grid->x[0][i+1] - grid->x[0][i]));
                 curNode = addElement(curNode, value, k,j,i+1,l);
+                curNode2 = addElement(curNode2, -value, k,j,i+1,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("32 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -693,49 +742,56 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
             }
 
 #if INCLUDE_JDIR
-            value = dt*(((Dtop + D)/(grid->x[1][j+1] - grid->x[1][j]))+((D+Dbottom)/(grid->x[1][j] - grid->x[1][j-1])))/(grid->x[1][j+1] - grid->x[1][j-1]);
+            value = factor*dt*(((Dtop + D)/(grid->x[1][j+1] - grid->x[1][j]))+((D+Dbottom)/(grid->x[1][j] - grid->x[1][j-1])))/(grid->x[1][j+1] - grid->x[1][j-1]);
             curNode = addElement(curNode, value, k,j,i,l);
+            curNode2 = addElement(curNode2, -value, k,j,i,l);
             if((value != value) || (value*0 != value*0)){
                 printf("33 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                 QUIT_PLUTO(1);
             }
 
-            value = -dt*((Dtop + D)/(grid->x[1][j+1] - grid->x[1][j]))/(grid->x[1][j+1] - grid->x[1][j-1]);
+            value = -factor*dt*((Dtop + D)/(grid->x[1][j+1] - grid->x[1][j]))/(grid->x[1][j+1] - grid->x[1][j-1]);
             curNode = addElement(curNode, value, k, j+1, i, l);
+            curNode2 = addElement(curNode2, -value, k, j+1, i, l);
             if((value != value) || (value*0 != value*0)){
                 printf("34 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                 QUIT_PLUTO(1);
             }
 
-            value = -dt*((D+Dbottom)/(grid->x[1][j] - grid->x[1][j-1]))/(grid->x[1][j+1] - grid->x[1][j-1]);
+            value = -factor*dt*((D+Dbottom)/(grid->x[1][j] - grid->x[1][j-1]))/(grid->x[1][j+1] - grid->x[1][j-1]);
             curNode = addElement(curNode, value, k, j-1, i, l);
+            curNode2 = addElement(curNode2, -value, k, j-1, i, l);
             if((value != value) || (value*0 != value*0)){
                 printf("35 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                 QUIT_PLUTO(1);
             }
 
             if(data->Vc[VX2][k][j][i] > 0){
-                value = dt*data->Vc[VX2][k][j][i]/(grid->x[1][j] - grid->x[1][j-1]);
+                value = factor*dt*data->Vc[VX2][k][j][i]/(grid->x[1][j] - grid->x[1][j-1]);
                 curNode = addElement(curNode, value, k,j,i,l);
+                curNode2 = addElement(curNode2, -value, k,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("36 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
-                value = -dt*data->Vc[VX2][k][j-1][i]/(grid->x[1][j] - grid->x[1][j-1]);
+                value = -factor*dt*data->Vc[VX2][k][j-1][i]/(grid->x[1][j] - grid->x[1][j-1]);
                 curNode = addElement(curNode, value, k,j-1,i,l);
+                curNode2 = addElement(curNode2, -value, k,j-1,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("37 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
             } else {
-                value = -dt*data->Vc[VX2][k][j][i]/(grid->x[1][j+1] - grid->x[1][j]);
+                value = -factor*dt*data->Vc[VX2][k][j][i]/(grid->x[1][j+1] - grid->x[1][j]);
                 curNode = addElement(curNode, value, k,j,i,l);
+                curNode2 = addElement(curNode2, -value, k,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("38 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
-                value = dt*data->Vc[VX2][k][j+1][i]/(grid->x[1][j+1] - grid->x[1][j]);
+                value = factor*dt*data->Vc[VX2][k][j+1][i]/(grid->x[1][j+1] - grid->x[1][j]);
                 curNode = addElement(curNode, value, k,j+1,i,l);
+                curNode2 = addElement(curNode2, -value, k,j+1,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("39 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -744,24 +800,27 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 #endif
 
 #if INCLUDE_KDIR
-            value = dt*(((Dfront + D)/(grid->x[2][k+1] - grid->x[2][k]))+((D+Dback)/(grid->x[2][k] - grid->x[2][k-1])))/(grid->x[0][i]*grid->x[0][i]*(grid->x[2][k+1] - grid->x[2][k-1]));
+            value = factor*dt*(((Dfront + D)/(grid->x[2][k+1] - grid->x[2][k]))+((D+Dback)/(grid->x[2][k] - grid->x[2][k-1])))/(grid->x[0][i]*grid->x[0][i]*(grid->x[2][k+1] - grid->x[2][k-1]));
             curNode = addElement(curNode, value, k,j,i,l);
+            curNode2 = addElement(curNode2, -value, k,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("40 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
 
-            value = -dt*((Dfront + D)/(grid->x[2][k+1] - grid->x[2][k]))/(grid->x[0][i]*grid->x[0][i]*(grid->x[2][k+1] - grid->x[2][k-1]));
+            value = -factor*dt*((Dfront + D)/(grid->x[2][k+1] - grid->x[2][k]))/(grid->x[0][i]*grid->x[0][i]*(grid->x[2][k+1] - grid->x[2][k-1]));
             curNode = addElement(curNode, value, k+1, j, i, l);
+            curNode2 = addElement(curNode2, -value, k+1, j, i, l);
                 if((value != value) || (value*0 != value*0)){
                     printf("41 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
 
-            value = -dt*((D+Dback)/(grid->x[2][k] - grid->x[2][k-1]))/(grid->x[0][i]*grid->x[0][i]*(grid->x[2][k+1] - grid->x[2][k-1]));
+            value = -factor*dt*((D+Dback)/(grid->x[2][k] - grid->x[2][k-1]))/(grid->x[0][i]*grid->x[0][i]*(grid->x[2][k+1] - grid->x[2][k-1]));
             curNode = addElement(curNode, value, k-1, j, i, l);
+            curNode2 = addElement(curNode2, -value, k-1, j, i, l);
                 if((value != value) || (value*0 != value*0)){
                     printf("42 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -769,30 +828,34 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 
 
             if(data->Vc[VX3][k][j][i] > 0){
-                value = dt*data->Vc[VX3][k][j][i]/(grid->x[0][i]*(grid->x[2][k] - grid->x[2][k-1]));
+                value = factor*dt*data->Vc[VX3][k][j][i]/(grid->x[0][i]*(grid->x[2][k] - grid->x[2][k-1]));
                 curNode = addElement(curNode, value, k,j,i,l);
+                curNode2 = addElement(curNode2, -value, k,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("43 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
-                value = -dt*data->Vc[VX3][k-1][j][i]/(grid->x[0][i]*(grid->x[2][k] - grid->x[2][k-1]));
+                value = -factor*dt*data->Vc[VX3][k-1][j][i]/(grid->x[0][i]*(grid->x[2][k] - grid->x[2][k-1]));
                 curNode = addElement(curNode, value, k-1,j,i,l);
+                curNode2 = addElement(curNode2, -value, k-1,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("44 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
             } else {
-                value = -dt*data->Vc[VX3][k][j][i]/(grid->x[0][i]*(grid->x[2][k+1] - grid->x[2][k]));
+                value = -factor*dt*data->Vc[VX3][k][j][i]/(grid->x[0][i]*(grid->x[2][k+1] - grid->x[2][k]));
                 curNode = addElement(curNode, value, k,j,i,l);
+                curNode2 = addElement(curNode2, -value, k,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("45 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
-                value = dt*data->Vc[VX3][k+1][j][i]/(grid->x[0][i]*(grid->x[2][k+1] - grid->x[2][k]));
+                value = factor*dt*data->Vc[VX3][k+1][j][i]/(grid->x[0][i]*(grid->x[2][k+1] - grid->x[2][k]));
                 curNode = addElement(curNode, value, k+1,j,i,l);
+                curNode2 = addElement(curNode2, -value, k+1,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("46 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -802,24 +865,27 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 #endif
 
 #elif GEOMETRY == POLAR
-            value = dt*(((grid->x[0][i+1]*Dright + grid->x[0][i]*D)/(grid->x[0][i+1] - grid->x[0][i]))+((grid->x[0][i]*D + grid->x[0][i-1]*Dleft)/(grid->x[0][i] - grid->x[0][i-1])))/(grid->x[0][i]*(grid->x[0][i+1] - grid->x[0][i-1]));
+            value = factor*dt*(((grid->x[0][i+1]*Dright + grid->x[0][i]*D)/(grid->x[0][i+1] - grid->x[0][i]))+((grid->x[0][i]*D + grid->x[0][i-1]*Dleft)/(grid->x[0][i] - grid->x[0][i-1])))/(grid->x[0][i]*(grid->x[0][i+1] - grid->x[0][i-1]));
             curNode = addElement(curNode, value, k,j,i,l);
+            curNode2 = addElement(curNode2, -value, k,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("47 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
 
-            value = -dt*((grid->x[0][i+1]*Dright + grid->x[0][i]*D)/(grid->x[0][i+1] - grid->x[0][i]))/(grid->x[0][i]*(grid->x[0][i+1] - grid->x[0][i-1]));
+            value = -factor*dt*((grid->x[0][i+1]*Dright + grid->x[0][i]*D)/(grid->x[0][i+1] - grid->x[0][i]))/(grid->x[0][i]*(grid->x[0][i+1] - grid->x[0][i-1]));
             curNode = addElement(curNode, value, k, j, i+1, l);
+            curNode2 = addElement(curNode2, -value, k, j, i+1, l);
                 if((value != value) || (value*0 != value*0)){
                     printf("48 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
 
-            value = -dt*((grid->x[0][i]*D+grid->x[0][i-1]*Dleft)/(grid->x[0][i] - grid->x[0][i-1]))/(grid->x[0][i]*(grid->x[0][i+1] - grid->x[0][i-1]));
+            value = -factor*dt*((grid->x[0][i]*D+grid->x[0][i-1]*Dleft)/(grid->x[0][i] - grid->x[0][i-1]))/(grid->x[0][i]*(grid->x[0][i+1] - grid->x[0][i-1]));
             curNode = addElement(curNode, value, k, j, i-1, l);
+            curNode2 = addElement(curNode2, -value, k, j, i-1, l);
                 if((value != value) || (value*0 != value*0)){
                     printf("49 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -827,30 +893,34 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 
 
             if(data->Vc[VX1][k][j][i] > 0){
-                value = dt*grid->x[0][i]*data->Vc[VX1][k][j][i]/(grid->x[0][i]*(grid->x[0][i] - grid->x[0][i-1]));
+                value = factor*dt*grid->x[0][i]*data->Vc[VX1][k][j][i]/(grid->x[0][i]*(grid->x[0][i] - grid->x[0][i-1]));
                 curNode = addElement(curNode, value, k,j,i,l);
+                curNode2 = addElement(curNode2, -value, k,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("50 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
-                value = -dt*grid->x[0][i-1]*data->Vc[VX1][k][j][i-1]/(grid->x[0][i]*(grid->x[0][i] - grid->x[0][i-1]));
+                value = -factor*dt*grid->x[0][i-1]*data->Vc[VX1][k][j][i-1]/(grid->x[0][i]*(grid->x[0][i] - grid->x[0][i-1]));
                 curNode = addElement(curNode, value, k,j,i-1,l);
+                curNode2 = addElement(curNode2, -value, k,j,i-1,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("51 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
             } else {
-                value = -dt*grid->x[0][i]*data->Vc[VX1][k][j][i]/(grid->x[0][i]*(grid->x[0][i+1] - grid->x[0][i]));
+                value = -factor*dt*grid->x[0][i]*data->Vc[VX1][k][j][i]/(grid->x[0][i]*(grid->x[0][i+1] - grid->x[0][i]));
                 curNode = addElement(curNode, value, k,j,i,l);
+                curNode2 = addElement(curNode2, -value, k,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("52 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
-                value = dt*grid->x[0][i+1]*data->Vc[VX1][k][j][i+1]/(grid->x[0][i]*(grid->x[0][i+1] - grid->x[0][i]));
+                value = factor*dt*grid->x[0][i+1]*data->Vc[VX1][k][j][i+1]/(grid->x[0][i]*(grid->x[0][i+1] - grid->x[0][i]));
                 curNode = addElement(curNode, value, k,j,i+1,l);
+                curNode2 = addElement(curNode2, -value, k,j,i+1,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("53 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -859,24 +929,27 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
             }
 
 #if INCLUDE_JDIR
-            value = dt*(((Dtop + D)/(grid->x[1][j+1] - grid->x[1][j]))+((D+Dbottom)/(grid->x[1][j] - grid->x[1][j-1])))/(grid->x[0][i]*grid->x[0][i]*(grid->x[1][j+1] - grid->x[1][j-1]));
+            value = factor*dt*(((Dtop + D)/(grid->x[1][j+1] - grid->x[1][j]))+((D+Dbottom)/(grid->x[1][j] - grid->x[1][j-1])))/(grid->x[0][i]*grid->x[0][i]*(grid->x[1][j+1] - grid->x[1][j-1]));
             curNode = addElement(curNode, value, k,j,i,l);
+            curNode2 = addElement(curNode2, -value, k,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("54 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
 
-            value = -dt*((Dtop + D)/(grid->x[1][j+1] - grid->x[1][j]))/(grid->x[0][i]*grid->x[0][i]*(grid->x[1][j+1] - grid->x[1][j-1]));
+            value = -factor*dt*((Dtop + D)/(grid->x[1][j+1] - grid->x[1][j]))/(grid->x[0][i]*grid->x[0][i]*(grid->x[1][j+1] - grid->x[1][j-1]));
             curNode = addElement(curNode, value, k, j+1, i, l);
+            curNode2 = addElement(curNode2, -value, k, j+1, i, l);
                 if((value != value) || (value*0 != value*0)){
                     printf("55 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
 
-            value = -dt*((D+Dbottom)/(grid->x[1][j] - grid->x[1][j-1]))/(grid->x[0][i]*grid->x[0][i]*(grid->x[1][j+1] - grid->x[1][j-1]));
+            value = -factor*dt*((D+Dbottom)/(grid->x[1][j] - grid->x[1][j-1]))/(grid->x[0][i]*grid->x[0][i]*(grid->x[1][j+1] - grid->x[1][j-1]));
             curNode = addElement(curNode, value, k, j-1, i, l);
+            curNode2 = addElement(curNode2, -value, k, j-1, i, l);
                 if((value != value) || (value*0 != value*0)){
                     printf("56 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -884,30 +957,34 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 
 
             if(data->Vc[VX2][k][j][i] > 0){
-                value = dt*data->Vc[VX2][k][j][i]/(grid->x[0][i]*(grid->x[1][j] - grid->x[1][j-1]));
+                value = factor*dt*data->Vc[VX2][k][j][i]/(grid->x[0][i]*(grid->x[1][j] - grid->x[1][j-1]));
                 curNode = addElement(curNode, value, k,j,i,l);
+                curNode2 = addElement(curNode2, -value, k,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("57 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
-                value = -dt*data->Vc[VX2][k][j-1][i]/(grid->x[0][i]*(grid->x[1][j] - grid->x[1][j-1]));
+                value = -factor*dt*data->Vc[VX2][k][j-1][i]/(grid->x[0][i]*(grid->x[1][j] - grid->x[1][j-1]));
                 curNode = addElement(curNode, value, k,j-1,i,l);
+                curNode2 = addElement(curNode2, -value, k,j-1,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("58 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
             } else {
-                value = -dt*data->Vc[VX2][k][j][i]/(grid->x[0][i]*(grid->x[1][j+1] - grid->x[1][j]));
+                value = -factor*dt*data->Vc[VX2][k][j][i]/(grid->x[0][i]*(grid->x[1][j+1] - grid->x[1][j]));
                 curNode = addElement(curNode, value, k,j,i,l);
+                curNode2 = addElement(curNode2, -value, k,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("59 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
-                value = dt*data->Vc[VX2][k][j+1][i]/(grid->x[0][i]*(grid->x[1][j+1] - grid->x[1][j]));
+                value = factor*dt*data->Vc[VX2][k][j+1][i]/(grid->x[0][i]*(grid->x[1][j+1] - grid->x[1][j]));
                 curNode = addElement(curNode, value, k,j+1,i,l);
+                curNode2 = addElement(curNode2, -value, k,j+1,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("60 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -917,24 +994,27 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 #endif
 
 #if INCLUDE_KDIR
-            value = dt*(((Dfront + D)/(grid->x[2][k+1] - grid->x[2][k]))+((D+Dback)/(grid->x[2][k] - grid->x[2][k-1])))/(grid->x[2][k+1] - grid->x[2][k-1]);
+            value = factor*dt*(((Dfront + D)/(grid->x[2][k+1] - grid->x[2][k]))+((D+Dback)/(grid->x[2][k] - grid->x[2][k-1])))/(grid->x[2][k+1] - grid->x[2][k-1]);
             curNode = addElement(curNode, value, k,j,i,l);
+            curNode2 = addElement(curNode2, -value, k,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("61 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
 
-            value = -dt*((Dfront + D)/(grid->x[2][k+1] - grid->x[2][k]))/(grid->x[2][k+1] - grid->x[2][k-1]);
+            value = -factor*dt*((Dfront + D)/(grid->x[2][k+1] - grid->x[2][k]))/(grid->x[2][k+1] - grid->x[2][k-1]);
             curNode = addElement(curNode, value, k+1, j, i, l);
+            curNode2 = addElement(curNode2, -value, k+1, j, i, l);
                 if((value != value) || (value*0 != value*0)){
                     printf("62 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
 
-            value = -dt*((D+Dback)/(grid->x[2][k] - grid->x[2][k-1]))/(grid->x[2][k+1] - grid->x[2][k-1]);
+            value = -factor*dt*((D+Dback)/(grid->x[2][k] - grid->x[2][k-1]))/(grid->x[2][k+1] - grid->x[2][k-1]);
             curNode = addElement(curNode, value, k-1, j, i, l);
+            curNode2 = addElement(curNode2, -value, k-1, j, i, l);
                 if((value != value) || (value*0 != value*0)){
                     printf("63 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -942,30 +1022,34 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 
 
             if(data->Vc[VX3][k][j][i] > 0){
-                value = dt*data->Vc[VX3][k][j][i]/(grid->x[2][k] - grid->x[2][k-1]);
+                value = factor*dt*data->Vc[VX3][k][j][i]/(grid->x[2][k] - grid->x[2][k-1]);
                 curNode = addElement(curNode, value, k,j,i,l);
+                curNode2 = addElement(curNode2, -value, k,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("64 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
-                value = -dt*data->Vc[VX3][k-1][j][i]/(grid->x[2][k] - grid->x[2][k-1]);
+                value = -factor*dt*data->Vc[VX3][k-1][j][i]/(grid->x[2][k] - grid->x[2][k-1]);
                 curNode = addElement(curNode, value, k-1,j,i,l);
+                curNode2 = addElement(curNode2, -value, k-1,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("65 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
             } else {
-                value = -dt*data->Vc[VX3][k][j][i]/(grid->x[2][k+1] - grid->x[2][k]);
+                value = -factor*dt*data->Vc[VX3][k][j][i]/(grid->x[2][k+1] - grid->x[2][k]);
                 curNode = addElement(curNode, value, k,j,i,l);
+                curNode2 = addElement(curNode2, -value, k,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("66 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
-                value = dt*data->Vc[VX3][k+1][j][i]/(grid->x[2][k+1] - grid->x[2][k]);
+                value = factor*dt*data->Vc[VX3][k+1][j][i]/(grid->x[2][k+1] - grid->x[2][k]);
                 curNode = addElement(curNode, value, k+1,j,i,l);
+                curNode2 = addElement(curNode2, -value, k+1,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("67 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -974,24 +1058,27 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 #endif
 
 #elif GEOMETRY == SPHERICAL
-            value = dt*(((grid->x[0][i+1]*grid->x[0][i+1]*Dright + grid->x[0][i]*grid->x[0][i]*D)/(grid->x[0][i+1] - grid->x[0][i]))+((grid->x[0][i]*grid->x[0][i]*D+grid->x[0][i-1]*grid->x[0][i-1]*Dleft)/(grid->x[0][i] - grid->x[0][i-1])))/(grid->x[0][i]*grid->x[0][i]*(grid->x[0][i+1] - grid->x[0][i-1]));
+            value = factor*dt*(((grid->x[0][i+1]*grid->x[0][i+1]*Dright + grid->x[0][i]*grid->x[0][i]*D)/(grid->x[0][i+1] - grid->x[0][i]))+((grid->x[0][i]*grid->x[0][i]*D+grid->x[0][i-1]*grid->x[0][i-1]*Dleft)/(grid->x[0][i] - grid->x[0][i-1])))/(grid->x[0][i]*grid->x[0][i]*(grid->x[0][i+1] - grid->x[0][i-1]));
             curNode = addElement(curNode, value, k,j,i,l);
+            curNode2 = addElement(curNode2, -value, k,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("68 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
 
-            value = -dt*((grid->x[0][i+1]*grid->x[0][i+1]*Dright + grid->x[0][i]*grid->x[0][i]*D)/(grid->x[0][i+1] - grid->x[0][i]))/(grid->x[0][i]*grid->x[0][i]*(grid->x[0][i+1] - grid->x[0][i-1]));
+            value = -factor*dt*((grid->x[0][i+1]*grid->x[0][i+1]*Dright + grid->x[0][i]*grid->x[0][i]*D)/(grid->x[0][i+1] - grid->x[0][i]))/(grid->x[0][i]*grid->x[0][i]*(grid->x[0][i+1] - grid->x[0][i-1]));
             curNode = addElement(curNode, value, k, j, i+1, l);
+            curNode2 = addElement(curNode2, -value, k, j, i+1, l);
                 if((value != value) || (value*0 != value*0)){
                     printf("69 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
 
-            value = -dt*((grid->x[0][i]*grid->x[0][i]*D+grid->x[0][i-1]*grid->x[0][i-1]*Dleft)/(grid->x[0][i] - grid->x[0][i-1]))/(grid->x[0][i]*grid->x[0][i]*(grid->x[0][i+1] - grid->x[0][i-1]));
+            value = -factor*dt*((grid->x[0][i]*grid->x[0][i]*D+grid->x[0][i-1]*grid->x[0][i-1]*Dleft)/(grid->x[0][i] - grid->x[0][i-1]))/(grid->x[0][i]*grid->x[0][i]*(grid->x[0][i+1] - grid->x[0][i-1]));
             curNode = addElement(curNode, value, k, j, i-1, l);
+            curNode2 = addElement(curNode2, -value, k, j, i-1, l);
                 if((value != value) || (value*0 != value*0)){
                     printf("70 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -999,30 +1086,34 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 
 
             if(data->Vc[VX1][k][j][i] > 0){
-                value = dt*grid->x[0][i]*grid->x[0][i]*data->Vc[VX1][k][j][i]/(grid->x[0][i]*grid->x[0][i]*(grid->x[0][i] - grid->x[0][i-1]));
+                value = factor*dt*grid->x[0][i]*grid->x[0][i]*data->Vc[VX1][k][j][i]/(grid->x[0][i]*grid->x[0][i]*(grid->x[0][i] - grid->x[0][i-1]));
                 curNode = addElement(curNode, value, k,j,i,l);
+                curNode2 = addElement(curNode2, -value, k,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("71 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
-                value = -dt*grid->x[0][i-1]*grid->x[0][i-1]*data->Vc[VX1][k][j][i-1]/(grid->x[0][i]*grid->x[0][i]*(grid->x[0][i] - grid->x[0][i-1]));
+                value = -factor*dt*grid->x[0][i-1]*grid->x[0][i-1]*data->Vc[VX1][k][j][i-1]/(grid->x[0][i]*grid->x[0][i]*(grid->x[0][i] - grid->x[0][i-1]));
                 curNode = addElement(curNode, value, k,j,i-1,l);
+                curNode2 = addElement(curNode2, -value, k,j,i-1,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("72 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
             } else {
-                value = -dt*grid->x[0][i]*grid->x[0][i]*data->Vc[VX1][k][j][i]/(grid->x[0][i]*grid->x[0][i]*(grid->x[0][i+1] - grid->x[0][i]));
+                value = -factor*dt*grid->x[0][i]*grid->x[0][i]*data->Vc[VX1][k][j][i]/(grid->x[0][i]*grid->x[0][i]*(grid->x[0][i+1] - grid->x[0][i]));
                 curNode = addElement(curNode, value, k,j,i,l);
+                curNode2 = addElement(curNode2, -value, k,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("73 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
-                value = dt*grid->x[0][i+1]*grid->x[0][i+1]*data->Vc[VX1][k][j][i+1]/(grid->x[0][i]*grid->x[0][i]*(grid->x[0][i+1] - grid->x[0][i]));
+                value = factor*dt*grid->x[0][i+1]*grid->x[0][i+1]*data->Vc[VX1][k][j][i+1]/(grid->x[0][i]*grid->x[0][i]*(grid->x[0][i+1] - grid->x[0][i]));
                 curNode = addElement(curNode, value, k,j,i+1,l);
+                curNode2 = addElement(curNode2, -value, k,j,i+1,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("74 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -1030,24 +1121,27 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 
             }
 #if INCLUDE_JDIR
-            value = dt*(((Dtop*sin(grid->x[1][j+1]) + D*sin(grid->x[1][j]))/(grid->x[1][j+1] - grid->x[1][j]))+((D*sin(grid->x[1][j])+Dbottom*sin(grid->x[1][j-1]))/(grid->x[1][j] - grid->x[1][j-1])))/(grid->x[0][i]*grid->x[0][i]*sin(grid->x[1][j])*(grid->x[1][j+1] - grid->x[1][j-1]));
+            value = factor*dt*(((Dtop*sin(grid->x[1][j+1]) + D*sin(grid->x[1][j]))/(grid->x[1][j+1] - grid->x[1][j]))+((D*sin(grid->x[1][j])+Dbottom*sin(grid->x[1][j-1]))/(grid->x[1][j] - grid->x[1][j-1])))/(grid->x[0][i]*grid->x[0][i]*sin(grid->x[1][j])*(grid->x[1][j+1] - grid->x[1][j-1]));
             curNode = addElement(curNode, value, k,j,i,l);
+            curNode2 = addElement(curNode2, -value, k,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("75 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
 
-            value = -dt*((Dtop*sin(grid->x[1][j+1]) + D*sin(x->grid->x[1][j]))/(grid->x[1][j+1] - grid->x[1][j]))/(grid->x[0][i]*grid->x[0][i]*sin(grid->x[1][j])*(grid->x[1][j+1] - grid->x[1][j-1]));
+            value = -factor*dt*((Dtop*sin(grid->x[1][j+1]) + D*sin(x->grid->x[1][j]))/(grid->x[1][j+1] - grid->x[1][j]))/(grid->x[0][i]*grid->x[0][i]*sin(grid->x[1][j])*(grid->x[1][j+1] - grid->x[1][j-1]));
             curNode = addElement(curNode, value, k, j+1, i, l);
+            curNode2 = addElement(curNode2, -value, k, j+1, i, l);
                 if((value != value) || (value*0 != value*0)){
                     printf("76 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
 
-            value = -dt*((D*sin(grid->x[1][j])+Dbottom*sin(grid->x[1][j-1]))/(grid->x[1][j] - grid->x[1][j-1]))/(grid->x[0][i]*grid->x[0][i]*sin(grid->x[1][j])*(grid->x[1][j+1] - grid->x[1][j-1]));
+            value = -factor*dt*((D*sin(grid->x[1][j])+Dbottom*sin(grid->x[1][j-1]))/(grid->x[1][j] - grid->x[1][j-1]))/(grid->x[0][i]*grid->x[0][i]*sin(grid->x[1][j])*(grid->x[1][j+1] - grid->x[1][j-1]));
             curNode = addElement(curNode, value, k, j-1, i, l);
+            curNode2 = addElement(curNode2, -value, k, j-1, i, l);
                 if((value != value) || (value*0 != value*0)){
                     printf("77 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -1055,30 +1149,34 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 
 
             if(data->Vc[VX2][k][j][i] > 0){
-                value = dt*data->Vc[VX2][k][j][i]/(grid->x[0][i]*grid->x[0][i]*(grid->x[1][j] - grid->x[1][j-1]));
+                value = factor*dt*data->Vc[VX2][k][j][i]/(grid->x[0][i]*grid->x[0][i]*(grid->x[1][j] - grid->x[1][j-1]));
                 curNode = addElement(curNode, value, k,j,i,l);
+                curNode2 = addElement(curNode2, -value, k,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("78 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
-                value = -dt*sin(grid->x[1][j-1])*data->Vc[VX2][k][j-1][i]/(grid->x[0][i]*grid->x[0][i]*sin(grid->x[1][j])*(grid->x[1][j] - grid->x[1][j-1]));
+                value = -factor*dt*sin(grid->x[1][j-1])*data->Vc[VX2][k][j-1][i]/(grid->x[0][i]*grid->x[0][i]*sin(grid->x[1][j])*(grid->x[1][j] - grid->x[1][j-1]));
                 curNode = addElement(curNode, value, k,j-1,i,l);
+                curNode2 = addElement(curNode2, -value, k,j-1,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("79 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
             } else {
-                value = -dt*data->Vc[VX2][k][j][i]/(grid->x[0][i]*grid->x[0][i]*(grid->x[1][j+1] - grid->x[1][j]));
+                value = -factor*dt*data->Vc[VX2][k][j][i]/(grid->x[0][i]*grid->x[0][i]*(grid->x[1][j+1] - grid->x[1][j]));
                 curNode = addElement(curNode, value, k,j,i,l);
+                curNode2 = addElement(curNode2, -value, k,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("80 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
-                value = dt*sin(grid->x[1][j+1])*data->Vc[VX2][k][j+1][i]/(grid->x[0][i]*grid->x[0][i]*sin(grid->x[1][j])*(grid->x[1][j+1] - grid->x[1][j]));
+                value = factor*dt*sin(grid->x[1][j+1])*data->Vc[VX2][k][j+1][i]/(grid->x[0][i]*grid->x[0][i]*sin(grid->x[1][j])*(grid->x[1][j+1] - grid->x[1][j]));
                 curNode = addElement(curNode, value, k,j+1,i,l);
+                curNode2 = addElement(curNode2, -value, k,j+1,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("81 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -1089,24 +1187,27 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 
 #if INCLUDE_KDIR
             double r2sin2theta = grid->x[0][i]*grid->x[0][i]*sin(grid->x[1][j])*sin(grid->x[1][j]);
-            value = dt*(((Dfront + D)/(grid->x[2][k+1] - grid->x[2][k]))+((D+Dback)/(grid->x[2][k] - grid->x[2][k-1])))/(r2sin2theta*(grid->x[2][k+1] - grid->x[2][k-1]));
+            value = factor*dt*(((Dfront + D)/(grid->x[2][k+1] - grid->x[2][k]))+((D+Dback)/(grid->x[2][k] - grid->x[2][k-1])))/(r2sin2theta*(grid->x[2][k+1] - grid->x[2][k-1]));
             curNode = addElement(curNode, value, k,j,i,l);
+            curNode2 = addElement(curNode2, -value, k,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("82 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
 
-            value = -dt*((Dfront + D)/(grid->x[2][k+1] - grid->x[2][k]))/(r2sin2theta*(grid->x[2][k+1] - grid->x[2][k-1]));
+            value = -factor*dt*((Dfront + D)/(grid->x[2][k+1] - grid->x[2][k]))/(r2sin2theta*(grid->x[2][k+1] - grid->x[2][k-1]));
             curNode = addElement(curNode, value, k+1, j, i, l);
+            curNode2 = addElement(curNode2, -value, k+1, j, i, l);
                 if((value != value) || (value*0 != value*0)){
                     printf("83 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
 
-            value = -dt*((D+Dback)/(grid->x[2][k] - grid->x[2][k-1]))/(r2sin2theta*(grid->x[2][k+1] - grid->x[2][k-1]));
+            value = -factor*dt*((D+Dback)/(grid->x[2][k] - grid->x[2][k-1]))/(r2sin2theta*(grid->x[2][k+1] - grid->x[2][k-1]));
             curNode = addElement(curNode, value, k-1, j, i, l);
+            curNode2 = addElement(curNode2, -value, k-1, j, i, l);
                 if((value != value) || (value*0 != value*0)){
                     printf("84 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -1114,30 +1215,34 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 
 
             if(data->Vc[VX3][k][j][i] > 0){
-                value = dt*data->Vc[VX3][k][j][i]/(grid->x[0][i]*sin(grid->x[1][j])*(grid->x[2][k] - grid->x[2][k-1]));
+                value = factor*dt*data->Vc[VX3][k][j][i]/(grid->x[0][i]*sin(grid->x[1][j])*(grid->x[2][k] - grid->x[2][k-1]));
                 curNode = addElement(curNode, value, k,j,i,l);
+                curNode2 = addElement(curNode2, -value, k,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("85 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
-                value = -dt*data->Vc[VX3][k-1][j][i]/(grid->x[0][i]*sin(grid->x[1][j])*(grid->x[2][k] - grid->x[2][k-1]));
+                value = -factor*dt*data->Vc[VX3][k-1][j][i]/(grid->x[0][i]*sin(grid->x[1][j])*(grid->x[2][k] - grid->x[2][k-1]));
                 curNode = addElement(curNode, value, k-1,j,i,l);
+                curNode2 = addElement(curNode2, -value, k-1,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("86 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
             } else {
-                value = -dt*data->Vc[VX3][k][j][i]/(grid->x[0][i]*sin(grid->x[1][j])*(grid->x[2][k+1] - grid->x[2][k]));
+                value = -factor*dt*data->Vc[VX3][k][j][i]/(grid->x[0][i]*sin(grid->x[1][j])*(grid->x[2][k+1] - grid->x[2][k]));
                 curNode = addElement(curNode, value, k,j,i,l);
+                curNode2 = addElement(curNode2, -value, k,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("87 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
                 }
 
-                value = dt*data->Vc[VX3][k+1][j][i]/(grid->x[0][i]*sin(grid->x[1][j])*(grid->x[2][k+1] - grid->x[2][k]));
+                value = factor*dt*data->Vc[VX3][k+1][j][i]/(grid->x[0][i]*sin(grid->x[1][j])*(grid->x[2][k+1] - grid->x[2][k]));
                 curNode = addElement(curNode, value, k+1,j,i,l);
+                curNode2 = addElement(curNode2, -value, k+1,j,i,l);
                 if((value != value) || (value*0 != value*0)){
                     printf("88 value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -1168,6 +1273,84 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
             }
         }
     }
+
+    //crank-nickelson
+    DOM_LOOP(k,j,i){
+        int maxNU = NMOMENTUM - 1;
+
+#if INCLUDE_IDIR
+        if(grid->lbound[0] != 0){
+            if(grid->lbound[0] != PERIODIC){
+            if(i == IBEG){
+                    for(int l = 0; l < maxNU; ++l){
+                        data->rightPart[k][j][i][l] = 0;
+                    }
+            }
+            }
+        }
+
+        if(grid->rbound[0] != 0){
+            if(grid->rbound[0] != PERIODIC){
+            if(i == IEND){
+                    for(int l = 0; l < maxNU; ++l){
+                        data->rightPart[k][j][i][l] = 0;
+                    }
+            }
+            }
+        }
+#endif
+
+#if INCLUDE_JDIR
+        if(grid->lbound[1] != 0){
+            if(grid->lbound[1] != PERIODIC){
+                if(j == JBEG){
+                        for(int l = 0; l < maxNU; ++l){
+                            data->rightPart[k][j][i][l] = 0;
+                        }
+                }
+            }
+        }
+
+        if(grid->rbound[1] != 0){
+            if(grid->rbound[1] != PERIODIC){
+                if(j == JEND){
+                        for(int l = 0; l < maxNU; ++l){
+                            data->rightPart[k][j][i][l] = 0;
+                        }
+                }
+            }
+        }
+#endif
+
+#if INCLUDE_KDIR
+        if(grid->lbound[2] != 0){
+            if(grid->lbound[2] != PERIODIC){
+                if(k == KBEG){
+                        for(int l = 0; l < maxNU; ++l){
+                            data->rightPart[k][j][i][l] = 0;
+                        }
+                }
+            }
+        }
+
+        if(grid->rbound[2] != 0){
+            if(grid->rbound[2] != PERIODIC){
+                if(k == KEND){
+                        for(int l = 0; l < maxNU; ++l)
+                            data->rightPart[k][j][i][l] = 0;
+                        }
+                }
+            }
+        }
+
+#endif
+}
+    int  par_dim[3] = {0, 0, 0};
+    DIM_EXPAND(par_dim[0] = grid->nproc[IDIR] > 1;  ,
+               par_dim[1] = grid->nproc[JDIR] > 1;  ,
+               par_dim[2] = grid->nproc[KDIR] > 1;)
+    multiplySpecialMatrixVector(data->rightPart, data->rightPartMatrix, data->Fkin, NMOMENTUM, par_dim);
+
 
     double precision = 0.1/data->p_grid[NMOMENTUM - 1];
     precision = 1E-5;

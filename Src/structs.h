@@ -524,6 +524,7 @@ typedef struct Data_{
     double*** Pkin;
     double*** injectedEnergy;
     struct MatrixElementNode***** matrix;
+    struct MatrixElementNode***** rightPartMatrix;
     struct LargeVectorBasis* gmresBasis;
 #endif
 

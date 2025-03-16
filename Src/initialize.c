@@ -481,14 +481,19 @@ void Initialize(Data *data, Runtime *runtime, Grid *grid, cmdLine *cmd_line)
   data->injectedEnergy = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
 
   data->matrix = (MatrixElementNode*****) malloc(NX3_TOT*sizeof(MatrixElementNode****));
+  data->rightPartMatrix = (MatrixElementNode*****) malloc(NX3_TOT*sizeof(MatrixElementNode****));
   for(int k = 0; k < NX3_TOT; ++k){
       data->matrix[k] = (MatrixElement****) malloc(NX2_TOT*sizeof(MatrixElementNode***));
+      data->rightPartMatrix[k] = (MatrixElement****) malloc(NX2_TOT*sizeof(MatrixElementNode***));
       for(int j = 0; j < NX2_TOT; ++j){
           data->matrix[k][j] = (MatrixElement***) malloc(NX1_TOT*sizeof(MatrixElementNode**));
+          data->rightPartMatrix[k][j] = (MatrixElement***) malloc(NX1_TOT*sizeof(MatrixElementNode**));
           for(int i = 0; i < NX1_TOT; ++i){
               data->matrix[k][j][i] = (MatrixElement**) malloc(NMOMENTUM*sizeof(MatrixElementNode*));
+              data->rightPartMatrix[k][j][i] = (MatrixElement**) malloc(NMOMENTUM*sizeof(MatrixElementNode*));
               for(int l = 0; l < NMOMENTUM; ++l){
                   data->matrix[k][j][i][l] = NULL;
+                  data->rightPartMatrix[k][j][i][l] = NULL;
               }
           }
       }
