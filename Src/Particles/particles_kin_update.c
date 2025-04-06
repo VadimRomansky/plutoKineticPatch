@@ -102,7 +102,7 @@ double evaluateDiffusionCoefficient(Data* data, int i, int j, int k, double u){
     }
 
     //D = 1E26/(UNIT_LENGTH*UNIT_VELOCITY);
-    D = D;
+    D = 1000*D;
 
     return D;
 }
@@ -431,12 +431,12 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
             double Dfront = evaluateDiffusionCoefficient(data, i,j,k+1, data->p_grid[l]);
 #endif
 
-            inv_dt_new = fabs(2*4*D/(dx1*dx1));
+            /*inv_dt_new = fabs(2*4*D/(dx1*dx1));
             inv_dt = MAX(inv_dt, inv_dt_new);
             inv_dt_new = fabs(2*4*D/(dx2*dx2));
             inv_dt = MAX(inv_dt, inv_dt_new);
             inv_dt_new = fabs(2*4*D/(dx3*dx3));
-            inv_dt = MAX(inv_dt, inv_dt_new);
+            inv_dt = MAX(inv_dt, inv_dt_new);*/
 
             double dp = 0;
             if(divu > 0){
@@ -1351,11 +1351,36 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
                par_dim[2] = grid->nproc[KDIR] > 1;)
     multiplySpecialMatrixVector(data->rightPart, data->rightPartMatrix, data->Fkin, NMOMENTUM, par_dim);
 
+    double**** initialVector = (double****) malloc(NX3_TOT*sizeof(double***));
+    for(int k = 0; k < NX3_TOT; ++k){
+        initialVector[k] = (double***) malloc(NX2_TOT*sizeof(double**));
+        for(int j = 0; j < NX2_TOT; ++j){
+            initialVector[k][j] = (double**) malloc(NX1_TOT*sizeof(double*));
+            for(int i = 0; i < NX1_TOT; ++i){
+                initialVector[k][j][i] = (double*) malloc(NMOMENTUM*sizeof(double));
+                for(int l = 0; l < NMOMENTUM; ++l){
+                    initialVector[k][j][i][l] = data->Fkin[k][j][i][l];
+                }
+            }
+        }
+    }
 
     double precision = 0.1/data->p_grid[NMOMENTUM - 1];
     precision = 1E-5;
-    generalizedMinimalResidualMethod(grid, data->matrix, data->rightPart, data->Fkin, data->gmresBasis, NMOMENTUM, precision, MAX_GMRES_ITERATIONS, 1);
+    generalizedMinimalResidualMethod(grid, data->matrix, data->rightPart, data->Fkin, initialVector, data->gmresBasis, NMOMENTUM, precision, MAX_GMRES_ITERATIONS, 1);
+    //generalizedMinimalResidualMethod1(grid, data->matrix, data->rightPart, data->Fkin, data->gmresBasis, NMOMENTUM, precision, MAX_GMRES_ITERATIONS, 1);
     //biconjugateStabilizedGradientMethod(grid, data->matrix, data->rightPart, data->Fkin, NMOMENTUM, precision, MAX_GMRES_ITERATIONS, 1);
+
+    for(int k = 0; k < NX3_TOT; ++k){
+        for(int j = 0; j < NX2_TOT; ++j){
+            for(int i = 0; i < NX1_TOT; ++i){
+                free(initialVector[k][j][i]);
+            }
+            free(initialVector[k][j]);
+        }
+        free(initialVector[k]);
+    }
+    free(initialVector);
 
     TOT_LOOP(k,j,i){
         for(int l = 0; l < NMOMENTUM; ++l){

@@ -190,7 +190,37 @@ void arnoldiIterations(MatrixElementNode***** matrix, double** outHessenbergMatr
     exchangeLargeVector(gmresBasis->array[n - 1], lnumber, par_dim, SZ_stagx);
 }
 
-void generalizedMinimalResidualMethod(Grid* grid, MatrixElementNode***** matrix, double ****rightPart, double ****outvector, LargeVectorBasis* gmresBasis, int lnumber, double precision,
+void generalizedMinimalResidualMethod1(Grid* grid, MatrixElementNode***** matrix, double ****rightPart, double ****outvector, LargeVectorBasis* gmresBasis, int lnumber, double precision,
+                                      int maxIteration, int verbosity) {
+    double**** initialVector = (double****) malloc(NX3_TOT*sizeof(double***));
+    for(int k = 0; k < NX3_TOT; ++k){
+        initialVector[k] = (double***) malloc(NX2_TOT*sizeof(double**));
+        for(int j = 0; j < NX2_TOT; ++j){
+            initialVector[k][j] = (double**) malloc(NX1_TOT*sizeof(double*));
+            for(int i = 0; i < NX1_TOT; ++i){
+                initialVector[k][j][i] = (double*) malloc(lnumber*sizeof(double));
+                for(int l = 0; l < lnumber; ++l){
+                    initialVector[k][j][i][l] = 0;
+                }
+            }
+        }
+    }
+
+    generalizedMinimalResidualMethod(grid, matrix, rightPart, outvector, initialVector, gmresBasis, lnumber, precision, maxIteration, verbosity);
+
+    for(int k = 0; k < NX3_TOT; ++k){
+        for(int j = 0; j < NX2_TOT; ++j){
+            for(int i = 0; i < NX1_TOT; ++i){
+                free(initialVector[k][j][i]);
+            }
+            free(initialVector[k][j]);
+        }
+        free(initialVector[k]);
+    }
+    free(initialVector);
+}
+
+void generalizedMinimalResidualMethod(Grid* grid, MatrixElementNode***** matrix, double ****rightPart, double ****outvector, double**** initialVector, LargeVectorBasis* gmresBasis, int lnumber, double precision,
                                       int maxIteration, int verbosity) {
     int rank = 0;
 	int nprocs;
@@ -266,19 +296,37 @@ void generalizedMinimalResidualMethod(Grid* grid, MatrixElementNode***** matrix,
     oldRmatrix[0] = (double*) malloc(1*sizeof(double));
     oldRmatrix[1] = (double*) malloc(1*sizeof(double));
 
+    TOT_LOOP(k,j,i){
+        for (int l = 0; l < lnumber; ++l) {
+            initialVector[k][j][i][l] = initialVector[k][j][i][l] / norm;
+        }
+    }
+
 	if (gmresBasis->capacity <= 0) {
         resize(gmresBasis, 5);
 	}
+
+    multiplySpecialMatrixVector(gmresBasis->array[0], matrix, initialVector, lnumber, par_dim);
+
     DOM_LOOP(k,j,i){
 				for (int l = 0; l < lnumber; ++l) {
-                    gmresBasis->array[0][k][j][i][l] = rightPart[k][j][i][l];
+                    gmresBasis->array[0][k][j][i][l] = rightPart[k][j][i][l] - gmresBasis->array[0][k][j][i][l];
 				}
 	}
     exchangeLargeVector(gmresBasis->array[0], lnumber, par_dim, SZ_stagx);
 	gmresBasis->size = 1;
 
+    double norm1 = sqrt(scalarMultiplyLargeVectors(gmresBasis->array[0], gmresBasis->array[0], lnumber));
+
+    TOT_LOOP(k, j, i){
+        for (int l = 0; l < lnumber; ++l) {
+            gmresBasis->array[0][k][j][i][l] = gmresBasis->array[0][k][j][i][l]/norm1;
+        }
+    }
+
 	int n = 2;
-	double beta = 1.0;
+    //double beta = 1.0;
+    double beta = norm1;
 	double error = beta;
     double* y = (double*) malloc(1*sizeof(double));
 
@@ -436,7 +484,7 @@ void generalizedMinimalResidualMethod(Grid* grid, MatrixElementNode***** matrix,
 
     DOM_LOOP(k,j,i){
 				for (int l = 0; l < lnumber; ++l) {
-                    outvector[k][j][i][l] = 0;
+                    outvector[k][j][i][l] = initialVector[k][j][i][l]*norm;
 					for (int m = 0; m < n - 1; ++m) {
                         outvector[k][j][i][l] += gmresBasis->array[m][k][j][i][l] * y[m] * norm;
 						//outvector[i][l] += basis[m][i][l] * y[m];

@@ -12,7 +12,9 @@ struct Grid;
 #include "matrixElement.h"
 #include "largeVectorBasis.h"
 
-void generalizedMinimalResidualMethod(Grid* grid, MatrixElementNode***** matrix, double ****rightPart, double ****outvector, LargeVectorBasis* gmresBasis, int lnumber, double precision,
+void generalizedMinimalResidualMethod1(Grid* grid, MatrixElementNode***** matrix, double ****rightPart, double ****outvector, LargeVectorBasis* gmresBasis, int lnumber, double precision,
+                                      int maxIteration, int verbosity);
+void generalizedMinimalResidualMethod(Grid* grid, MatrixElementNode***** matrix, double ****rightPart, double ****outvector, double**** initialVector, LargeVectorBasis* gmresBasis, int lnumber, double precision,
                                       int maxIteration, int verbosity);
 void arnoldiIterations(MatrixElementNode*****matrix, double **outHessenbergMatrix, int n,
                        LargeVectorBasis* gmresBasis, double **prevHessenbergMatrix, int lnumber, int* par_dim);
