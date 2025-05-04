@@ -10,6 +10,7 @@ OBJ += particles_kin_feedback.o particles_kin_force.o               \
        particles_kin_update.o       \
        largeVectorBasis.o \
        matrixElement.o \
-       specialmath.o      
+       specialmath.o \
+       threeDiagonal.o      
 
 

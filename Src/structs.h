@@ -523,6 +523,25 @@ typedef struct Data_{
     double**** rightPart;
     double*** Pkin;
     double*** injectedEnergy;
+#if INCLUDE_IDIR
+    double**** ax;
+    double**** bx;
+    double**** cx;
+#endif
+#if INCLUDE_JDIR
+    double**** ay;
+    double**** by;
+    double**** cy;
+#endif
+#if INCLUDE_KDIR
+    double**** az;
+    double**** bz;
+    double**** cz;
+#endif
+    double**** ap;
+    double**** bp;
+    double**** cp;
+
     struct MatrixElementNode***** matrix;
     struct MatrixElementNode***** rightPartMatrix;
     struct LargeVectorBasis* gmresBasis;

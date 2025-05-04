@@ -480,6 +480,25 @@ void Initialize(Data *data, Runtime *runtime, Grid *grid, cmdLine *cmd_line)
   data->Pkin = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
   data->injectedEnergy = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
 
+#if INCLUDE_IDIR
+  data->ax = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NMOMENTUM, double);
+  data->bx = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NMOMENTUM, double);
+  data->cx = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NMOMENTUM, double);
+#endif
+#if INCLUDE_JDIR
+  data->ay = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NMOMENTUM, double);
+  data->by = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NMOMENTUM, double);
+  data->cy = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NMOMENTUM, double);
+#endif
+#if INCLUDE_KDIR
+  data->az = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NMOMENTUM, double);
+  data->bz = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NMOMENTUM, double);
+  data->cz = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NMOMENTUM, double);
+#endif
+  data->ap = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NMOMENTUM, double);
+  data->bp = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NMOMENTUM, double);
+  data->cp = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NMOMENTUM, double);
+
   data->matrix = (MatrixElementNode*****) malloc(NX3_TOT*sizeof(MatrixElementNode****));
   data->rightPartMatrix = (MatrixElementNode*****) malloc(NX3_TOT*sizeof(MatrixElementNode****));
   for(int k = 0; k < NX3_TOT; ++k){

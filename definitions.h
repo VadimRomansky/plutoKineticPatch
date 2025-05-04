@@ -1,6 +1,6 @@
 #define  PHYSICS                        RMHD
 #define  DIMENSIONS                     2
-#define  GEOMETRY                       CYLINDRICAL
+#define  GEOMETRY                       CARTESIAN
 #define  BODY_FORCE                     NO
 #define  COOLING                        NO
 #define  RECONSTRUCTION                 LINEAR
@@ -45,7 +45,8 @@
 #define  PARTICLES_KIN_C                (CONST_c/UNIT_VELOCITY)
 #define  PARTICLES_KIN_MASS             (CONST_mp/(UNIT_DENSITY*UNIT_LENGTH*UNIT_LENGTH*UNIT_LENGTH))
 #define  PARTICLES_KIN_FEEDBACK         NO
-#define  PARTICLES_KIN_OUTPUT_STEP      2
+#define  PARTICLES_KIN_OUTPUT_STEP      1
+#define  PARTICLES_KIN_SOLVER           THREE_DIAGONAL
 #define  TURBULENT_FIELD                NO
 #define  NTURB                          10
 #define  NMOMENTUM                      50
