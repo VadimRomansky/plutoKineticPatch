@@ -644,13 +644,13 @@ void parallelThreeDiagonalSolverX(double**** x, double**** rightPart, double****
                 MPI_Gather(outcoef, 6, MPI_DOUBLE, incoef, 6, MPI_DOUBLE, 0, comm);
                 if(rank == 0){
                     for(int m = 0; m < Nprocs; ++m){
-                        parallelA[k-KBEG][j-BEG][2*m][l] = incoef[6*m];
+                        parallelA[k-KBEG][j-JBEG][2*m][l] = incoef[6*m];
                         parallelC[k-KBEG][j-JBEG][2*m][l] = incoef[6*m+1];
                         parallelRightPart[k-KBEG][j-JBEG][2*m][l] = incoef[6*m+2];
                         parallelB[k-KBEG][j-JBEG][2*m][l] = 1.0;
                         parallelA[k-KBEG][j-JBEG][2*m+1][l] = incoef[6*m + 3];
                         parallelC[k-KBEG][j-JBEG][2*m+1][l] = incoef[6*m + 4];
-                        parallelRightPart[k-KBEG][j-JBEF][2*m+1][l] = incoef[6*m + 5];
+                        parallelRightPart[k-KBEG][j-JBEG][2*m+1][l] = incoef[6*m + 5];
                         parallelB[k-KBEG][j-JBEG][2*m+1][l] = 1.0;
                     }
                 }

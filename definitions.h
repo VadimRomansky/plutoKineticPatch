@@ -49,7 +49,7 @@
 #define  PARTICLES_KIN_SOLVER           THREE_DIAGONAL
 #define  TURBULENT_FIELD                NO
 #define  NTURB                          10
-#define  NMOMENTUM                      50
+#define  NMOMENTUM                      100
 #define  MAX_GMRES_ITERATIONS           20
 #define  WARNING_MESSAGES               NO
 #define  MULTIPLE_LOG_FILES             NO
