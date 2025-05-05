@@ -838,9 +838,9 @@ void parallelThreeDiagonalSolverY(double**** x, double**** rightPart, double****
             KDOM_LOOP(k){
                 IDOM_LOOP(i){
                     for(int l = 0; l < Nmomentum; ++l){
-                        send[count] = parallelX[k][2*m][i][l];
+                        send[count] = parallelX[k-KBEG][2*m][i-IBEG][l];
                         count = count + 1;
-                        send[count] = parallelX[k][2*m+1][i][l];
+                        send[count] = parallelX[k-KBEG][2*m+1][i-IBEG][l];
                         count = count + 1;
                     }
                 }
