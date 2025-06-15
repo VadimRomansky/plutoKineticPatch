@@ -111,7 +111,7 @@ double evaluateDiffusionCoefficient(Data* data, int i, int j, int k, double u){
     }
 
     //D = 1E26/(UNIT_LENGTH*UNIT_VELOCITY);
-    D = 1000*D;
+    D = D;
 
     return D;
 }
@@ -1487,18 +1487,12 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
     s = sz_stack[SZ_stagx];
 
 
-    noparallelThreeDiagonalSolverP(data->Fkin, data->rightPart, data->ap, data->bp, data->cp, NMOMENTUM);
-    DOM_LOOP(k,j,i){
-        for(int l = 0; l < NMOMENTUM; ++l){
-            data->rightPart[k][j][i][l] = data->Fkin[k][j][i][l];
-        }
-    }
-    exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx);
 #if INCLUDE_IDIR
     comm = s->oned_comm[0];
     myrank = s->lrank[0];
     nproc = s->lsize[0];
     ndim = s->ndim;
+    //printf("parallel solver x\n");
     parallelThreeDiagonalSolverX(data->Fkin, data->rightPart, data->ax, data->bx, data->cx, NMOMENTUM, nproc, myrank, comm);
     DOM_LOOP(k,j,i){
         for(int l = 0; l < NMOMENTUM; ++l){
@@ -1512,7 +1506,8 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
     myrank = s->lrank[1];
     nproc = s->lsize[1];
     ndim = s->ndim;
-    parallelThreeDiagonalSolverY(data->Fkin, data->rightPart, data->ax, data->bx, data->cx, NMOMENTUM, nproc, myrank, comm);
+    //printf("parallel solver y\n");
+    parallelThreeDiagonalSolverY(data->Fkin, data->rightPart, data->ay, data->by, data->cy, NMOMENTUM, nproc, myrank, comm);
     DOM_LOOP(k,j,i){
         for(int l = 0; l < NMOMENTUM; ++l){
             data->rightPart[k][j][i][l] = data->Fkin[k][j][i][l];
@@ -1525,7 +1520,8 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
     myrank = s->lrank[2];
     nproc = s->lsize[2];
     ndim = s->ndim;
-    parallelThreeDiagonalSolverX(data->Fkin, data->rightPart, data->ax, data->bx, data->cx, NMOMENTUM, nproc, myrank, comm);
+    //printf("parallel solver z\n");
+    parallelThreeDiagonalSolverZ(data->Fkin, data->rightPart, data->az, data->bz, data->cz, NMOMENTUM, nproc, myrank, comm);
     DOM_LOOP(k,j,i){
         for(int l = 0; l < NMOMENTUM; ++l){
             data->rightPart[k][j][i][l] = data->Fkin[k][j][i][l];
@@ -1533,8 +1529,7 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
     }
     exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx);
 #endif
-
-#else
+    //printf("noparallel solver p\n");
     noparallelThreeDiagonalSolverP(data->Fkin, data->rightPart, data->ap, data->bp, data->cp, NMOMENTUM);
     DOM_LOOP(k,j,i){
         for(int l = 0; l < NMOMENTUM; ++l){
@@ -1542,7 +1537,11 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
         }
     }
     exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx);
+
+
+#else
 #if INCLUDE_IDIR
+    //printf("noparallel solver x\n");
     noparallelThreeDiagonalSolverX(data->Fkin, data->rightPart, data->ax, data->bx, data->cx, NMOMENTUM);
     DOM_LOOP(k,j,i){
         for(int l = 0; l < NMOMENTUM; ++l){
@@ -1552,6 +1551,7 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
     exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx);
 #endif
 #if INCLUDE_JDIR
+    //printf("noparallel solver y\n");
     noparallelThreeDiagonalSolverY(data->Fkin, data->rightPart, data->ay, data->by, data->cy, NMOMENTUM);
     DOM_LOOP(k,j,i){
         for(int l = 0; l < NMOMENTUM; ++l){
@@ -1561,6 +1561,7 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
     exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx);
 #endif
 #if INCLUDE_KDIR
+    //printf("noparallel solver z\n");
     noparallelThreeDiagonalSolverZ(data->Fkin, data->rightPart, data->az, data->bz, data->cz, NMOMENTUM);
     DOM_LOOP(k,j,i){
         for(int l = 0; l < NMOMENTUM; ++l){
@@ -1569,6 +1570,15 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
     }
     exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx);
 #endif
+    //printf("noparallel solver p\n");
+    noparallelThreeDiagonalSolverP(data->Fkin, data->rightPart, data->ap, data->bp, data->cp, NMOMENTUM);
+    DOM_LOOP(k,j,i){
+        for(int l = 0; l < NMOMENTUM; ++l){
+            data->rightPart[k][j][i][l] = data->Fkin[k][j][i][l];
+        }
+    }
+    exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx);
+
 #endif
 #else
 
