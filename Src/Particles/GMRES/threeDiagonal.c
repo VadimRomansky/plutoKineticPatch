@@ -571,7 +571,12 @@ void parallelThreeDiagonalSolverX(double**** x, double**** rightPart, double****
     double**** parallelC = (double****) Array4D(NX3, NX2, 2*Nprocs, Nmomentum, sizeof(double));
     double**** parallelX = (double****) Array4D(NX3, NX2, 2*Nprocs, Nmomentum, sizeof(double));
 
+    double* outcoef = (double*) malloc(NX2*NX3*Nmomentum*6*sizeof(double));
+    double* incoef = (double*) malloc(NX2*NX3*Nmomentum*6*Nprocs*sizeof(double));
+
     int i, j, k;
+    int outCount = 0;
+    int inCount = 0;
 
     JDOM_LOOP(j) {
         KDOM_LOOP(k) {
@@ -630,36 +635,66 @@ void parallelThreeDiagonalSolverX(double**** x, double**** rightPart, double****
                 c[k][j][IBEG][l] = - r * c[k][j][IBEG][l] * c[k][j][IBEG+1][l];
 
 
-                double* outcoef = (double*) malloc(6*sizeof(double));
-                outcoef[0] = a[k][j][IBEG][l];
-                outcoef[1] = c[k][j][IBEG][l];
-                outcoef[2] = rightPart[k][j][IBEG][l];
-                outcoef[3] = a[k][j][IEND][l];
-                outcoef[4] = c[k][j][IEND][l];
-                outcoef[5] = rightPart[k][j][IEND][l];
+                //double* outcoef = (double*) malloc(6*sizeof(double));
+                outcoef[outCount] = a[k][j][IBEG][l];
+                outCount++;
+                outcoef[outCount] = c[k][j][IBEG][l];
+                outCount++;
+                outcoef[outCount] = rightPart[k][j][IBEG][l];
+                outCount++;
+                outcoef[outCount] = a[k][j][IEND][l];
+                outCount++;
+                outcoef[outCount] = c[k][j][IEND][l];
+                outCount++;
+                outcoef[outCount] = rightPart[k][j][IEND][l];
+                outCount++;
 
-                double* incoef = (double*) malloc(6*Nprocs*sizeof(double));
+                //double* incoef = (double*) malloc(6*Nprocs*sizeof(double));
+            }
+        }
+    }
 
-                //MPI_Gather(outcoef, 6, MPI_DOUBLE, incoef, 6*Nprocs, MPI_DOUBLE, 0, comm);
-                MPI_Gather(outcoef, 6, MPI_DOUBLE, incoef, 6, MPI_DOUBLE, 0, comm);
+    MPI_Gather(outcoef, 6*NX2*NX3*Nmomentum, MPI_DOUBLE, incoef, 6*NX2*NX3*Nmomentum, MPI_DOUBLE, 0, comm);
+
+    for(int m = 0; m < Nprocs; ++m){
+    JDOM_LOOP(j) {
+        KDOM_LOOP(k) {
+            for (int l = 0; l < Nmomentum; ++l) {
                 if(rank == 0){
-                    for(int m = 0; m < Nprocs; ++m){
-                        parallelA[k-KBEG][j-JBEG][2*m][l] = incoef[6*m];
+
+                        /*parallelA[k-KBEG][j-JBEG][2*m][l] = incoef[6*m];
                         parallelC[k-KBEG][j-JBEG][2*m][l] = incoef[6*m+1];
                         parallelRightPart[k-KBEG][j-JBEG][2*m][l] = incoef[6*m+2];
                         parallelB[k-KBEG][j-JBEG][2*m][l] = 1.0;
                         parallelA[k-KBEG][j-JBEG][2*m+1][l] = incoef[6*m + 3];
                         parallelC[k-KBEG][j-JBEG][2*m+1][l] = incoef[6*m + 4];
                         parallelRightPart[k-KBEG][j-JBEG][2*m+1][l] = incoef[6*m + 5];
-                        parallelB[k-KBEG][j-JBEG][2*m+1][l] = 1.0;
+                        parallelB[k-KBEG][j-JBEG][2*m+1][l] = 1.0;*/
+
+                    parallelA[k-KBEG][j-JBEG][2*m][l] = incoef[inCount];
+                    inCount++;
+                    parallelC[k-KBEG][j-JBEG][2*m][l] = incoef[inCount];
+                    inCount++;
+                    parallelRightPart[k-KBEG][j-JBEG][2*m][l] = incoef[inCount];
+                    inCount++;
+                    parallelB[k-KBEG][j-JBEG][2*m][l] = 1.0;
+                    parallelA[k-KBEG][j-JBEG][2*m+1][l] = incoef[inCount];
+                    inCount++;
+                    parallelC[k-KBEG][j-JBEG][2*m+1][l] = incoef[inCount];
+                    inCount++;
+                    parallelRightPart[k-KBEG][j-JBEG][2*m+1][l] = incoef[inCount];
+                    inCount++;
+                    parallelB[k-KBEG][j-JBEG][2*m+1][l] = 1.0;
                     }
                 }
 
-                free(incoef);
-                free(outcoef);
+
             }
         }
     }
+
+    free(incoef);
+    free(outcoef);
 
     MPI_Barrier(comm);
 
@@ -738,7 +773,12 @@ void parallelThreeDiagonalSolverY(double**** x, double**** rightPart, double****
     double**** parallelC = (double****) Array4D(NX3, 2*Nprocs, NX1, Nmomentum, sizeof(double));
     double**** parallelX = (double****) Array4D(NX3, 2*Nprocs, NX1, Nmomentum, sizeof(double));
 
+    double* outcoef = (double*) malloc(NX1*NX3*Nmomentum*6*sizeof(double));
+    double* incoef = (double*) malloc(NX1*NX3*Nmomentum*6*Nprocs*sizeof(double));
+
     int i, j, k;
+    int outCount = 0;
+    int inCount = 0;
 
     IDOM_LOOP(i){
         KDOM_LOOP(k){
@@ -797,36 +837,56 @@ void parallelThreeDiagonalSolverY(double**** x, double**** rightPart, double****
                 c[k][JBEG][i][l] = - r * c[k][JBEG][i][l] * c[k][JBEG+1][i][l];
 
 
-                double* outcoef = (double*) malloc(6*sizeof(double));
-                outcoef[0] = a[k][JBEG][i][l];
-                outcoef[1] = c[k][JBEG][i][l];
-                outcoef[2] = rightPart[k][JBEG][i][l];
-                outcoef[3] = a[k][JEND][i][l];
-                outcoef[4] = c[k][JEND][i][l];
-                outcoef[5] = rightPart[k][JEND][i][l];
+                //double* outcoef = (double*) malloc(6*sizeof(double));
+                outcoef[outCount] = a[k][JBEG][i][l];
+                outCount++;
+                outcoef[outCount] = c[k][JBEG][i][l];
+                outCount++;
+                outcoef[outCount] = rightPart[k][JBEG][i][l];
+                outCount++;
+                outcoef[outCount] = a[k][JEND][i][l];
+                outCount++;
+                outcoef[outCount] = c[k][JEND][i][l];
+                outCount++;
+                outcoef[outCount] = rightPart[k][JEND][i][l];
+                outCount++;
 
-                double* incoef = (double*) malloc(6*Nprocs*sizeof(double));
+                //double* incoef = (double*) malloc(6*Nprocs*sizeof(double));
+            }
+        }
+    }
 
                 //MPI_Gather(outcoef, 6, MPI_DOUBLE, incoef, 6*Nprocs, MPI_DOUBLE, 0, comm);
-                MPI_Gather(outcoef, 6, MPI_DOUBLE, incoef, 6, MPI_DOUBLE, 0, comm);
+    MPI_Gather(outcoef, 6*NX1*NX3*Nmomentum, MPI_DOUBLE, incoef, 6*NX1*NX3*Nmomentum, MPI_DOUBLE, 0, comm);
+    for(int m = 0; m < Nprocs; ++m){
+    IDOM_LOOP(i){
+        KDOM_LOOP(k){
+            for (int l = 0; l < Nmomentum; ++l) {
                 if(rank == 0){
-                    for(int m = 0; m < Nprocs; ++m){
-                        parallelA[k-KBEG][2*m][i-IBEG][l] = incoef[6*m];
-                        parallelC[k-KBEG][2*m][i-IBEG][l] = incoef[6*m+1];
-                        parallelRightPart[k-KBEG][2*m][i-IBEG][l] = incoef[6*m+2];
+                        parallelA[k-KBEG][2*m][i-IBEG][l] = incoef[inCount];
+                        inCount++;
+                        parallelC[k-KBEG][2*m][i-IBEG][l] = incoef[inCount];
+                        inCount++;
+                        parallelRightPart[k-KBEG][2*m][i-IBEG][l] = incoef[inCount];
+                        inCount++;
                         parallelB[k-KBEG][2*m][i-IBEG][l] = 1.0;
-                        parallelA[k-KBEG][2*m+1][i-IBEG][l] = incoef[6*m + 3];
-                        parallelC[k-KBEG][2*m+1][i-IBEG][l] = incoef[6*m + 4];
-                        parallelRightPart[k-KBEG][2*m+1][i-IBEG][l] = incoef[6*m + 5];
+                        parallelA[k-KBEG][2*m+1][i-IBEG][l] = incoef[inCount];
+                        inCount++;
+                        parallelC[k-KBEG][2*m+1][i-IBEG][l] = incoef[inCount];
+                        inCount++;
+                        parallelRightPart[k-KBEG][2*m+1][i-IBEG][l] = incoef[inCount];
+                        inCount++;
                         parallelB[k-KBEG][2*m+1][i-IBEG][l] = 1.0;
                     }
                 }
 
-                free(incoef);
-                free(outcoef);
+
             }
         }
     }
+
+    free(incoef);
+    free(outcoef);
 
     MPI_Barrier(comm);
 
@@ -904,7 +964,12 @@ void parallelThreeDiagonalSolverZ(double**** x, double**** rightPart, double****
     double**** parallelC = (double****) Array4D(2*Nprocs, NX2, NX1, Nmomentum, sizeof(double));
     double**** parallelX = (double****) Array4D(2*Nprocs, NX2, NX1, Nmomentum, sizeof(double));
 
+    double* outcoef = (double*) malloc(NX2*NX1*Nmomentum*6*sizeof(double));
+    double* incoef = (double*) malloc(NX2*NX1*Nmomentum*6*Nprocs*sizeof(double));
+
     int i, j, k;
+    int outCount = 0;
+    int inCount = 0;
 
     JDOM_LOOP(j){
         IDOM_LOOP(i){
@@ -963,36 +1028,54 @@ void parallelThreeDiagonalSolverZ(double**** x, double**** rightPart, double****
                 c[KBEG][j][i][l] = - r * c[KBEG][j][i][l] * c[KBEG+1][j][i][l];
 
 
-                double* outcoef = (double*) malloc(6*sizeof(double));
-                outcoef[0] = a[KBEG][j][i][l];
-                outcoef[1] = c[KBEG][j][i][l];
-                outcoef[2] = rightPart[KBEG][j][i][l];
-                outcoef[3] = a[KEND][j][i][l];
-                outcoef[4] = c[KEND][j][i][l];
-                outcoef[5] = rightPart[KEND][j][i][l];
+                //double* outcoef = (double*) malloc(6*sizeof(double));
+                outcoef[outCount] = a[KBEG][j][i][l];
+                outCount++;
+                outcoef[outCount] = c[KBEG][j][i][l];
+                outCount++;
+                outcoef[outCount] = rightPart[KBEG][j][i][l];
+                outCount++;
+                outcoef[outCount] = a[KEND][j][i][l];
+                outCount++;
+                outcoef[outCount] = c[KEND][j][i][l];
+                outCount++;
+                outcoef[outCount] = rightPart[KEND][j][i][l];
+                outCount++;
 
-                double* incoef = (double*) malloc(6*Nprocs*sizeof(double));
-
-                //MPI_Gather(outcoef, 6, MPI_DOUBLE, incoef, 6*Nprocs, MPI_DOUBLE, 0, comm);
-                MPI_Gather(outcoef, 6, MPI_DOUBLE, incoef, 6, MPI_DOUBLE, 0, comm);
-                if(rank == 0){
-                    for(int m = 0; m < Nprocs; ++m){
-                        parallelA[2*m][j-JBEG][i-IBEG][l] = incoef[6*m];
-                        parallelC[2*m][j-JBEG][i-IBEG][l] = incoef[6*m+1];
-                        parallelRightPart[2*m][j-JBEG][i-IBEG][l] = incoef[6*m+2];
-                        parallelB[2*m][j-JBEG][i-IBEG][l] = 1.0;
-                        parallelA[2*m+1][j-JBEG][i-IBEG][l] = incoef[6*m + 3];
-                        parallelC[2*m+1][j-JBEG][i-IBEG][l] = incoef[6*m + 4];
-                        parallelRightPart[2*m+1][j-JBEG][i-IBEG][l] = incoef[6*m + 5];
-                        parallelB[2*m+1][j-JBEG][i-IBEG][l] = 1.0;
-                    }
-                }
-
-                free(incoef);
-                free(outcoef);
+                //double* incoef = (double*) malloc(6*Nprocs*sizeof(double));
             }
         }
     }
+
+                //MPI_Gather(outcoef, 6, MPI_DOUBLE, incoef, 6*Nprocs, MPI_DOUBLE, 0, comm);
+    MPI_Gather(outcoef, 6*NX1*NX2*Nmomentum, MPI_DOUBLE, incoef, 6*NX1*NX2*Nmomentum, MPI_DOUBLE, 0, comm);
+    for(int m = 0; m < Nprocs; ++m){
+    JDOM_LOOP(j){
+        IDOM_LOOP(i){
+            for (int l = 0; l < Nmomentum; ++l) {
+                if(rank == 0){
+                        parallelA[2*m][j-JBEG][i-IBEG][l] = incoef[inCount];
+                        inCount++;
+                        parallelC[2*m][j-JBEG][i-IBEG][l] = incoef[inCount];
+                        inCount++;
+                        parallelRightPart[2*m][j-JBEG][i-IBEG][l] = incoef[inCount];
+                        inCount++;
+                        parallelB[2*m][j-JBEG][i-IBEG][l] = 1.0;
+                        parallelA[2*m+1][j-JBEG][i-IBEG][l] = incoef[inCount];
+                        inCount++;
+                        parallelC[2*m+1][j-JBEG][i-IBEG][l] = incoef[inCount];
+                        inCount++;
+                        parallelRightPart[2*m+1][j-JBEG][i-IBEG][l] = incoef[inCount];
+                        inCount++;
+                        parallelB[2*m+1][j-JBEG][i-IBEG][l] = 1.0;
+                    }
+                }
+            }
+        }
+    }
+
+    free(incoef);
+    free(outcoef);
 
     MPI_Barrier(comm);
 
