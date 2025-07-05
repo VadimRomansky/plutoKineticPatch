@@ -35,6 +35,7 @@ class MakeProblem(object):
     self.header_files = Dp.header_files
     self.pluto_path = Dp.pluto_path
     self.chomboflag = Dp.flag_dict['WITH-CHOMBO']
+    self.high_order = Dp.flag_dict['WITH-HO']
     self.particles  = Dp.default[Dp.entries.index('PARTICLES')]
 
     try: 
@@ -132,9 +133,30 @@ class MakeProblem(object):
     """
     shutil.copy(self.pluto_dir + self.makefile_template, self.mkfl_name)
     pf = pfIO.PlutoFiles(self.mkfl_name)
-    pf.ReplaceWord('PLUTO_DIR','PLUTO_DIR    = '+self.pluto_dir+'\n',DelOld=True)
+ 
+    # Set ARCH (architecture), PLUTO_DIR and VPATH
     pf.ReplaceWord('ARCH',self.arch_string, DelOld=True)
+    pf.ReplaceWord('PLUTO_DIR','PLUTO_DIR    = '+self.pluto_dir+'\n',DelOld=True)
 
+    if (not self.chomboflag):
+      if self.high_order:
+        scrh = pf.LocateString('SRC')
+        ipos = scrh[0][0] + 1
+        pf.InsertLine('SRC_HO       = $(SRC)/New/High_Order\n', ipos)
+        vpath = ['./','$(SRC_HO)', '$(SRC)', '$(SRC)/Time_Stepping','$(SRC)/States']
+      else:
+        vpath = ['./','$(SRC)/New', '$(SRC)', '$(SRC)/Time_Stepping','$(SRC)/States']
+
+      pf.ReplaceWord ("VPATH", "VPATH        = "+':'.join(vpath)+'\n', DelOld=True)
+
+    # Insert additional CFLAGS
+    scrh = pf.LocateString('Additional_CFLAGS_here')
+    ipos = scrh[0][0] + 3
+    for x in self.additional_flags:
+      pf.InsertLine('CFLAGS += '+x+'\n', ipos)
+      ipos = ipos + 1
+
+    # Insert additional header and object files 
     scrh = pf.LocateString('Additional_header_files_here')
     ipos = scrh[0][0] + 3
     for x in self.header_files:
@@ -147,10 +169,10 @@ class MakeProblem(object):
       pf.InsertLine('OBJ += '+x + '\n', ipos)
       ipos = ipos + 1
     
+    # Insert additional makefiles
     for x in self.pluto_path:
       pf.InsertLine('include $(SRC)/' + x + 'makefile' + '\n',ipos)
       ipos = ipos + 1
-    
 
     # Add particle specific module: CR, LP or DUST
     if (self.particles == 'PARTICLES_LP'):
@@ -164,7 +186,7 @@ class MakeProblem(object):
     if (self.particles == 'PARTICLES_DUST'):
       pf.InsertLine('include $(SRC)/Particles/makefile_dust' + '\n',ipos)
       ipos = ipos + 1
-
+      
     if (self.particles == 'PARTICLES_MC'):
       pf.InsertLine('include $(SRC)/Particles/makefile_mc' + '\n',ipos)
       ipos = ipos + 1
@@ -172,7 +194,7 @@ class MakeProblem(object):
       pf.InsertLine('include $(SRC)/Particles/makefile_kin' + '\n',ipos)
       ipos = ipos + 1
     
-    for x in self.additional_flags:
-      pf.InsertLine('CFLAGS += '+x+'\n', ipos)
-      ipos = ipos + 1
+#    for x in self.additional_flags:
+#      pf.InsertLine('CFLAGS += '+x+'\n', ipos)
+#      ipos = ipos + 1
        

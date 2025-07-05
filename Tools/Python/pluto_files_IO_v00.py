@@ -26,14 +26,27 @@ class PlutoFiles(object):
       NewList.append(line)
     return NewList
 
+
+  def CheckWord (self, string):
+    # Check word replaces LocateString() in those situations where one needs
+    # only to check whether a the string is present or not.
+    # LocateString(), in fact cannot safely check the string if it does
+    # not appear as a separate word.
+    strlist = []
+    flist   = self.File2List()
+    str_match = [s for s in flist if s.__contains__(string)]
+    return str_match
+
+
+
+
   def LocateString(self,string):
     strlist = []
     scrh = self.File2List()
     for item in scrh:
       if len(string.split()) == 1 and string.split()[0] == string: # Look for 1 word
-        for s in item.split():
-            if s.__contains__(string):
-                strlist.append([scrh.index(item), item])
+        if string in item.split():
+          strlist.append([scrh.index(item), item])
       
       # Look for the whole string... Careful with \n matches thats why 1 word match is better
       elif len(string.split()) > 1: 

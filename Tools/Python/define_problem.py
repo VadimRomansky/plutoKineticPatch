@@ -46,11 +46,11 @@ class DefineProblem(object):
 
     # Creating a dictionary of flags that are invoked by giving arguments.
     flag_keys = ['WITH-CHOMBO', 'FULL', 'WITH-FD', 'WITH-SB', 'WITH-FARGO',
-                 'WITH-PARTICLES','WITH-CR_TRANSPORT']
+                 'WITH-PARTICLES','WITH-HO']
     #self.flag_dict = {key: False for key in flag_keys} DOESNT WORK WITH PYTHON 2.6
     self.flag_dict = {'WITH-CHOMBO':False, 'FULL':False, 'WITH-FD':False,
                       'WITH-SB':False, 'WITH-FARGO':False,
-                      'WITH-CR_TRANSPORT':False}
+                      'WITH-HO':False}
     
     for arg in sys.argv:
       if arg[2:].upper() in flag_keys:
@@ -110,14 +110,6 @@ class DefineProblem(object):
       self.ReadOrBrowse(Ents = self.entries_ResRMHD, Defs = self.default_ResRMHD,
                         Opts = self.options_ResRMHD, MenuTitle = "ResRMHD Menu")
       self.eos = self.default_ResRMHD[self.entries_ResRMHD.index('EOS')]
-
-    if self.default[self.entries.index('PHYSICS')] == 'CR_TRANSPORT':
-      self.ProcessCR_TransportModule()
-      self.ReadOrBrowse(Ents = self.entries_CR_TRANSPORT,
-                        Defs = self.default_CR_TRANSPORT,
-                        Opts = self.options_CR_TRANSPORT,
-                        MenuTitle = "CR_Transport Menu")
-      self.eos = self.default_CR_TRANSPORT[self.entries_CR_TRANSPORT.index('EOS')]
     
     # Process the KROME cooling module when required. 
     if self.default[self.entries.index('COOLING')] == 'KROME':
@@ -170,7 +162,11 @@ class DefineProblem(object):
     bfolist = ['NO','VECTOR', 'POTENTIAL', '(VECTOR+POTENTIAL)']
     coolist = ['NO','POWER_LAW','TABULATED','SNEq','MINEq','H2_COOL', 'KROME']
     intlist = ['FLAT','LINEAR','LimO3','WENO3','PARABOLIC','WENOZ','MP5']
-    tmslist = ['EULER','RK2','RK3','RK4','HANCOCK','CHARACTERISTIC_TRACING']
+    if self.flag_dict['WITH-HO']:
+      tmslist = ['EULER','RK2','RK3','RK4','ARK4','IERK45']
+    else:
+      tmslist = ['EULER','RK2','RK3','HANCOCK','CHARACTERISTIC_TRACING']
+
     ntrlist = ['%d'%n for n in range(9)]
     prtlist = ['NO','PARTICLES_LP','PARTICLES_CR','PARTICLES_DUST','PARTICLES_MC','PARTICLES_KIN']
     udplist = ['%d'%n for n in range(32)]
@@ -258,16 +254,17 @@ class DefineProblem(object):
     Also updates them accordingly if required by flags.
     """
     self.entries_HD = ['DUST_FLUID','EOS', 'ENTROPY_SWITCH',
-                       'THERMAL_CONDUCTION', 'VISCOSITY',
-                       'ROTATING_FRAME']
+                       'INCLUDE_LES','THERMAL_CONDUCTION', 'VISCOSITY',
+                       'RADIATION','ROTATING_FRAME']
     self.default_HD = ['NO','IDEAL', 'NO',
-                       'NO',    'NO',
-                       'NO']
+                       'NO', 'NO',    'NO',
+                       'NO', 'NO']
     self.options_HD = [['NO','YES'],['IDEAL','PVTE_LAW','ISOTHERMAL'],
                        ['NO','SELECTIVE','ALWAYS','CHOMBO_REGRID'],
+                       ['NO','YES'],   # LES options
                        ['NO','EXPLICIT','SUPER_TIME_STEPPING','RK_LEGENDRE'],
                        ['NO','EXPLICIT','SUPER_TIME_STEPPING','RK_LEGENDRE'],
-                       ['NO','YES']]
+                       ['NO','YES'], ['NO','YES']]
   
     if self.flag_dict['WITH-CHOMBO']: # Chombo does not support STS at the
                                       # moment. Only explicit allowed with Chombo
@@ -296,12 +293,12 @@ class DefineProblem(object):
                         'BACKGROUND_FIELD',
                         'AMBIPOLAR_DIFFUSION', 'RESISTIVITY', 'HALL_MHD',
                         'THERMAL_CONDUCTION', 'VISCOSITY',
-                        'ROTATING_FRAME']
+                        'RADIATION', 'ROTATING_FRAME']
     self.default_MHD = ['IDEAL','NO','EIGHT_WAVES',
                         'NO',
                         'NO','NO','NO',
                         'NO','NO',
-                        'NO']
+                        'NO','NO']
     self.options_MHD = [['IDEAL','PVTE_LAW','ISOTHERMAL'],
 #                            ['NO','YES'],
                         ['NO','SELECTIVE','ALWAYS','CHOMBO_REGRID'],
@@ -312,7 +309,7 @@ class DefineProblem(object):
                         ['NO','EXPLICIT'],
                         ['NO','EXPLICIT', 'SUPER_TIME_STEPPING','RK_LEGENDRE'],
                         ['NO','EXPLICIT', 'SUPER_TIME_STEPPING','RK_LEGENDRE'],
-                        ['NO','YES']]
+                        ['NO','YES'],['NO','YES']]
     
     if self.flag_dict['WITH-CHOMBO']:
       indx_ = self.entries_MHD.index('DIVB_CONTROL')
@@ -360,7 +357,7 @@ class DefineProblem(object):
 #                            ['NO','YES'],
                          ['NO','SELECTIVE','ALWAYS','CHOMBO_REGRID'],
                          ['NO','EIGHT_WAVES','DIV_CLEANING','CONSTRAINED_TRANSPORT'],
-                         ['NO','CONSTRAINED_TRANSPORT']]
+                         ['NO','DIV_CLEANING','CONSTRAINED_TRANSPORT']]
 
     if self.flag_dict['WITH-CHOMBO']:
       indx_ = self.entries_ResRMHD.index('DIVB_CONTROL')
@@ -373,16 +370,7 @@ class DefineProblem(object):
     """
     self.entries_Particles = ['PARTICLES']
     self.default_Particles = ['PARTICLES_LP']
-    self.options_Particles = [['PARTICLES_LP', 'PARTICLES_CR','PARTICLES_DUST','PARTICLES_MC']]
-
-  def ProcessCR_TransportModule(self):
-    """
-    Provides entries, options and defaults specific to Hydro Module.
-    Also updates them accordingly if required by flags.
-    """
-    self.entries_CR_TRANSPORT = ['EOS','ANISOTROPY']
-    self.default_CR_TRANSPORT = ['ISOTHERMAL','NO'] 
-    self.options_CR_TRANSPORT = [['ISOTHERMAL'],['NO','YES']]
+    self.options_Particles = [['PARTICLES_LP', 'PARTICLES_CR','PARTICLES_DUST','PARTICLES_MC','PARTICLES_KIN']]
 
   def ProcessKROMEModule(self):
     """
@@ -599,8 +587,6 @@ class DefineProblem(object):
 
     if (parabolic_update):
       self.additional_files.append('parabolic_update.o')
-      
-    self.additional_files.append('turbulent_field_step.o')
 
       
   def AppendPlutoPathAndFlags(self):
@@ -616,6 +602,12 @@ class DefineProblem(object):
       if (    (de.upper() in self.mod_entries)
           and (self.mod_default[self.mod_entries.index(de.upper())] != 'NO')):
         self.pluto_path.append(de+'/')
+
+
+    if (     ('INCLUDE_LES' in self.mod_entries) \
+         and (self.mod_default[self.mod_entries.index('INCLUDE_LES')] != 'NO') ): 
+      self.pluto_path.append("LES/")
+
     
     if    self.phymodule == 'MHD' \
        or self.phymodule == 'RMHD' \
@@ -656,10 +648,10 @@ class DefineProblem(object):
         
 
     # -- Add path for Radiation --
-    if (self.phymodule == "RHD" or self.phymodule == "RMHD"):
+    if self.phymodule != "ResRMHD":
       radiation = self.mod_default[self.mod_entries.index('RADIATION')]
       if (radiation == "YES"): 
-        self.pluto_path.append('RMHD/Radiation/')
+        self.pluto_path.append('Radiation/')
       
     # -- Add path for FARGO --
 
@@ -671,6 +663,12 @@ class DefineProblem(object):
 
     if self.flag_dict['WITH-FD']:
       self.additional_flags.append(' -DFINITE_DIFFERENCE')
+
+    # -- Add path for high-order (HO) --
+
+    if self.flag_dict['WITH-HO']:
+      self.additional_flags.append(' -DHIGH_ORDER')
+      self.pluto_path.append('New/High_Order/')
 
     # -- Add path for ShearingBox (SB) --
 
