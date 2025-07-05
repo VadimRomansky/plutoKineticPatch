@@ -32,8 +32,8 @@
   The value of ::ID_NZ_MAX can be changed from your personal \c definitions.h.
   This task is performed in the InputDataReadSlice() function.
 
-  \authors A. Mignone (mignone@to.infn.it)\n
-  \date    Nov 10, 2020
+  \authors A. Mignone (andrea.mignone@unito.it)\n
+  \date    May 11, 2023
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include"pluto.h"
@@ -45,7 +45,7 @@
 #endif
 
 typedef struct inputData_{
-  char fname[128];
+  char fname[256];
   size_t dsize;
   int nx1;
   int nx2; 

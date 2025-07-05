@@ -6,14 +6,14 @@
   Provide 3D wrappers to the standard 1D conversion functions
   ConsToPrim() and PrimToCons().
 
-  \authors A. Mignone (mignone@to.infn.it)
+  \authors A. Mignone (andrea.mignone@unito.it)
   \date    Jan 27, 2020
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 
 /* ********************************************************************* */
-int ConsToPrim3D (Data_Arr U, Data_Arr V, uint16_t ***flag, RBox *box)
+int ConsToPrim3D (Data_Arr U, Data_Arr V, uint16_t ***flag, RBox *box, Grid *grid)
 /*!
  *  Convert a 3D array of conservative variables \c U to
  *  an array of primitive variables \c V.
@@ -63,12 +63,26 @@ int ConsToPrim3D (Data_Arr U, Data_Arr V, uint16_t ***flag, RBox *box)
 
   for (k = kbeg; k <= kend; k++){ g_k = k;
   for (j = jbeg; j <= jend; j++){ g_j = j;
-#if (defined CHOMBO) && (COOLING == MINEq || COOLING == H2_COOL)
+    #if (defined CHOMBO) && (COOLING == MINEq || COOLING == H2_COOL)
     if (g_intStage == 1) {
-      for (i = ibeg; i <= iend; i++)  NormalizeIons(U[k][j][i]);
+      for (i = ibeg; i <= iend; i++) NormalizeIons(U[k][j][i]);
     }  
-#endif  
+    #endif
+
+    #ifdef HIGH_ORDER
+    err_loc = 0;
+    for (i = ibeg; i <= iend; i++){  g_i = i;
+      int status;
+      status = ConsToPrimLoc (U[k][j][i], v[i], flag[k][j] + i);
+      WARNING(
+        if (status != 0) Where(i,NULL);
+      )
+      err_loc = MAX(status, err_loc);
+    }
+    #else
     err_loc = ConsToPrim (U[k][j], v, ibeg, iend, flag[k][j]);
+    #endif
+
     err = MAX(err, err_loc);
     for (i = ibeg; i <= iend; i++) {
       NVAR_LOOP(nv) V[nv][k][j][i] = v[i][nv];
@@ -94,9 +108,27 @@ int ConsToPrim3D (Data_Arr U, Data_Arr V, uint16_t ***flag, RBox *box)
         QUIT_PLUTO(1);
       }
 */        
-    }    
+    }
+
+    #if QUIT_ON_FIX == YES
+    for (i = ibeg; i <= iend; i++) {
+/*
+      if ( (flag[k][j][i] & FLAG_NEGATIVE_DENSITY)  ||
+           (flag[k][j][i] & FLAG_NEGATIVE_ENERGY)   ||
+           (flag[k][j][i] & FLAG_NEGATIVE_PRESSURE) ){
+*/
+      if ( flag[k][j][i] & FLAG_CONS2PRIM_FAIL){
+        printLog ("! Mappers3D(): failure [QUIT_ON_FIX enabled]\n");
+        printLog ("  g_stepNumber = %d\n",g_stepNumber);
+        printLog ("  g_intStage   = %d\n",g_intStage);
+
+        QUIT_PLUTO(1);  
+      }
+    }
+    #endif    
     
   }}
+
   g_dir = current_dir;
 
   #ifdef PARALLEL
@@ -108,7 +140,7 @@ int ConsToPrim3D (Data_Arr U, Data_Arr V, uint16_t ***flag, RBox *box)
   return err;
 }
 /* ********************************************************************* */
-void PrimToCons3D (Data_Arr V, Data_Arr U, RBox *box)
+void PrimToCons3D (Data_Arr V, Data_Arr U, RBox *box, Grid *grid)
 /*!
  *  Convert a 3D array of primitive variables \c V  to
  *  an array of conservative variables \c U.
@@ -149,11 +181,15 @@ void PrimToCons3D (Data_Arr V, Data_Arr U, RBox *box)
   for (k = kbeg; k <= kend; k++){ g_k = k;
   for (j = jbeg; j <= jend; j++){ g_j = j;
     for (i = ibeg; i <= iend; i++) {
-        //printf("V[nv][k][j][i] = %g\n", V[nv][k][j][i]);
-        //printf("v = %g\n", v[i][nv]);
       NVAR_LOOP(nv) v[i][nv] = V[nv][k][j][i];
     }
+    #ifdef HIGH_ORDER
+    for (i = ibeg; i <= iend; i++) {
+      PrimToConsLoc(v[i],U[k][j][i]);
+    }
+    #else 
     PrimToCons (v, U[k][j], ibeg, iend);
+    #endif
   }}
   g_dir = current_dir; /* restore current direction */
 
@@ -202,7 +238,7 @@ void SolutionFix(Data_Arr U, int i, int j, int k, Grid *grid)
   }  
   
   NVAR_LOOP(nv){
-    DOM_LOOP(k,j,i) Uloc[k][j][i] = U[k][j][i][nv];
+    DOM_LOOP(k,j,i) Uloc[k][jk][i] = U[k][j][i][nv];
     AL_Exchange_dim ((char *)Uloc[0][0], par_dim, SZ1);
   }
  

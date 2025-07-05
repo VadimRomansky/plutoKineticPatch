@@ -4,7 +4,7 @@
   \brief Miscellaneous functions for IO operations
   
   \author A. Malagoli (University of Chicago)
-  \author A. Mignone (mignone@ph.unito.it)
+  \author A. Mignone (andrea.mignone@unito.it)
   \author G. Muscianisi (g.muscianisi@cineca.it)
 
   \date Aug 26, 2012
@@ -60,7 +60,6 @@ int AL_File_open(char *filename, int sz_ptr )
     comm = s->comm;
 
     MPI_Barrier(comm);
-
 
     errcode = MPI_File_open(comm, filename,
                             MPI_MODE_CREATE | MPI_MODE_RDWR | MPI_MODE_UNIQUE_OPEN,
@@ -313,7 +312,6 @@ int AL_Write_array(void *va, int sz_ptr, int istag)
     }
 
     s->io_offset += (long long)(size)*nelem;
-
 
     return (int) AL_SUCCESS;
 }

@@ -44,8 +44,8 @@
         |.......|   |.......|   |.......|   |.......|
         H       B   B       D   D       F   F       H
 
-  \author A. Mignone (mignone@to.infn.it)
-  \date   Sep 17, 2020
+  \author A. Mignone (andrea.mignone@unito.it)
+  \date   Apr 08, 2024
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include"pluto.h"
@@ -53,7 +53,7 @@
 static void FlipSign (int, int, int *);
                            
 /* ********************************************************************* */
-void Boundary (const Data *d, int idim, Grid *grid)
+void Boundary (const Data *d, int iarr, Grid *grid)
 /*!
  * Set boundary conditions on one or more sides of the computational
  * domain.
@@ -61,13 +61,9 @@ void Boundary (const Data *d, int idim, Grid *grid)
  * \param [in,out] d  pointer to PLUTO Data structure containing the 
  *                    solution array (including centered and staggered
  *                    fields)
- * \param [in]   idim specifies on which side(s) of the computational
- *               domain boundary conditions must be set. Possible values
- *               are  
- *        - idim = IDIR   first dimension (x1)
- *        - idim = JDIR   second dimenson (x2)
- *        - idim = KDIR   third dimension (x3)
- *        - idim = ALL_DIR all dimensions
+ * \param [in]   iarr specifies on which array b.c. have to be set
+ *        - iarr = 0  (set on d->Vc a nd d->Vs)
+ *        - iarr = 1  (set on d->Vpc and d->Vps)
  *
  * \param [in]  grid   pointer to grid structure.
  *********************************************************************** */
@@ -85,8 +81,38 @@ void Boundary (const Data *d, int idim, Grid *grid)
 
   RBox center_box, x1face_box, x2face_box, x3face_box;
 
+  Data_Arr Vc;
+  double ***Vs[6];
+
 /* --------------------------------------------------------
-   0. Check the number of processors in each direction
+   0a. Set pointer to main boundary array.
+   -------------------------------------------------------- */
+
+  Vc = d->Vc;
+  #ifdef STAGGERED_MHD
+  CT_ASSIGN(  for (nv = 0; nv < 3; nv++) Vs[nv] = d->Vs[nv];  ,
+              for (nv = 3; nv < 6; nv++) Vs[nv] = d->Vs[nv];)
+  #endif
+
+#ifdef HIGH_ORDER
+  if (iarr == 0){        /* Assign b.c. on Vc  &  Vs  */
+    Vc = d->Vc;
+    #ifdef STAGGERED_MHD
+    for (nv = 0; nv < 3; nv++) Vs[nv] = d->Vs[nv];
+    #endif
+  }else if (iarr == 1){   /* Assign b.c. on point-values */
+    Vc = d->Vpc;
+    #ifdef STAGGERED_MHD
+    for (nv = 0; nv < 3; nv++) Vs[nv] = d->Vps[nv];
+    #endif
+  }else{
+    printLog ("! Boundary(): invail iarr number \n");
+    QUIT_PLUTO(1);
+  }
+#endif
+
+/* --------------------------------------------------------
+   0b. Check the number of processors in each direction
    -------------------------------------------------------- */
 
   DIM_EXPAND(par_dim[0] = grid->nproc[IDIR] > 1;  ,
@@ -112,19 +138,19 @@ void Boundary (const Data *d, int idim, Grid *grid)
    
 #ifdef PARALLEL
   MPI_Barrier (MPI_COMM_WORLD);
-  NVAR_LOOP(nv) AL_Exchange_dim ((char *)d->Vc[nv][0][0], par_dim, SZ1);
+  NVAR_LOOP(nv) AL_Exchange_dim ((char *)Vc[nv][0][0], par_dim, SZ1);
   #ifdef STAGGERED_MHD 
   DIM_EXPAND(
-    AL_Exchange_dim ((char *)(d->Vs[BX1s][0][0] - 1), par_dim, SZ_stagx);  ,
-    AL_Exchange_dim ((char *) d->Vs[BX2s][0][-1]    , par_dim, SZ_stagy);  ,
-    AL_Exchange_dim ((char *) d->Vs[BX3s][-1][0]    , par_dim, SZ_stagz);)
+    AL_Exchange_dim ((char *)(Vs[BX1s][0][0] - 1), par_dim, SZ_stagx);  ,
+    AL_Exchange_dim ((char *) Vs[BX2s][0][-1]    , par_dim, SZ_stagy);  ,
+    AL_Exchange_dim ((char *) Vs[BX3s][-1][0]    , par_dim, SZ_stagz);)
 
   #if (PHYSICS == ResRMHD) && (DIVE_CONTROL == CONSTRAINED_TRANSPORT)
   AL_Exchange_dim ((char *)d->q[0][0], par_dim, SZ1);
   DIM_EXPAND(
-    AL_Exchange_dim ((char *)(d->Vs[EX1s][0][0] - 1), par_dim, SZ_stagx);  ,
-    AL_Exchange_dim ((char *) d->Vs[EX2s][0][-1]    , par_dim, SZ_stagy);  ,
-    AL_Exchange_dim ((char *) d->Vs[EX3s][-1][0]    , par_dim, SZ_stagz);)
+    AL_Exchange_dim ((char *)(Vs[EX1s][0][0] - 1), par_dim, SZ_stagx);  ,
+    AL_Exchange_dim ((char *) Vs[EX2s][0][-1]    , par_dim, SZ_stagy);  ,
+    AL_Exchange_dim ((char *) Vs[EX3s][-1][0]    , par_dim, SZ_stagz);)
   #endif
   
   #endif
@@ -132,21 +158,12 @@ void Boundary (const Data *d, int idim, Grid *grid)
 #endif
 
 /* ---------------------------------------------------------
-   3. When idim == ALL_DIR boundaries are imposed on ALL 
-      sides: a loop from sbeg = 0 to send = 2*3 - 1 
-      is performed. 
-     
-      When idim = n, boundaries are imposed at the 
-      beginning and the end of the i-th direction.
+   3. Boundaries are imposed on ALL sides: a loop from 
+      sbeg = 0 to send = 2*3 - 1 is performed. 
    -------------------------------------------------------- */ 
 
-  if (idim == ALL_DIR) {
-    sbeg = 0;
-    send = 2*3 - 1;
-  } else {
-    sbeg = 2*idim;
-    send = 2*idim + 1;
-  }
+  sbeg = 0;
+  send = 2*3 - 1;
 
 /* --------------------------------------------------------
    4. Main loop on computational domain sides
@@ -214,35 +231,29 @@ void Boundary (const Data *d, int idim, Grid *grid)
        6a. [OUTFLOW] Boundary Conditions.
        ---------------------------------------------------- */
 
-      NVAR_LOOP(nv) OutflowBoundary (d->Vc[nv], &center_box, side[is]);
+      NVAR_LOOP(nv) OutflowBoundary (Vc[nv], &center_box, side[is]);
 
     /* -- Assign b.c. on transverse components in staggered MHD -- */
     
       #ifdef STAGGERED_MHD
       #if INCLUDE_IDIR
       if (side[is] != X1_BEG && side[is] != X1_END) {
-        OutflowBoundary (d->Vs[BX1s], &x1face_box, side[is]);
-        #if (PHYSICS == ResRMHD) && (DIVE_CONTROL == CONSTRAINED_TRANSPORT)
-        OutflowBoundary (d->Vs[EX1s], &x1face_box, side[is]);
-        #endif
+        CT_ASSIGN(OutflowBoundary (Vs[BX1s], &x1face_box, side[is]);  ,
+                  OutflowBoundary (Vs[EX1s], &x1face_box, side[is]); )
       }
       #endif
 
       #if INCLUDE_JDIR
       if (side[is] != X2_BEG && side[is] != X2_END) {
-        OutflowBoundary (d->Vs[BX2s], &x2face_box, side[is]); 
-        #if (PHYSICS == ResRMHD) && (DIVE_CONTROL == CONSTRAINED_TRANSPORT)
-        OutflowBoundary (d->Vs[EX2s], &x2face_box, side[is]); 
-        #endif
+        CT_ASSIGN(OutflowBoundary (Vs[BX2s], &x2face_box, side[is]);  ,
+                  OutflowBoundary (Vs[EX2s], &x2face_box, side[is]); )
       }
       #endif
 
       #if INCLUDE_KDIR
       if (side[is] != X3_BEG && side[is] != X3_END) {  
-        OutflowBoundary (d->Vs[BX3s], &x3face_box, side[is]);
-        #if (PHYSICS == ResRMHD) && (DIVE_CONTROL == CONSTRAINED_TRANSPORT)
-        OutflowBoundary (d->Vs[EX3s], &x3face_box, side[is]);
-        #endif
+        CT_ASSIGN(OutflowBoundary (Vs[BX3s], &x3face_box, side[is]); ,
+                  OutflowBoundary (Vs[EX3s], &x3face_box, side[is]); )
       }
       #endif
 
@@ -270,7 +281,7 @@ void Boundary (const Data *d, int idim, Grid *grid)
        ---------------------------------------------------- */
     
       FlipSign (side[is], type[is], vsign);
-      NVAR_LOOP(nv) ReflectiveBoundary (d->Vc[nv], vsign[nv], 0, &center_box, side[is]);
+      NVAR_LOOP(nv) ReflectiveBoundary (Vc[nv], vsign[nv], 0, &center_box, side[is]);
 
     /* -- Assign b.c. on both normal & transverse components in staggered MHD -- */
 
@@ -281,15 +292,15 @@ void Boundary (const Data *d, int idim, Grid *grid)
       if (side[is] == X3_BEG || side[is] == X3_END) stag[KDIR] = 1;
 
       DIM_EXPAND(
-        ReflectiveBoundary(d->Vs[BX1s], vsign[BX1], stag[IDIR], &x1face_box, side[is]);  ,
-        ReflectiveBoundary(d->Vs[BX2s], vsign[BX2], stag[JDIR], &x2face_box, side[is]);  ,
-        ReflectiveBoundary(d->Vs[BX3s], vsign[BX3], stag[KDIR], &x3face_box, side[is]);)
+        ReflectiveBoundary(Vs[BX1s], vsign[BX1], stag[IDIR], &x1face_box, side[is]);  ,
+        ReflectiveBoundary(Vs[BX2s], vsign[BX2], stag[JDIR], &x2face_box, side[is]);  ,
+        ReflectiveBoundary(Vs[BX3s], vsign[BX3], stag[KDIR], &x3face_box, side[is]);)
 
       #if (PHYSICS == ResRMHD) && (DIVE_CONTROL == CONSTRAINED_TRANSPORT)
       DIM_EXPAND(
-        ReflectiveBoundary(d->Vs[EX1s], vsign[EX1], stag[IDIR], &x1face_box, side[is]);  ,
-        ReflectiveBoundary(d->Vs[EX2s], vsign[EX2], stag[JDIR], &x2face_box, side[is]);  ,
-        ReflectiveBoundary(d->Vs[EX3s], vsign[EX3], stag[KDIR], &x3face_box, side[is]);)
+        ReflectiveBoundary(Vs[EX1s], vsign[EX1], stag[IDIR], &x1face_box, side[is]);  ,
+        ReflectiveBoundary(Vs[EX2s], vsign[EX2], stag[JDIR], &x2face_box, side[is]);  ,
+        ReflectiveBoundary(Vs[EX3s], vsign[EX3], stag[KDIR], &x3face_box, side[is]);)
       #endif
       #endif  /* STAGGERED_MHD */
 
@@ -311,15 +322,15 @@ void Boundary (const Data *d, int idim, Grid *grid)
       #endif
 
       if (!par_dim[is/2]) {
-        NVAR_LOOP(nv)  PeriodicBoundary(d->Vc[nv], &center_box, side[is]);
+        NVAR_LOOP(nv)  PeriodicBoundary(Vc[nv], &center_box, side[is]);
         #ifdef STAGGERED_MHD
-        DIM_EXPAND(PeriodicBoundary(d->Vs[BX1s], &x1face_box, side[is]);  ,
-                   PeriodicBoundary(d->Vs[BX2s], &x2face_box, side[is]);  ,
-                   PeriodicBoundary(d->Vs[BX3s], &x3face_box, side[is]);)
+        DIM_EXPAND(PeriodicBoundary(Vs[BX1s], &x1face_box, side[is]);  ,
+                   PeriodicBoundary(Vs[BX2s], &x2face_box, side[is]);  ,
+                   PeriodicBoundary(Vs[BX3s], &x3face_box, side[is]);)
         #if (PHYSICS == ResRMHD) && (DIVE_CONTROL == CONSTRAINED_TRANSPORT)
-        DIM_EXPAND(PeriodicBoundary(d->Vs[EX1s], &x1face_box, side[is]);  ,
-                   PeriodicBoundary(d->Vs[EX2s], &x2face_box, side[is]);  ,
-                   PeriodicBoundary(d->Vs[EX3s], &x3face_box, side[is]);)
+        DIM_EXPAND(PeriodicBoundary(Vs[EX1s], &x1face_box, side[is]);  ,
+                   PeriodicBoundary(Vs[EX2s], &x2face_box, side[is]);  ,
+                   PeriodicBoundary(Vs[EX3s], &x3face_box, side[is]);)
         #endif
         #endif
       }
@@ -372,11 +383,11 @@ void Boundary (const Data *d, int idim, Grid *grid)
         QUIT_PLUTO(1);
       }
       if (grid->nproc[IDIR] == 1){
-        NVAR_LOOP(nv) PeriodicBoundary(d->Vc[nv], &center_box, side[is]);
+        NVAR_LOOP(nv) PeriodicBoundary(Vc[nv], &center_box, side[is]);
         #ifdef STAGGERED_MHD
         DIM_EXPAND(                                                    ;  ,
-                   PeriodicBoundary(d->Vs[BX2s], &x2face_box, side[is]);  ,
-                   PeriodicBoundary(d->Vs[BX3s], &x3face_box, side[is]);)
+                   PeriodicBoundary(Vs[BX2s], &x2face_box, side[is]);  ,
+                   PeriodicBoundary(Vs[BX3s], &x3face_box, side[is]);)
         #endif
       }
       SB_Boundary (d, side[is], grid);
@@ -396,17 +407,36 @@ void Boundary (const Data *d, int idim, Grid *grid)
       QUIT_PLUTO(1);
       #endif  /* #ifdef SHEARINGBOX */
 
+    }else if (type[is] == ROTATED) { 
+
+    /* ----------------------------------------------------
+       6f. [ROTATED] Boundary Conditions.
+       ---------------------------------------------------- */
+
+      NVAR_LOOP(nv) RotateBoundary(Vc[nv], &center_box, side[is]);
+
+      #ifdef STAGGERED_MHD
+      DIM_EXPAND(RotateBoundary(Vs[BX1s], &x1face_box, side[is]);  ,
+                 RotateBoundary(Vs[BX2s], &x2face_box, side[is]);  ,
+                 RotateBoundary(Vs[BX3s], &x3face_box, side[is]);)
+      #if (PHYSICS == ResRMHD) && (DIVE_CONTROL == CONSTRAINED_TRANSPORT)
+      DIM_EXPAND(RotateBoundary(Vs[EX1s], &x1face_box, side[is]);  ,
+                 RotateBoundary(Vs[EX2s], &x2face_box, side[is]);  ,
+                 RotateBoundary(Vs[EX3s], &x3face_box, side[is]);)
+      #endif
+      #endif
+
     }else if (type[is] == USERDEF) { 
 
     /* ----------------------------------------------------
-       6f. [USERDEF] Boundary Conditions.
+       6g. [USERDEF] Boundary Conditions.
        ---------------------------------------------------- */
     
       #ifdef GLM_MHD
       BOX_LOOP(&center_box, k, j, i) {
-        d->Vc[PSI_GLM][k][j][i] = 0.0;
+        Vc[PSI_GLM][k][j][i] = 0.0;
         #ifdef PHI_GLM
-        d->Vc[PHI_GLM][k][j][i] = 0.0;
+        Vc[PHI_GLM][k][j][i] = 0.0;
         #endif
       }  
       #endif
@@ -425,28 +455,32 @@ void Boundary (const Data *d, int idim, Grid *grid)
       FillElectricField (d, side[is], grid);
       #endif
       #endif
+
     } /* end if (type[is]) */
 
   /* ------------------------------------------------------
      7. Redefine cell-center field in ghost zones from
          staggered components.
          Note that this defines cell-centered d->Uc
-         and then we need to further copy on d->Vc.
+         and then we need to further copy on Vc.
      ------------------------------------------------------ */
 
     #ifdef STAGGERED_MHD
-    CT_AverageStaggeredFields (d->Vs, d->Uc, &center_box, grid);
+    #ifdef HIGH_ORDER
+    if (type[is] != OUTFLOW) continue;
+    #endif
+    CT_AverageStaggeredFields (d, 0, &center_box, grid);
     BOX_LOOP(&center_box, k,j,i){
-      DIM_EXPAND(d->Vc[BX1][k][j][i] = d->Uc[k][j][i][BX1];  ,
-                 d->Vc[BX2][k][j][i] = d->Uc[k][j][i][BX2];  ,
-                 d->Vc[BX3][k][j][i] = d->Uc[k][j][i][BX3];)
+      DIM_EXPAND(Vc[BX1][k][j][i] = d->Uc[k][j][i][BX1];  ,
+                 Vc[BX2][k][j][i] = d->Uc[k][j][i][BX2];  ,
+                 Vc[BX3][k][j][i] = d->Uc[k][j][i][BX3];)
       #if (PHYSICS == ResRMHD) && (DIVE_CONTROL == CONSTRAINED_TRANSPORT)
-      DIM_EXPAND(d->Vc[EX1][k][j][i] = d->Uc[k][j][i][EX1];  ,
-                 d->Vc[EX2][k][j][i] = d->Uc[k][j][i][EX2];  ,
-                 d->Vc[EX3][k][j][i] = d->Uc[k][j][i][EX3];)
+      DIM_EXPAND(Vc[EX1][k][j][i] = d->Uc[k][j][i][EX1];  ,
+                 Vc[EX2][k][j][i] = d->Uc[k][j][i][EX2];  ,
+                 Vc[EX3][k][j][i] = d->Uc[k][j][i][EX3];)
       #endif
     }               
-    #endif
+    #endif   /* STAGGERED_MHD             */
 
   } /* end for (is = sbeg, send) */
 
@@ -688,7 +722,22 @@ void ReflectiveBoundary (double ***q, int s, int stag, RBox *box, int side)
 
     i0 = 2*IBEG - 1 - stag;
     BOX_LOOP(box,k,j,i) q[k][j][i] = s*q[k][j][i0-i];
+/*
+if (stag == 1){
+  int ibeg = MIN(box->ibeg, box->iend);
+  int iend = MAX(box->ibeg, box->iend);
+  int jbeg = MIN(box->jbeg, box->jend);
+  int jend = MAX(box->jbeg, box->jend);
+  int kbeg = MIN(box->kbeg, box->kend);
+  int kend = MAX(box->kbeg, box->kend);
 
+  for (k = kbeg; k <= kend; k++){
+  for (j = jbeg; j <= jend; j++){
+  for (i = ibeg; i <= iend; i++){
+//    printf ("i <--> i0 = %d <--> %d  j,k = %d  %d\n",i,i0-i,j,k);
+  }}}
+}
+*/
   }else if (side == X1_END){  
 
     i0 = 2*IEND + 1 - stag;

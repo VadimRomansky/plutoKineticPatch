@@ -4,7 +4,7 @@
  \brief Writer for particles binary data in .dbl, .flt and 
         ASCII in .tab (only for serial version) format .
  
- \authors A. Mignone (mignone@to.infn.it)\n
+ \authors A. Mignone (andrea.mignone@unito.it)\n
           B. Vaidya (bvaidya@unito.it)\n
           D. Mukherjee
 
@@ -13,7 +13,7 @@
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 
-#if (PARTICLES != PARTICLES_LP)
+#if PARTICLES != PARTICLES_LP
 /* ********************************************************************* */
 void Particles_WriteBinary(Data* data, Grid* grid, double dt_particles,
                            Output *output, char *filename)
@@ -115,6 +115,7 @@ void Particles_WriteBinary(Data* data, Grid* grid, double dt_particles,
 #endif
   darr = ARRAY_1D(nelem*out_particles, double);
   farr = ARRAY_1D(nelem*out_particles, float);
+
   
 /* --------------------------------------------------------
    1. Loop over particles and map struct. members to array
@@ -123,7 +124,7 @@ void Particles_WriteBinary(Data* data, Grid* grid, double dt_particles,
   i  = 0;  /* Array index */
   int iarr = 0;
 
-#if PARTICLES != PARTICLES_KIN
+  #if PARTICLES != PARTICLES_KIN
   PARTICLES_LOOP(CurNode, data->PHead){
 
   /* ------------------------------------------------------
@@ -227,14 +228,6 @@ void Particles_WriteBinary(Data* data, Grid* grid, double dt_particles,
       }
   }
 #endif
-
-  /*for(int i = 0; i < nelem*out_particles; ++i){
-      printf("dar[%d] = %lf\n", i, darr[i]);
-      if(darr[i] != darr[i]){
-          printf("aaaa\n");
-      }
-  }*/
-
   
 /* --------------------------------------------------------
    2. Compute the total number of particles and gather
@@ -346,7 +339,6 @@ if (output->type == PARTICLES_DBL_OUTPUT){
 #endif /* PARTICLES != PARTICLES_LP */
 
 /* ********************************************************************* */
-
 void Particles_WriteTab(Data* data, Grid* grid, char filename[128])
 /*
  * Write particle coordinates, ids and speeds in Tab ASCII format 
@@ -377,7 +369,8 @@ void Particles_WriteTab(Data* data, Grid* grid, char filename[128])
 
 #if PARTICLES != PARTICLES_KIN
   particleNode* CurNode;
-  CurNode = PHeadRef;
+  
+  CurNode = data->PHead;
   while(CurNode != NULL) {
     fprintf(stream, "%d", CurNode->p.id);
     
@@ -411,5 +404,6 @@ void Particles_WriteTab(Data* data, Grid* grid, char filename[128])
   }
 #endif
   fclose(stream);
+
 #endif
 }

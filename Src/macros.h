@@ -3,11 +3,10 @@
   \file  
   \brief PLUTO header file for function-like macros.
 
-  \author A. Mignone (mignone@to.infn.it)
+  \author A. Mignone (andrea.mignone@unito.it)
   \date   Sep 17, 2020
 */
 /* ///////////////////////////////////////////////////////////////////// */
-
 #ifndef DEBUG
   #define DEBUG FALSE
 #endif
@@ -69,7 +68,13 @@
 #define JTOT_LOOP(j)  for ((j) = 0; (j) < NX2_TOT; (j)++)
 #define KTOT_LOOP(k)  for ((k) = 0; (k) < NX3_TOT; (k)++)
 
-#define DOM_LOOP(k,j,i) KDOM_LOOP(k) JDOM_LOOP(j) IDOM_LOOP(i)
+#define DOM_LOOP(k,j,i)  KDOM_LOOP(k) JDOM_LOOP(j) IDOM_LOOP(i)
+#define DOMI_LOOP(k,j,i) KDOM_LOOP(k) JDOM_LOOP(j) \
+                         for (i = IBEG-INCLUDE_IDIR; i <= IEND; i++)
+#define DOMJ_LOOP(k,j,i) KDOM_LOOP(k) \
+                         for (j = JBEG-INCLUDE_JDIR; j <= JEND; j++) IDOM_LOOP(i) 
+#define DOMK_LOOP(k,j,i) for (k = KBEG-INCLUDE_KDIR; k <= KEND; k++)\
+                         JDOM_LOOP(j) IDOM_LOOP(i)
 
 #define TOT_LOOP(k,j,i) KTOT_LOOP(k) JTOT_LOOP(j) ITOT_LOOP(i)
 
@@ -292,6 +297,9 @@ http://stackoverflow.com/questions/11303135/broadcast-message-for-all-processes-
 
 
 #define DOT_PRODUCT(a,b)  ((a)[0]*(b)[0] + (a)[1]*(b)[1] + (a)[2]*(b)[2])
+#define CROSS_X1(a,b)   (a[1]*b[2] - a[2]*b[1])
+#define CROSS_X2(a,b)   (a[2]*b[0] - a[0]*b[2])
+#define CROSS_X3(a,b)   (a[0]*b[1] - a[1]*b[0])
 
 #if WARNING_MESSAGES == YES
  #define WARNING(a)  a

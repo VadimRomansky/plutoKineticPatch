@@ -3,10 +3,10 @@
   \file  
   \brief Functions for computing/retrieving the mean aziumthal velocity.
 
-  \authors A. Mignone (mignone@to.infn.it)\n
+  \authors A. Mignone (andrea.mignone@unito.it)\n
            G. Muscianisi (g.muscianisi@cineca.it)
          
-  \date    Apr 15, 2021
+  \date    Apr 02, 2024
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -87,7 +87,7 @@ void FARGO_AverageVelocity(const Data *d, Grid *grid)
      1. Fill ghost zones
      ------------------------------------------------------ */
 
-    Boundary(d, ALL_DIR, grid); 
+    Boundary(d, 0, grid); 
 
   /* ------------------------------------------------------
      2. get ranks of the upper and lower procs

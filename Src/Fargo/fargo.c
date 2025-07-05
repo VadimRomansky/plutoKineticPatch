@@ -22,7 +22,7 @@
        of magnetized shear flows with the PLUTO code"\n
        Mignone et al, A&A (2012) 545, A152  (--> Section 2.4)
 
-  \author A. Mignone (mignone@to.infn.it)\n
+  \author A. Mignone (andrea.mignone@unito.it)\n
           G. Muscianisi (g.muscianisi@cineca.it)
   \date   July 10, 2019
 */

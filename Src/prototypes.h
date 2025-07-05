@@ -26,17 +26,19 @@ void FreeAll();
 double BodyForcePotential(double, double, double);
 void   BodyForceVector(double *, double *, double, double, double);
 void   Boundary    (const Data *, int, Grid *);
+void   BoundaryConservative (const Data *, Grid *);
 
 void   ChangeOutputVar (void);
 void   CharTracingStep(const Sweep *, int, int, Grid *);
-int    CheckData (Data *, Grid *, const char *);
+int    CheckData (Data_Arr, Data_Arr, Data_Arr, int, RBox *, const char *);
+
 void   CheckPrimStates (double **, double **, double **, int, int);
 int    CheckNaN   (double **, int, int, const char *);
 
 void   ComputeUserVar (const Data *, Grid *);
 float  ***Convert_dbl2flt (double ***, double, int);
 int    ConsToPrimLoc (double *, double *, uint16_t *);
-int    ConsToPrim3D(Data_Arr, Data_Arr, uint16_t ***, RBox *);
+int    ConsToPrim3D(Data_Arr, Data_Arr, uint16_t ***, RBox *, Grid *);
 void   CreateImage (char *);
 void   ComputeEntropy (const Data *, Grid *);
 
@@ -44,6 +46,8 @@ void   EntropySwitch(const Data *, Grid *);
 #ifdef CHOMBO
 void error (const char *fmt, ...);  /* Used to quit pluto only (flush buffer) */
 #endif
+
+void FailSafe (Data *, timeStep *, Grid *);
 
 int   FileClose  (FILE *, int);
 int   FileDelete (char *);
@@ -68,7 +72,10 @@ Reconstruct MP5_Reconstruct, PPM_Reconstruct, LIMO3_Reconstruct,
             WENOZ_Reconstruct, WENO3_Reconstruct;
 
 void FindShock (const Data *, Grid *);
+int  FlagCheck  (uint16_t ***, int);
 void FlagShock (const Data *, Grid *);
+void FlagShow (Data *, uint16_t);
+
 void Flatten (const Sweep *, int, int, Grid *);
 void FluidInterfaceBoundary(const Sweep *, int, int, Grid *);
 void FreeGrid (Grid *);
@@ -85,6 +92,8 @@ double  ***GetUserVar (char *);
 void   GnuplotSetting(Runtime *, Grid *);
 
 void   HancockStep    (const Sweep *, int, int, Grid *);
+
+int Integrate (Data *, timeStep *, Grid *);
 
 double Length_1 (int, int, int, Grid *);
 double Length_2 (int, int, int, Grid *);
@@ -108,6 +117,7 @@ int    IsLittleEndian (void);
 
 double MP5_States(double *, int, int);
 double WENOZ_States(double *, int, int);
+double WENO3_States(double *, int, int, double);
 
 void   StaggeredRemap (Data_Arr, Grid *);
 double StaggeredRemap_RKL(double ***, double ***, Data_Arr, RBox *, double, Grid *);
@@ -133,13 +143,12 @@ char  *ParamFileGet     (const char *, int );
 int    ParamExist       (const char *);
 int    ParamFileHasBoth (const char *, const char *);
 void   PeriodicBoundary (double ***, RBox *, int);
-void   PointValue (Data *, Data_Arr, Data_Arr, Grid *);
 
 void   PolarAxisBoundary(const Data *, RBox *, int);
 
 void   PrimToChar (double **, double *, double *); 
-void   PrimToCons3D(Data_Arr, Data_Arr, RBox *);
-void   PrimToConsLoc (double *vprim, double *ucons);
+void   PrimToCons3D(Data_Arr, Data_Arr, RBox *, Grid *);
+void   PrimToConsLoc (double *, double *);
 
 void   PrintColumnLegend(char *legend[], int, FILE *);
 
@@ -187,11 +196,14 @@ int    SetOutputVar (char *, int, int);
 Riemann_Solver *SetSolver (const char *);
 void   Show (double **, int);
 void   ShowConfig(int, char *a[], char *);
+void    ShowData (Data_Arr, Data_Arr, Data_Arr, RBox *, const char *);
 void   ShowMatrix(double **, int, double);
 void   ShowState (double *, int);
 void   ShowVector (double *, int);
-void   ShowUnits ();
-void   SplitSource (const Data *, double, timeStep *, Grid *);
+void   ShowUnits (void);
+void   Sources (Data *, Data_Arr, double, Grid *);
+
+void   SplitSource (Data *, double, timeStep *, Grid *);
 void   Startup    (Data *, Grid *);
 void   States     (const Sweep *, int, int, Grid *);
 void   StateStructAllocate (State *);
@@ -206,6 +218,7 @@ void UnsetJetDomain (const Data *, int, Grid *);
 void UpdateStage(Data *, Data_Arr, Data_Arr, double **, double, timeStep *, Grid *);
 void UserDefBoundary (const Data *, RBox *, int,  Grid *); 
 
+const char *VarName (int nv, int mode);
 void VectorPotentialDiff (double *, Data *, int, int, int, Grid *);
 
 void  Where (int, Grid *);

@@ -4,11 +4,11 @@
  \brief Placing the particles on the grid and interpolating dervied quantites 
         at particle positions.
  
- \authors   A. Mignone (mignone@to.infn.it)\n
+ \authors   A. Mignone (andrea.mignone@unito.it)\n
             B. Vaidya (bvaidya@unito.it)\n
             D. Mukherjee
             
- \date    Aug 27, 2020
+ \date     Nov 16, 2022
  */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -43,9 +43,9 @@ void Particles_Set(Data *d, Grid *grid)
    ---------------------------------------------------------- */ 
 
 #ifdef PARALLEL
-#if PARTICLES != PARTICLES_KIN
+  #if PARTICLES != PARTICLES_KIN
   Particles_StructDatatype();
-#endif
+  #endif
 #endif  
   p_nrestart = 0;
   
@@ -55,12 +55,21 @@ void Particles_Set(Data *d, Grid *grid)
 
   p_nparticles   = 0;
   Particles_Init(d, grid);
+  #if PARTICLES == PARTICLES_CR && PARTICLES_CR_GC == YES
+  Particles_CR_GC_Convert(d,grid);
+  #endif
 
 /* ----------------------------------------------------------
    3. Do some printing
    ---------------------------------------------------------- */ 
 
   print ("  particles type: %s\n",particles_type); 
+  #if (PARTICLES == PARTICLES_CR) && (PARTICLES_CR_GC == YES)
+  print ("                 [GC Enabled, TIME_STEPPING = %d]\n", 
+          PARTICLES_CR_GC_TIME_STEPPING);
+  #else
+  print ("                 [TIME_STEPPING = Boris]\n");
+  #endif
   print ("  number of particles created [local]: %d\n\n",p_nparticles);  
 
 #if PARTICLES == PARTICLES_LP

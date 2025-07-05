@@ -7,11 +7,11 @@
   This is useful to initialized a number of global variables and/or 
   user-defined parameters by calling Init().
 
-  \author A. Mignone (mignone@to.infn.it)
+  \author A. Mignone (andrea.mignone@unito.it)
           B. Vaidya
           D. Mukherjee
 
-  \date   Apr 10, 2020
+  \date   March 07, 2023
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -86,11 +86,8 @@ void Startup (Data *d, Grid *grid)
     #endif
     
   /* -- Reset arrays -- */
-    //for debug
-    nv = NVAR;
-    for ((nv) = NVAR;   (nv)--;       )
-        d->Vc[nv][k][j][i] = u_av[nv] = 0.0;
-    //NVAR_LOOP(nv) d->Vc[nv][k][j][i] = u_av[nv] = 0.0;
+
+    NVAR_LOOP(nv) d->Vc[nv][k][j][i] = u_av[nv] = 0.0;
 
     #ifdef GLM_MHD
     u_av[PSI_GLM] = us[PSI_GLM] = 0.0;
@@ -119,6 +116,7 @@ void Startup (Data *d, Grid *grid)
     #endif
 
     for (nv = NVAR; nv--;  ) d->Vc[nv][k][j][i] = u_av[nv];
+
     #ifdef FARGO
     #if GEOMETRY == CARTESIAN || GEOMETRY == POLAR
     wA[k][i]= u_av[FARGO_W];
@@ -132,6 +130,7 @@ void Startup (Data *d, Grid *grid)
 
     #if   (PHYSICS == MHD || PHYSICS == RMHD || PHYSICS == ResRMHD) \
        && (ASSIGN_VECTOR_POTENTIAL == YES)
+
   /* ------------------------------------------------------
      Store vector potential into array for later
      differentiation. 
@@ -140,6 +139,7 @@ void Startup (Data *d, Grid *grid)
      - All 3 components must be given here. 
      - Vector potential is always staggered.
      ------------------------------------------------------ */
+
     Init (u_av, x1, x2p, x3p);
     d->Ax1[k][j][i] = u_av[AX1];  
 
@@ -205,7 +205,7 @@ void Startup (Data *d, Grid *grid)
 #if    (PHYSICS ==  MHD || PHYSICS == RMHD || PHYSICS == ResRMHD) \
       && (ASSIGN_VECTOR_POTENTIAL == YES)
   #ifdef STAGGERED_MHD
-  for (k = INCLUDE_KDIR; k < NX3_TOT-INCLUDE_KDIR; k++) { 
+  for (k = INCLUDE_KDIR; k < NX3_TOT-INCLUDE_KDIR; k++){ 
   for (j = INCLUDE_JDIR; j < NX2_TOT-INCLUDE_JDIR; j++){
   for (i = INCLUDE_IDIR; i < NX1_TOT-INCLUDE_IDIR; i++){ 
     VectorPotentialDiff(bp, d, i, j, k, grid);
@@ -255,7 +255,10 @@ void Startup (Data *d, Grid *grid)
    5. Set boundary conditions.
    ------------------------------------------------------ */
 
+
+
   Boundary (d, -1, grid);
+
 
 /* --------------------------------------------------------
    6. Compute cell-centered magnetic field by averaging
@@ -269,7 +272,7 @@ void Startup (Data *d, Grid *grid)
   RBox box;
   RBoxDefine (0, NX1_TOT-1, 0, NX2_TOT-1, 0, NX3_TOT-1, CENTER, &box);
   
-  CT_AverageStaggeredFields (d->Vs, d->Uc, &box, grid);
+  CT_AverageStaggeredFields (d, 0, &box, grid);
 
   BOX_LOOP(&box,k,j,i){
     #if DIVB_CONTROL == CONSTRAINED_TRANSPORT
@@ -288,6 +291,17 @@ void Startup (Data *d, Grid *grid)
     #endif
   }
 #endif
+
+/*
+printf ("STARTUP:>>\n");
+DOM_LOOP(k,j,i){
+  double vc[256];
+  NVAR_LOOP(nv) vc[nv] = d->Vc[nv][k][j][i];
+  printf ("%d %d; vc = \n",i,j); ShowState (vc, 1);
+//  printf ("%d %d; uc = \n",i,j); ShowState (d->Uc[k][j][i], 2);
+}
+printf ("<<\n");
+*/
 
 /* ------------------------------------------------------
    7. A few more operations for ResRMHD:
@@ -324,34 +338,46 @@ void Startup (Data *d, Grid *grid)
 
     for (nv = NVAR; nv--;  ) us[nv] = d->Vc[nv][k][j][i];
 
+    #if !SCALAR_ADVECTION
     if (us[RHO] <= 0.0) {
       printLog ("! Startup(): negative density, zone [%f, %f, %f]\n", x1,x2,x3);
       QUIT_PLUTO(1);
     }
+    #endif
+
     #if HAVE_ENERGY
-     if (us[PRS] <= 0.0) {
-       printLog ("! Startup(): negative pressure, zone [%f, %f, %f]\n",x1,x2,x3);
-       QUIT_PLUTO(1);
-     }
+    if (us[PRS] <= 0.0) {
+      printLog ("! Startup(): negative pressure, zone [%f, %f, %f]\n",x1,x2,x3);
+      QUIT_PLUTO(1);
+    }
     #endif
 
     #if (PHYSICS == RHD) || (PHYSICS == RMHD) || (PHYSICS == ResRMHD) 
      scrh = us[VX1]*us[VX1] + us[VX2]*us[VX2] + us[VX3]*us[VX3];
      if (scrh >= 1.0){
-       printLog ("! Startup(): total velocity exceeds 1, [%f, %f, %f]\n", us[VX1],us[VX2],us[VX3]);
-       printLog ("! Startup(): [%d, %d, %d, %d, %d ,%d]\n", VX1, VX2, VX3, k, j, i);
+         printLog ("! Startup(): total velocity exceeds 1, [%f, %f, %f]\n", us[VX1],us[VX2],us[VX3]);
+         printLog ("! Startup(): [%d, %d, %d, %d, %d ,%d]\n", VX1, VX2, VX3, k, j, i);
        QUIT_PLUTO(1);
      }
     #endif
   }}}
 
 /* ------------------------------------------------------
-   9. Convert to conservative
+   9. Initialize irradiation flux divergence
+   ------------------------------------------------------ */
+   #if IRRADIATION
+     RadIrradiationFlux(d, grid);
+   #endif
+
+/* ------------------------------------------------------
+   10. Convert to conservative
    ------------------------------------------------------ */
 
   RBox dom_box;
   RBoxDefine (IBEG,   IEND, JBEG,  JEND, KBEG,   KEND, CENTER, &dom_box);
-  PrimToCons3D (d->Vc, d->Uc, &dom_box); 
+  PrimToCons3D (d->Vc, d->Uc, &dom_box, grid); 
+
+
 }
 
 /* ********************************************************************* */

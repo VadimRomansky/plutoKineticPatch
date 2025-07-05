@@ -7,7 +7,7 @@
   methods (RK3).
   Time stepping include Euler, RK2 and RK3.
 
-  \authors A. Mignone (mignone@to.infn.it)\n
+  \authors A. Mignone (andrea.mignone@unito.it)\n
   \date    Nov 11, 2020
 */
 /* ///////////////////////////////////////////////////////////////////// */
@@ -257,12 +257,13 @@ DIM_LOOP(nv)    TOT_LOOP(k,j,i) d->Vs[nv][k][j][i] = Bss0[nv][k][j][i];
    -------------------------------------------------------- */
 
   #if (PARTICLES == PARTICLES_CR   && PARTICLES_CR_FEEDBACK == NO)   \
-   || (PARTICLES == PARTICLES_DUST && PARTICLES_DUST_FEEDBACK == NO)  \
+   || (PARTICLES == PARTICLES_DUST && PARTICLES_DUST_FEEDBACK == NO) \
    || (PARTICLES == PARTICLES_MC && PARTICLES_MC_FEEDBACK == NO)  \
    || (PARTICLES == PARTICLES_KIN && PARTICLES_KIN_FEEDBACK == NO)
   NVAR_LOOP(nv) DOM_LOOP(k,j,i) Vhalf[nv][k][j][i] += 0.5*d->Vc[nv][k][j][i];
   Vpnt  = d->Vc;  /* Save pointer */
   d->Vc = Vhalf;
+  prontLog("why vhalf in failsafe\n");
   #if PARTICLES == PARTICLES_CR
   Particles_CR_Update(d, Dts, g_dt, grid);
   #elif PARTICLES == PARTICLES_MC

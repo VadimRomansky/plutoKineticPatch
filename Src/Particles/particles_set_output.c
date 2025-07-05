@@ -3,7 +3,7 @@
  \file
  \brief Set particles output data attributes.
  
- \authors A. Mignone (mignone@to.infn.it)\n
+ \authors A. Mignone (andrea.mignone@unito.it)\n
  
  \date    Aug 27, 2020
  */
@@ -92,19 +92,19 @@ void Particles_SetOutput (Data *d, Runtime *runtime)
     strcpy(output->var_name[i++], "energy");
     #endif
 
-    #if PARTICLES == PARTICLES_MC
-    strcpy(output->var_name[i++], "id");
-    strcpy(output->var_name[i++], "x1");  
-    strcpy(output->var_name[i++], "x2");  
-    strcpy(output->var_name[i++], "x3");
-    strcpy(output->var_name[i++], "vx1");  
-    strcpy(output->var_name[i++], "vx2");  
-    strcpy(output->var_name[i++], "vx3");
-    strcpy(output->var_name[i++], "mass");
-    strcpy(output->var_name[i++], "tinj");
-    strcpy(output->var_name[i++], "color");
-    strcpy(output->var_name[i++], "energy");
-    #endif
+#if PARTICLES == PARTICLES_MC
+strcpy(output->var_name[i++], "id");
+strcpy(output->var_name[i++], "x1");
+strcpy(output->var_name[i++], "x2");
+strcpy(output->var_name[i++], "x3");
+strcpy(output->var_name[i++], "vx1");
+strcpy(output->var_name[i++], "vx2");
+strcpy(output->var_name[i++], "vx3");
+strcpy(output->var_name[i++], "mass");
+strcpy(output->var_name[i++], "tinj");
+strcpy(output->var_name[i++], "color");
+strcpy(output->var_name[i++], "energy");
+#endif
 
     #if PARTICLES == PARTICLES_DUST
     strcpy(output->var_name[i++], "id");
@@ -169,7 +169,7 @@ void Particles_SetOutput (Data *d, Runtime *runtime)
     }
 */
     #endif
-    #endif
+    #endif  
 
 #if PARTICLES == PARTICLES_KIN
     strcpy(output->var_name[i++], "id");
@@ -203,7 +203,6 @@ void Particles_SetOutput (Data *d, Runtime *runtime)
   SetOutputVar ("energy", PARTICLES_DBL_OUTPUT, NO);
   #endif
 
-
   #if (PARTICLES == PARTICLES_LP) && (PARTICLES_LP_SPECTRA == YES)
   SetOutputVar("nmicro",    PARTICLES_FLT_OUTPUT, NO);
   SetOutputVar("cmp_ratio", PARTICLES_FLT_OUTPUT, NO);
@@ -224,6 +223,7 @@ void Particles_SetOutput (Data *d, Runtime *runtime)
   SetOutputVar("bx2",       PARTICLES_FLT_OUTPUT, NO);
   SetOutputVar("bx3",       PARTICLES_FLT_OUTPUT, NO);
   #endif
+
 
 //for (k = 0; k < MAX_OUTPUT_TYPES; k++){ 
 //  output = runtime->output + k;

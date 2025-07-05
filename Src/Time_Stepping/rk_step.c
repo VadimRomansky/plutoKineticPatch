@@ -7,8 +7,8 @@
   methods (RK3).
   Time stepping include Euler, RK2 and RK3.
 
-  \authors A. Mignone (mignone@to.infn.it)\n
-  \date    Nov 11, 2020
+  \authors A. Mignone (andrea.mignone@unito.it)\n
+  \date    Apr 02, 2024
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -16,17 +16,17 @@
 /* Weight factor for 2nd stage of RK integrators */
 
 #if TIME_STEPPING == RK2
-#define w0  0.5
-#define wc  0.5
+ #define w0  0.5
+ #define wc  0.5
 #elif TIME_STEPPING == RK3
-#define w0 0.75
-#define wc 0.25
+ #define w0 0.75
+ #define wc 0.25
 #endif
 
 //static void SolutionCorrect(Data *, timeStep *, Data_Arr, Data_Arr, double, Grid *);
 
 /* ********************************************************************* */
-int AdvanceStep(Data *d, timeStep *Dts, Grid *grid)
+int AdvanceStep (Data *d, timeStep *Dts, Grid *grid)
 /*!
  * Advance the equations by a single time step using unsplit
  * integrators based on the method of lines.
@@ -37,69 +37,75 @@ int AdvanceStep(Data *d, timeStep *Dts, Grid *grid)
  *
  *********************************************************************** */
 {
-    int i, j, k, nv;
-    int err;
-    static double one_third = 1.0 / 3.0;
-    static Data_Arr U0;
-    static double ***Bs0[3];
-    RBox box;
-#if PARTICLES
-    Data_Arr Vpnt;
-    static Data_Arr Vhalf;
+  int  i, j, k, nv;
+  int  err;
+  static double  one_third = 1.0/3.0;
+  static Data_Arr U0;
+  static double ***Bs0[3];
+  RBox   box;
+#if PARTICLES != NO
+  Data_Arr Vpnt;
+  static Data_Arr Vhalf;
 #endif
 
-    RBoxDefine(IBEG, IEND, JBEG, JEND, KBEG, KEND, CENTER, &box);
-
-#if RADIATION && RADIATION_IMEX_SSP2 && (TIME_STEPPING != RK2)
-    print ("! AdvanceStep(): RADIATION_IMEX_SSP2 requires TIME_STEPPING == RK2\n");
-    QUIT_PLUTO(1);
+#if FUNCTION_CLOCK_PROFILE == YES
+  clock_t clock_beg, clock_end;
+  static double ftime = 0.0;
+  clock_beg = clock();
 #endif
 
-#if RADIATION && RADIATION_IMEX_SSP2
-    static Data_Arr Srad1, Srad2;
-    static double rk_gamma = 0.29289321881;
-    double dt_rk1, dt_rk2 ,dt_rk3 ;
+  RBoxDefine (IBEG, IEND, JBEG, JEND, KBEG, KEND, CENTER, &box);
 
-    dt_rk1 = g_dt*rk_gamma ;
-    dt_rk2 = g_dt*(1.0-3.0*rk_gamma);
-    dt_rk3 = g_dt*0.5*(1.0-rk_gamma);
-#endif
+  #if RADIATION && (!RADIATION_NR) && RADIATION_IMEX_SSP2 && (TIME_STEPPING != RK2)
+  print ("! AdvanceStep(): RADIATION_IMEX_SSP2 requires TIME_STEPPING == RK2\n");
+  QUIT_PLUTO(1);
+  #endif
 
-    /* --------------------------------------------------------
+  #if RADIATION && (!RADIATION_NR) && RADIATION_IMEX_SSP2
+  static Data_Arr Srad1, Srad2;
+  static double rk_gamma = 0.29289321881;
+  double dt_rk1, dt_rk2 ,dt_rk3 ;
+
+  dt_rk1 = g_dt*rk_gamma ;
+  dt_rk2 = g_dt*(1.0-3.0*rk_gamma);
+  dt_rk3 = g_dt*0.5*(1.0-rk_gamma);
+  #endif
+
+/* --------------------------------------------------------
    0. Allocate memory
    -------------------------------------------------------- */
 
-    if (U0 == NULL) {
-        U0 = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double);
-#if PARTICLES
-        Vhalf = ARRAY_4D(NVAR, NX3_TOT, NX2_TOT, NX1_TOT, double);
-        TOT_LOOP(k,j,i){
-            NVAR_LOOP(nv){
-                Vhalf[nv][k][j][i] = 0;
-            }
+  if (U0 == NULL){
+    U0 = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double);
+    #if PARTICLES
+    Vhalf = ARRAY_4D(NVAR, NX3_TOT, NX2_TOT, NX1_TOT, double);
+    TOT_LOOP(k,j,i){
+        NVAR_LOOP(nv){
+            Vhalf[nv][k][j][i] = 0;
         }
-#endif
-
-#ifdef STAGGERED_MHD
-        DIM_EXPAND(
-                    Bs0[IDIR] = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);  ,
-                Bs0[JDIR] = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);  ,
-        Bs0[KDIR] = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
-        )
-#endif
-
-#if RADIATION
-#if RADIATION_IMEX_SSP2
-        Srad1 = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, 4, double);
-        Srad2 = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, 4, double);
-#endif
-#if RADIATION_VAR_OPACITIES == NO
-        g_totalOpacity = g_absorptionCoeff + g_scatteringCoeff ;
-#endif
-#endif
     }
+    #endif
 
-    /* --------------------------------------------------------
+    #ifdef STAGGERED_MHD
+    DIM_EXPAND(
+      Bs0[IDIR] = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);  ,
+      Bs0[JDIR] = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);  ,
+      Bs0[KDIR] = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+    )
+    #endif
+
+    #if RADIATION && (!RADIATION_NR)
+    #if RADIATION_IMEX_SSP2
+    Srad1 = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, 4, double);
+    Srad2 = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, 4, double);
+    #endif
+    #if RADIATION_VAR_OPACITIES == NO
+    g_totalOpacity = g_absorptionCoeff + g_scatteringCoeff ;
+    #endif
+    #endif
+  }
+
+/* --------------------------------------------------------
    1. Predictor step (EULER, RK2, RK3)
 
       After baoundaries have been set we flag zones lying
@@ -108,250 +114,298 @@ int AdvanceStep(Data *d, timeStep *Dts, Grid *grid)
       entropy/energy selective update.
    -------------------------------------------------------- */
 
-    /* -- 1a. Set boundary conditions -- */
+/* -- 1a. Set boundary conditions -- */
 
-    g_intStage = 1;
-#if RING_AVERAGE > 1
-    PrimToCons3D (d->Vc, d->Uc, &box);
-    RingAverageCons(d, grid);
-    ConsToPrim3D (d->Uc, d->Vc, d->flag, &box);
-#endif
-    Boundary(d, ALL_DIR, grid);
-#if (SHOCK_FLATTENING == MULTID) || (ENTROPY_SWITCH)
-    FlagShock (d, grid);
-#endif
+  g_intStage = 1;
+  #if RING_AVERAGE > 1
+  PrimToCons3D (d->Vc, d->Uc, &box, grid);
+  RingAverageCons(d, grid);
+  ConsToPrim3D (d->Uc, d->Vc, d->flag, &box, grid);
+  #endif
 
-    /* -- 1b. Convert primitive to conservative, save initial stage  -- */
+  Boundary (d, 0, grid);
 
-    PrimToCons3D(d->Vc, d->Uc, &box);
-    RBoxCopy(&box, U0, d->Uc, NVAR, CONS_ARRAY);
+  #if (SHOCK_FLATTENING == MULTID) || (ENTROPY_SWITCH)
+  FlagShock (d, grid);
+  #endif
+
+/* -- 1b. Convert primitive to conservative, save initial stage  -- */
+
+  PrimToCons3D(d->Vc, d->Uc, &box, grid);
+  RBoxCopy (&box, U0, d->Uc, NVAR, CONS_ARRAY);
 #ifdef STAGGERED_MHD
-    DIM_LOOP(nv) TOT_LOOP(k,j,i) Bs0[nv][k][j][i] = d->Vs[nv][k][j][i];
+  DIM_LOOP(nv) TOT_LOOP(k,j,i) Bs0[nv][k][j][i] = d->Vs[nv][k][j][i];
 #endif
 
-    /* -- 1c. Compute Particles feedback / Advance with pred. step -- */
+/* -- 1c. Compute Particles feedback / Advance with pred. step -- */
 
-#if PARTICLES == PARTICLES_CR
-    Particles_CR_ComputeForce(d->Vc, d, grid);
-    NVAR_LOOP(nv) TOT_LOOP(k, j, i) Vhalf[nv][k][j][i] = 0.5 * d->Vc[nv][k][j][i];
-#elif PARTICLES == PARTICLES_MC
-    Particles_MC_ComputeForce(d->Vc, d, grid);
-    NVAR_LOOP(nv) TOT_LOOP(k, j, i) Vhalf[nv][k][j][i] = 0.5 * d->Vc[nv][k][j][i];
-#elif PARTICLES == PARTICLES_DUST
-    Particles_Dust_ComputeForce (d->Vc, d, grid);
-    NVAR_LOOP(nv) TOT_LOOP(k,j,i) Vhalf[nv][k][j][i] = 0.5*d->Vc[nv][k][j][i];
-#elif PARTICLES == PARTICLES_LP
-    Particles_LP_Update (d, Dts, g_dt, grid);
-#endif
+  #if PARTICLES == PARTICLES_CR
+  Particles_CR_ComputeForce (d->Vc, d, grid);
+  NVAR_LOOP(nv) TOT_LOOP(k,j,i) Vhalf[nv][k][j][i] = 0.5*d->Vc[nv][k][j][i];
+  #if PARTICLES_CR_GC == YES
+  NVAR_LOOP(nv) TOT_LOOP(k,j,i) d->Vc0[nv][k][j][i] = d->Vc[nv][k][j][i];
+  #endif
+  #elif PARTICLES == PARTICLES_MC
+  Particles_MC_ComputeForce(d->Vc, d, grid);
+  NVAR_LOOP(nv) TOT_LOOP(k, j, i) Vhalf[nv][k][j][i] = 0.5 * d->Vc[nv][k][j][i];
+  #elif PARTICLES == PARTICLES_DUST
+  Particles_Dust_ComputeForce (d->Vc, d, grid);
+  NVAR_LOOP(nv) TOT_LOOP(k,j,i) Vhalf[nv][k][j][i] = 0.5*d->Vc[nv][k][j][i];
+  #elif PARTICLES == PARTICLES_LP
+  Particles_LP_Update (d, Dts, g_dt, grid);
+  #endif
 
-    /* -- 1d. Advance conservative variables array -- */
+/* -- 1d. Advance conservative variables array -- */
 
-#if RADIATION
-#if RADIATION_IMEX_SSP2
-    RadStep3D (d->Uc, d->Vc, Srad1, d->flag, &box, dt_rk1);
-    Boundary (d, ALL_DIR, grid);
-#endif
-#endif
+  #if RADIATION && (!RADIATION_NR) && RADIATION_IMEX_SSP2
+  RadStep3D (d->Uc, d->Vc, Srad1, d->flag, &box, dt_rk1);
+  Boundary (d, 0, grid);
+  #endif
 
-    /* CheckData (d, grid, "Before Predictor"); */
-    UpdateStage(d, d->Uc, d->Vs, NULL, g_dt, Dts, grid);
+/* CheckData (d, grid, "Before Predictor"); */
+  UpdateStage(d, d->Uc, d->Vs, NULL, g_dt, Dts, grid);
 
-#if RING_AVERAGE > 1
-    RingAverageCons(d, grid);
-#endif
+  /* -- Update irradiation flux (RHD/RMHD) -- */
+  #if RADIATION
+  #if (!RADIATION_NR) && IRRADIATION && IRRADIATION_UPDATE
+  RadIrradiationFlux(d, grid);
+  #endif
+  #endif
 
-#if RADIATION
-#if RADIATION_IMEX_SSP2
-    AddRadSource1(d->Uc, Srad1, &box, dt_rk2);
-    ConsToPrim3D (d->Uc, d->Vc, d->flag, &box);
-    RadStep3D (d->Uc, d->Vc, Srad2, d->flag, &box, dt_rk1);
-#else
-    ConsToPrim3D (d->Uc, d->Vc, d->flag, &box);
-    RadStep3D (d->Uc, d->Vc, NULL, d->flag, &box, g_dt);
-#endif
+  #if RING_AVERAGE > 1
+  RingAverageCons(d, grid);
+  #endif
+
+#if RADIATION && (!RADIATION_NR)
+  #if RADIATION_IMEX_SSP2
+  AddRadSource1(d->Uc, Srad1, &box, dt_rk2);
+  ConsToPrim3D (d->Uc, d->Vc, d->flag, &box, grid);
+  RadStep3D (d->Uc, d->Vc, Srad2, d->flag, &box, dt_rk1);
+  #else
+  ConsToPrim3D (d->Uc, d->Vc, d->flag, &box, grid);
+  RadStep3D (d->Uc, d->Vc, NULL, d->flag, &box, g_dt);
+  #endif
 #endif
 
 #ifdef STAGGERED_MHD
-    CT_AverageStaggeredFields (d->Vs, d->Uc, &box, grid);
+  CT_AverageStaggeredFields (d, 1, &box, grid);
 #endif
-    err = ConsToPrim3D(d->Uc, d->Vc, d->flag, &box);
-#if FAILSAFE == YES
-    if (err > 0) return err;
-#endif
+  err = ConsToPrim3D (d->Uc, d->Vc, d->flag, &box, grid);
+  #if FAILSAFE == YES
+  if (err > 0) return err;
+  #endif
 
-    /* -- 1e. Advance particles (w/ feedback) by a full step -- */
+/* -- 1e. Advance particles (w/ feedback) by a full step -- */
 
-#if   (PARTICLES == PARTICLES_CR && PARTICLES_CR_FEEDBACK == YES)   \
-    || (PARTICLES == PARTICLES_DUST && PARTICLES_DUST_FEEDBACK == YES)   \
-    || (PARTICLES == PARTICLES_MC && PARTICLES_MC_FEEDBACK == YES)
-    NVAR_LOOP(nv) TOT_LOOP(k, j, i) Vhalf[nv][k][j][i] += 0.5 * d->Vc[nv][k][j][i];
-    Vpnt = d->Vc;  /* Save pointer */
-    d->Vc = Vhalf;
-#if PARTICLES == PARTICLES_CR
-    Particles_CR_Update(d, Dts, g_dt, grid);
-#elif PARTICLES == PARTICLES_MC
-    Particles_MC_Update(d, Dts, g_dt, grid);
-#elif PARTICLES == PARTICLES_DUST
-    Particles_Dust_Update(d, Dts, g_dt, grid);
-#elif PARTICLES = PARTICLES_KIN
-    Particles_KIN_Update(d, Dts, g_dt, grid);
-#endif
-    d->Vc = Vpnt;   /* Restore Pointer */
+#if   (PARTICLES == PARTICLES_CR   && PARTICLES_CR_FEEDBACK == YES)   \
+   || (PARTICLES == PARTICLES_DUST && PARTICLES_DUST_FEEDBACK == YES) \
+   || (PARTICLES == PARTICLES_MC && PARTICLES_MC_FEEDBACK == YES)
+  NVAR_LOOP(nv) TOT_LOOP(k,j,i) Vhalf[nv][k][j][i] += 0.5*d->Vc[nv][k][j][i];
+  Vpnt  = d->Vc;  /* Save pointer */
+  d->Vc = Vhalf;
+  #if PARTICLES == PARTICLES_CR
+  Particles_CR_Update(d, Dts, g_dt, grid);
+  #elif PARTICLES == PARTICLES_MC
+  Particles_MC_Update(d, Dts, g_dt, grid);
+  #elif PARTICLES == PARTICLES_DUST
+  Particles_Dust_Update(d, Dts, g_dt, grid);
+  #elif PARTICLES = PARTICLES_KIN
+  Particles_KIN_Update(d, Dts, g_dt, grid);
+  #endif
+  d->Vc = Vpnt;   /* Restore Pointer */
 #endif  /* PARTICLES_XX_FEEDBACK */
 
-    /* --------------------------------------------------------
+/* --------------------------------------------------------
    2. Corrector step (RK2, RK3)
    -------------------------------------------------------- */
 
 #if (TIME_STEPPING == RK2) || (TIME_STEPPING == RK3)
 
-    /* -- 2a. Set boundary conditions -- */
+/* -- 2a. Set boundary conditions -- */
 
-    g_intStage = 2;
-    Boundary(d, ALL_DIR, grid);
+  g_intStage = 2;
+  Boundary (d, 0, grid);
 
-    /* -- 2b. Advance paticles & solution array -- */
+/* -- 2b. Advance paticles & solution array -- */
 
-#if PARTICLES == PARTICLES_LP
-    Particles_LP_Update (d, Dts, g_dt, grid);
-#endif
-    UpdateStage(d, d->Uc, d->Vs, NULL, g_dt, Dts, grid);
+  #if PARTICLES == PARTICLES_LP
+  Particles_LP_Update (d, Dts, g_dt, grid);
+  #endif
+  UpdateStage(d, d->Uc, d->Vs, NULL, g_dt, Dts, grid);
 
-#if RADIATION && !RADIATION_IMEX_SSP2
-    ConsToPrim3D (d->Uc, d->Vc, d->flag, &box);
-    RadStep3D (d->Uc, d->Vc, NULL, d->flag, &box, g_dt);
-#endif
+  /* -- Update irradiation flux (RHD/RMHD) -- */
+  #if RADIATION
+  #if (!RADIATION_NR) && IRRADIATION && IRRADIATION_UPDATE
+  RadIrradiationFlux(d, grid);
+  #endif
+  #endif
 
-    DOM_LOOP(k, j, i) NVAR_LOOP(nv) {
-        d->Uc[k][j][i][nv] = w0 * U0[k][j][i][nv] + wc * d->Uc[k][j][i][nv];
-    }
-#if RING_AVERAGE > 1
-    RingAverageCons(d, grid);
-#endif
+  #if RADIATION && (!RADIATION_NR) && (!RADIATION_IMEX_SSP2)
+  ConsToPrim3D (d->Uc, d->Vc, d->flag, &box, grid);
+  RadStep3D (d->Uc, d->Vc, NULL, d->flag, &box, g_dt);
+  #endif
 
-#if RADIATION
-#if RADIATION_IMEX_SSP2
-    AddRadSource2(d->Uc, Srad1, Srad2, &box, dt_rk1, dt_rk3);
-#endif
-#endif
+  DOM_LOOP(k, j, i) NVAR_LOOP(nv){
+    d->Uc[k][j][i][nv] = w0*U0[k][j][i][nv] + wc*d->Uc[k][j][i][nv];
+  }
+  #if RING_AVERAGE > 1
+  RingAverageCons(d, grid);
+  #endif
 
-#ifdef STAGGERED_MHD
-    DIM_LOOP(nv) TOT_LOOP(k,j,i) {
-        d->Vs[nv][k][j][i] = w0*Bs0[nv][k][j][i] + wc*d->Vs[nv][k][j][i];
-    }
-    CT_AverageStaggeredFields (d->Vs, d->Uc, &box, grid);
+#if RADIATION && (!RADIATION_NR) && RADIATION_IMEX_SSP2
+  AddRadSource2(d->Uc, Srad1, Srad2, &box, dt_rk1, dt_rk3);
 #endif
 
-    /* -- 2e. Apply FARGO orbital shift -- */
+  #ifdef STAGGERED_MHD
+  DIM_LOOP(nv) TOT_LOOP(k,j,i) {
+    d->Vs[nv][k][j][i] = w0*Bs0[nv][k][j][i] + wc*d->Vs[nv][k][j][i];
+  }
+  CT_AverageStaggeredFields (d, 1, &box, grid);
+  #endif
 
-#if (defined FARGO) && (TIME_STEPPING == RK2)
-    FARGO_ShiftSolution (d->Uc, d->Vs, grid);
-#endif
+/* -- 2e. Apply FARGO orbital shift -- */
 
-    /* -- 2f. Convert to Primitive -- */
+  #if (defined FARGO) && (TIME_STEPPING == RK2)
+  FARGO_ShiftSolution (d->Uc, d->Vs, grid);
+  #endif
 
-    err = ConsToPrim3D(d->Uc, d->Vc, d->flag, &box);
-#if FAILSAFE == YES
-    if (err > 0) return err;
-#endif
+/* -- 2f. Convert to Primitive -- */
+
+  err = ConsToPrim3D (d->Uc, d->Vc, d->flag, &box, grid);
+  #if FAILSAFE == YES
+  if (err > 0) return err;
+  #endif
 
 #endif  /* TIME_STEPPING == RK2/RK3 */
 
-    /* --------------------------------------------------------
+/* --------------------------------------------------------
    3. Last corrector step (RK3 only)
    -------------------------------------------------------- */
 
 #if TIME_STEPPING == RK3
-#if (PARTICLES == PARTICLES_CR   && PARTICLES_CR_FEEDBACK == YES)   \
-    || (PARTICLES == PARTICLES_MC && PARTICLES_MC_FEEDBACK == YES)   \
-    || (PARTICLES == PARTICLES_DUST && PARTICLES_DUST_FEEDBACK == YES)
-    print ("! AdvanceStep(): RK3 algorithm not permitted with particles and feedback\n");
-    QUIT_PLUTO(1);
-#endif
+  #if (PARTICLES == PARTICLES_CR   && PARTICLES_CR_FEEDBACK == YES)   \
+   || (PARTICLES == PARTICLES_MC && PARTICLES_MC_FEEDBACK == YES)   \
+   || (PARTICLES == PARTICLES_DUST && PARTICLES_DUST_FEEDBACK == YES)
+  print ("! AdvanceStep(): RK3 algorithm not permitted with particles and feedback\n");
+  QUIT_PLUTO(1);
+  #endif
 
-    /* -- 3a. Set Boundary conditions -- */
+/* -- 3a. Set Boundary conditions -- */
 
-    g_intStage = 3;
-    Boundary (d, ALL_DIR, grid);
+  g_intStage = 3;
+  Boundary (d, 0, grid);
 
-    /* -- 3b. Update solution array -- */
+/* -- 3b. Update solution array -- */
 
-#if PARTICLES == PARTICLES_LP
-    Particles_LP_Update (d, Dts, g_dt, grid);
-#endif
-    UpdateStage(d, d->Uc, d->Vs, NULL, g_dt, Dts, grid);
+  #if PARTICLES == PARTICLES_LP
+  Particles_LP_Update (d, Dts, g_dt, grid);
+  #endif
+  UpdateStage(d, d->Uc, d->Vs, NULL, g_dt, Dts, grid);
 
-#if RADIATION
-    ConsToPrim3D (d->Uc, d->Vc, d->flag, &box);
-    RadStep3D (d->Uc, d->Vc, NULL, d->flag, &box, g_dt);
-#endif
+  /* -- Update irradiation flux (RHD/RMHD) -- */
+  #if RADIATION
+  #if (!RADIATION_NR) && IRRADIATION && IRRADIATION_UPDATE
+  RadIrradiationFlux(d, grid);
+  #endif
+  #endif
 
-    DOM_LOOP(k,j,i) NVAR_LOOP(nv){
-        d->Uc[k][j][i][nv] = one_third*(U0[k][j][i][nv] + 2.0*d->Uc[k][j][i][nv]);
-    }
-#if RING_AVERAGE > 1
-    RingAverageCons(d, grid);
-#endif
+  #if RADIATION && (!RADIATION_NR)
+  ConsToPrim3D (d->Uc, d->Vc, d->flag, &box, grid);
+  RadStep3D (d->Uc, d->Vc, NULL, d->flag, &box, g_dt);
+  #endif
 
-#ifdef STAGGERED_MHD
-    DIM_LOOP(nv) TOT_LOOP(k,j,i){
-        d->Vs[nv][k][j][i] = (Bs0[nv][k][j][i] + 2.0*d->Vs[nv][k][j][i])/3.0;
-    }
-    CT_AverageStaggeredFields (d->Vs, d->Uc, &box, grid);
-#endif
+  DOM_LOOP(k,j,i) NVAR_LOOP(nv){
+    d->Uc[k][j][i][nv] = one_third*(U0[k][j][i][nv] + 2.0*d->Uc[k][j][i][nv]);
+  }
+  #if RING_AVERAGE > 1
+  RingAverageCons(d, grid);
+  #endif
 
-    /* -- 3c. Apply FARGO orbital shift -- */
+  #ifdef STAGGERED_MHD
+  DIM_LOOP(nv) TOT_LOOP(k,j,i){
+    d->Vs[nv][k][j][i] = (Bs0[nv][k][j][i] + 2.0*d->Vs[nv][k][j][i])/3.0;
+  }
+  CT_AverageStaggeredFields (d, 1, &box, grid);
+  #endif
 
-#ifdef FARGO
-    FARGO_ShiftSolution (d->Uc, d->Vs, grid);
-#endif
-    err = ConsToPrim3D (d->Uc, d->Vc, d->flag, &box);
-#if FAILSAFE == YES
-    if (err > 0) return err;
-#endif
+/* -- 3c. Apply FARGO orbital shift -- */
+
+  #ifdef FARGO
+  FARGO_ShiftSolution (d->Uc, d->Vs, grid);
+  #endif
+  err = ConsToPrim3D (d->Uc, d->Vc, d->flag, &box, grid);
+  #if FAILSAFE == YES
+  if (err > 0) return err;
+  #endif
 #endif /* TIME_STEPPING == RK3 */
 
-    /* --------------------------------------------------------
+/* --------------------------------------------------------
    4. Particles update (no feedback)
    -------------------------------------------------------- */
 
-#if (PARTICLES == PARTICLES_CR && PARTICLES_CR_FEEDBACK == NO)   \
-    || (PARTICLES == PARTICLES_DUST && PARTICLES_DUST_FEEDBACK == NO)   \
-    || (PARTICLES == PARTICLES_MC && PARTICLES_MC_FEEDBACK == NO)    \
-    || (PARTICLES == PARTICLES_KIN && PARTICLES_KIN_FEEDBACK == NO)
-    NVAR_LOOP(nv) DOM_LOOP(k,j,i) Vhalf[nv][k][j][i] += 0.5*d->Vc[nv][k][j][i];
-    Vpnt  = d->Vc;  /* Save pointer */
-    //d->Vc = Vhalf;
-#if PARTICLES == PARTICLES_CR
-    Particles_CR_Update(d, Dts, g_dt, grid);
-#elif PARTICLES == PARTICLES_MC
-    Particles_MC_Update(d, Dts, g_dt, grid);
-#elif PARTICLES == PARTICLES_DUST
-    Particles_Dust_Update(d, Dts, g_dt, grid);
-#elif PARTICLES == PARTICLES_KIN
-    Particles_KIN_Update(d, Dts, g_dt, grid);
-#endif
-    d->Vc = Vpnt;   /* Restore Pointer */
-#endif  /* PARTICLES */
+   #if (PARTICLES == PARTICLES_CR   && PARTICLES_CR_GC == YES)
+   Particles_CR_Update(d, Dts, g_dt, grid);
+   #elif  (PARTICLES == PARTICLES_CR   && PARTICLES_CR_FEEDBACK == NO)   \
+       || (PARTICLES == PARTICLES_DUST && PARTICLES_DUST_FEEDBACK == NO) \
+       || (PARTICLES == PARTICLES_MC && PARTICLES_MC_FEEDBACK == NO)    \
+       || (PARTICLES == PARTICLES_KIN && PARTICLES_KIN_FEEDBACK == NO)
+   NVAR_LOOP(nv) DOM_LOOP(k,j,i) Vhalf[nv][k][j][i] += 0.5*d->Vc[nv][k][j][i];
+   Vpnt  = d->Vc;  /* Save pointer */
+   printf("Vhalf or not?\n");
+   //d->Vc = Vhalf;
+   #if PARTICLES == PARTICLES_CR
+   Particles_CR_Update(d, Dts, g_dt, grid);
+   #elif PARTICLES == PARTICLES_MC
+   Particles_MC_Update(d, Dts, g_dt, grid);
+   #elif PARTICLES == PARTICLES_DUST
+   Particles_Dust_Update(d, Dts, g_dt, grid);
+   #elif PARTICLES == PARTICLES_KIN
+   Particles_KIN_Update(d, Dts, g_dt, grid);
+   #endif
+   d->Vc = Vpnt;   /* Restore Pointer */
+   #endif  /* PARTICLES */
 
-    /* --------------------------------------------------------
+/* --------------------------------------------------------
    5. Inject particles or update spectra
    -------------------------------------------------------- */
 
 #if PARTICLES
-#if (PARTICLES == PARTICLES_LP) && (PARTICLES_LP_SPECTRA == YES)
-    Boundary (d, ALL_DIR, grid); /* Spectra update requires interpolating
-                                * fluid quantities at particle position. */
-    Particles_LP_UpdateSpectra (d, g_dt, grid);
-#endif
-    Particles_Inject(d, grid);
+  #if (PARTICLES == PARTICLES_LP) && (PARTICLES_LP_SPECTRA == YES)
+  Boundary (d, 0, grid); /* Spectra update requires interpolating
+                          * fluid quantities at particle position. */
+  Particles_LP_UpdateSpectra (d, g_dt, grid);
+  #endif
+  Particles_Inject(d,grid);
 #endif
 
 #if TURBULENT_FIELD == YES
     AdvanceTurbulentField(d, Dts, g_dt, grid);
 #endif
 
-    return 0; /* -- step has been achieved, return success -- */
+/* --------------------------------------------------------
+   6. Update irradiation flux (HD/MHD) 
+   -------------------------------------------------------- */
+  #if RADIATION
+  #if RADIATION_NR && IRRADIATION && IRRADIATION_UPDATE
+  RadIrradiationFlux(d, grid);
+  #endif
+  #endif
+
+/* --------------------------------------------------------
+   7. Function clock profile
+   -------------------------------------------------------- */
+
+#if FUNCTION_CLOCK_PROFILE == YES
+  clock_end = clock();
+  ftime += (double)(clock_end - clock_beg) / CLOCKS_PER_SEC;
+  if (g_stepNumber%FUNCTION_CLOCK_NSTEP == 0) {
+    printf (">>>> AdvanceStep() [s] = %f\n",ftime);
+    ftime = 0.0;
+  }
+#endif
+
+  
+  return 0; /* -- step has been achieved, return success -- */
 }
 
 //#if TIME_STEP_CONTROL == YES
@@ -372,7 +426,7 @@ int AdvanceStep(Data *d, timeStep *Dts, Grid *grid)
 //  Runtime *runtime = RuntimeGet();
 //  double dt = NextTimeStep(Dts, runtime, grid);
 //  double rmax  = 0.5;  // 0.65
-//  double rsafe = 1.0;  // 0.9 
+//  double rsafe = 1.0;  // 0.9
 //
 //  if (dt < rmax*dt0){
 //    dt = rsafe*dt;

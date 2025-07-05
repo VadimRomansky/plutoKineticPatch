@@ -4,7 +4,7 @@
  \brief Tools required to define the Particle MPI struct and 
         Interpolating quantities from grid to particles.
  
- \authors   A. Mignone (mignone@ph.unito.it)\n
+ \authors   A. Mignone (andrea.mignone@unito.it)\n
             B. Vaidya (bvaidya@unito.it)\n
   
  \date     Mar 17, 2021

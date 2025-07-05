@@ -133,6 +133,10 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
     double inv_dt, inv_dt_new;
     inv_dt = 1.e-18;
 
+    Dts->invDt_advection = inv_dt;
+    Dts->invDt_acceleration = inv_dt;
+    Dts->invDt_diffusion = inv_dt;
+
 
     //crank-nickelson
     double factor = 0.5;
@@ -378,8 +382,9 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
         QUIT_PLUTO(1);
 #endif
 
-        inv_dt_new = fabs(100*divu*data->p_grid[0]/(data->p_grid[1] - data->p_grid[0]));
-        inv_dt = MAX(inv_dt, inv_dt_new);
+        ////why 100?
+        inv_dt_new = fabs(3*divu*data->p_grid[0]/(data->p_grid[1] - data->p_grid[0]))/PARTICLES_KIN_EPS;
+        Dts->invDt_acceleration = MAX(Dts->invDt_acceleration, inv_dt_new);
        
         double dx1 = 1E100;
         double dx2 = 1E100;
@@ -421,19 +426,22 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 
 #endif
 
-        inv_dt_new = 2*data->Vc[VX1][k][j][i]/dx1;
-        inv_dt = MAX(inv_dt, inv_dt_new);
-        inv_dt_new = 2*data->Vc[VX2][k][j][i]/dx2;
-        inv_dt = MAX(inv_dt, inv_dt_new);
-
-        inv_dt_new = 2*data->Vc[VX3][k][j][i]/dx3;
-        inv_dt = MAX(inv_dt, inv_dt_new);
+        inv_dt_new = fabs(2*data->Vc[VX1][k][j][i]/dx1)/PARTICLES_KIN_EPS;
+        Dts->invDt_advection = MAX(Dts->invDt_advection, inv_dt_new);
+#if INCLUDE_JDIR
+        inv_dt_new = fabs(2*data->Vc[VX2][k][j][i]/dx2)/PARTICLES_KIN_EPS;
+        Dts->invDt_advection = MAX(Dts->invDt_advection, inv_dt_new);
+#endif
+#if INCLUDE_KDIR
+        inv_dt_new = fabs(2*data->Vc[VX3][k][j][i]/dx3)/PARTICLES_KIN_EPS;
+        Dts->invDt->advection = MAX(Dts->invDt_advection, inv_dt_new);
+#endif
 
 
         for(int l = 0; l < maxNU; ++l){
             if(l > 0){
-                inv_dt_new = fabs(100*divu*data->p_grid[l]/(data->p_grid[l] - data->p_grid[l-1]));
-                inv_dt = MAX(inv_dt, inv_dt_new);
+                inv_dt_new = fabs(3*divu*data->p_grid[l]/(data->p_grid[l] - data->p_grid[l-1]))/PARTICLES_KIN_EPS;
+                Dts->invDt_acceleration = MAX(Dts->invDt_acceleration, inv_dt_new);
             }
 
             data->rightPart[k][j][i][l] = data->Fkin[k][j][i][l];
@@ -465,12 +473,16 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
             double Dfront = evaluateDiffusionCoefficient(data, i,j,k+1, data->p_grid[l]);
 #endif
 
-            /*inv_dt_new = fabs(2*4*D/(dx1*dx1));
-            inv_dt = MAX(inv_dt, inv_dt_new);
-            inv_dt_new = fabs(2*4*D/(dx2*dx2));
-            inv_dt = MAX(inv_dt, inv_dt_new);
-            inv_dt_new = fabs(2*4*D/(dx3*dx3));
-            inv_dt = MAX(inv_dt, inv_dt_new);*/
+            inv_dt_new = fabs(2*4*D/(dx1*dx1))/PARTICLES_KIN_EPS;
+            Dts->invDt_diffusion = MAX(Dts->invDt_diffusion, inv_dt_new);
+#if INCLUDE_JDIR
+            inv_dt_new = fabs(2*4*D/(dx2*dx2))/PARTICLES_KIN_EPS;
+            Dts->invDt_diffusion= MAX(Dts->invDt_diffusion, inv_dt_new);
+#endif
+#if INCLUDE_KDIR
+            inv_dt_new = fabs(2*4*D/(dx3*dx3))/PARTICLES_KIN_EPS;
+            Dts->invDt_diffusion = MAX(Dts->invDt_diffusion, inv_dt_new);
+#endif
 
             double dp = 0;
             if(divu > 0){
@@ -1473,6 +1485,77 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
                par_dim[2] = grid->nproc[KDIR] > 1;)
     multiplySpecialMatrixVector(data->rightPart, data->rightPartMatrix, data->Fkin, NMOMENTUM, par_dim);
 
+    DOM_LOOP(k,j,i){
+        int maxNU = NMOMENTUM - 1;
+
+#if INCLUDE_IDIR
+        if(grid->lbound[0] != 0){
+            if(grid->lbound[0] != PERIODIC){
+            if(i == IBEG){
+                    for(int l = 0; l < maxNU; ++l){
+                        data->rightPart[k][j][i][l] = 0;
+                    }
+            }
+            }
+        }
+
+        if(grid->rbound[0] != 0){
+            if(grid->rbound[0] != PERIODIC){
+            if(i == IEND){
+                    for(int l = 0; l < maxNU; ++l){
+                        data->rightPart[k][j][i][l] = 0;
+                    }
+            }
+            }
+        }
+#endif
+
+#if INCLUDE_JDIR
+        if(grid->lbound[1] != 0){
+            if(grid->lbound[1] != PERIODIC){
+                if(j == JBEG){
+                        for(int l = 0; l < maxNU; ++l){
+                            data->rightPart[k][j][i][l] = 0;
+                        }
+                }
+            }
+        }
+
+        if(grid->rbound[1] != 0){
+            if(grid->rbound[1] != PERIODIC){
+                if(j == JEND){
+                        for(int l = 0; l < maxNU; ++l){
+                            data->rightPart[k][j][i][l] = 0;
+                        }
+                }
+            }
+        }
+#endif
+
+#if INCLUDE_KDIR
+        if(grid->lbound[2] != 0){
+            if(grid->lbound[2] != PERIODIC){
+                if(k == KBEG){
+                        for(int l = 0; l < maxNU; ++l){
+                            data->rightPart[k][j][i][l] = 0;
+                        }
+                }
+            }
+        }
+
+        if(grid->rbound[2] != 0){
+            if(grid->rbound[2] != PERIODIC){
+                if(k == KEND){
+                        for(int l = 0; l < maxNU; ++l)
+                            data->rightPart[k][j][i][l] = 0;
+                        }
+                }
+            }
+        }
+
+#endif
+}
+
 #if PARTICLES_KIN_SOLVER == THREE_DIAGONAL
 #ifdef PARALLEL
     register int nd;
@@ -1621,6 +1704,9 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
             }
         }
     }
+
+    inv_dt = MAX(inv_dt, Dts->invDt_advection);
+    inv_dt = MAX(inv_dt, Dts->invDt_acceleration);
 
     Dts->invDt_particles = inv_dt;
     Dts->omega_particles = inv_dt;

@@ -19,7 +19,7 @@
   - for a y-staggered array,   <tt>V = (void *)(V3D[0][-1])</tt>
   - for a z-staggered array,   <tt>V = (void *)(V3D[-1][0])</tt>
 
-  \authors A. Mignone (mignone@ph.unito.it)\n
+  \authors A. Mignone (andrea.mignone@unito.it)\n
            G. Muscianisi (g.muscianisi@cineca.it)
 
   \date   Apr 02, 2019

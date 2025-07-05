@@ -15,7 +15,7 @@
   In the following "local" means "for the local processor".
   "Interior" means inside the computational domain.
 
-  \author A. Mignone (mignone@to.infn.it)
+  \author A. Mignone (andrea.mignone@unito.it)
   \date   Dec 02, 2020
 */
 /* ///////////////////////////////////////////////////////////////////// */
@@ -88,8 +88,6 @@ int EXn, EXt, EXb;
 #endif
 
 /**@} */
-
-//double g_usersTemporal;
                
 int g_i; /**<  x1 grid index when sweeping along the x2 or x3 direction. */
 int g_j; /**<  x2 grid index when sweeping along the x1 or x3 direction. */
@@ -132,6 +130,10 @@ double g_smallPressure = 1.e-12; /**< Small value for pressure fix. */
  double g_radiationConst = 1.0;	//Radiation constant (4*StefanBoltzmannConstant/c) (code_energy/(code_length^3*code_temperature^4))
  double g_idealGasConst = 1.0;  //(code_temperature) g_idealGasConst*prs/rho determines the gas temperature.
  double g_totalOpacity = 0.0;
+ #if RADIATION_NR
+  double g_radC = 1.0 ; // Speed of light
+  double g_reducedC = 1.0 ; // Reduced speed of light
+ #endif
 #endif
 
 long int g_stepNumber;  /**< Gives the current integration step number. */

@@ -7,7 +7,7 @@
   passed among processors. This has to be done for each PARTICLES type
   depending on the quantities present in the structure.
  
-  \authors   A. Mignone (mignone@to.infn.it)\n
+  \authors   A. Mignone (andrea.mignone@unito.it)\n
              B. Vaidya (bvaidya@unito.it)\n
              D. Mukherjee (dipanjan.mukherjee@unito.it)
   
@@ -69,8 +69,8 @@ void Particles_StructDatatype()
                                     MPI_DOUBLE,    /* coord_old[3]  */
                                     MPI_DOUBLE,    /* speed_old[3] */
                                     MPI_DOUBLE,    /* mass         */
-                                    MPI_FLOAT,     /* tinj         */ 
-                                    MPI_FLOAT,     /* color        */ 
+                                    MPI_FLOAT,     /* tinj         */
+                                    MPI_FLOAT,     /* color        */
                                     MPI_INT,       /* cell[3]      */
                                     MPI_UINT32_T}; /* id           */
 
@@ -87,7 +87,7 @@ void Particles_StructDatatype()
   offsets[i++] = offsetof(Particle, color);
   offsets[i++] = offsetof(Particle, cell);
   offsets[i++] = offsetof(Particle, id);
-  
+
   MPI_Type_create_struct(N_ELEMENTS, blocklengths, offsets, types, &MPI_PARTICLE);
   MPI_Type_commit(&MPI_PARTICLE);
                                    

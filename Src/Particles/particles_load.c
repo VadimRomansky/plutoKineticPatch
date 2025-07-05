@@ -3,7 +3,7 @@
   \file  
   \brief Initial particle loading.
 
-  \author A. Mignone (mignone@to.infn.it)
+  \author A. Mignone (andrea.mignone@unito.it)
 
   \date  July 10, 2019
 */
@@ -77,7 +77,6 @@ void Particles_LoadUniform(int i, int ntot, double *xbeg, double *xend,
  *  
  *********************************************************************** */
 {
-
   int    ndim = INCLUDE_IDIR + INCLUDE_JDIR + INCLUDE_KDIR;
   double Lx = xend[IDIR] - xbeg[IDIR];
   double Ly = xend[JDIR] - xbeg[JDIR];
@@ -86,15 +85,15 @@ void Particles_LoadUniform(int i, int ntot, double *xbeg, double *xend,
  
   double l = DIM_EXPAND(Lx, *Ly, *Lz)/(double)ntot;
   l = pow(l, 1.0/(double)ndim);
-
-/*#if DIMENSIONS == 1
-  l = Lx/(double)ntot;
+/*
+#if DIMENSIONS == 1
+  double l = Lx/(double)ntot; 
 #elif DIMENSIONS == 2  
   double l = sqrt(Lx*Ly/(double)ntot); 
 #elif DIMENSIONS == 3
   double l = pow(Lx*Ly*Lz/(double)ntot,1.0/3.0); 
-#endif  */
-
+#endif  
+*/
 
   double x0 = xbeg[IDIR] + l*0.5;  /* x-coordinate of 1st particles */
   double y0 = xbeg[JDIR] + l*0.5;  /* y-coordinate of 1st particles */
@@ -102,18 +101,7 @@ void Particles_LoadUniform(int i, int ntot, double *xbeg, double *xend,
   double x1, y1,z1;
       
   x1 = x0 + i*l;
-  if(i < 0){
-      printf("i < 0\n");
-      printLog("i < 0\n");
-      QUIT_PLUTO(1);
-  }
   coor[IDIR] = xbeg[IDIR] + fmod(x1 - xbeg[IDIR], Lx);
-
-  //int ngh = grid->nghost[dir];
-  //double xL  = grid->xbeg[dir] - grid->dx[dir][0]*ngh;
-  //int i   = (int)((xp[dir] - xL)*grid->inv_dx[dir][IBEG]);
-
-  //printLog ("%d coord = %g\n", i, coor[IDIR]);
   if(coor[IDIR] > xend[IDIR]){
       printLog ("coor = %g > xend = %g\n", coor[IDIR], xend[IDIR]);
   }

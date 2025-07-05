@@ -131,8 +131,8 @@
      - "An unsplit Godunov method for ideal MHD via constrained transport" \n
         Gardiner & Stone, JCP (2005), 205, 509
   
-  \authors A. Mignone (mignone@to.infn.it)
-  \date    Sep 14, 2019
+  \authors A. Mignone (andrea.mignone@unito.it)
+  \date    Apr 02, 2024
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include"pluto.h"
@@ -262,7 +262,7 @@ int AdvanceStep (Data *data, timeStep *Dts, Grid *grid)
    -------------------------------------------------------- */
 
   g_intStage = 1;
-  Boundary (data, ALL_DIR, grid);
+  Boundary (data, 0, grid);
 
 #if (SHOCK_FLATTENING == MULTID) || (ENTROPY_SWITCH) 
   FlagShock (data, grid);
@@ -283,7 +283,7 @@ int AdvanceStep (Data *data, timeStep *Dts, Grid *grid)
 #endif    
 
   RBoxDefine   (0, NX1_TOT-1, 0, NX2_TOT-1, 0, NX3_TOT-1, CENTER, &sweepBox);
-  PrimToCons3D (data->Vc, data->Uc, &sweepBox);
+  PrimToCons3D (data->Vc, data->Uc, &sweepBox, grid);
 
 /* -- Compute Particle force -- */
 
@@ -510,7 +510,12 @@ int AdvanceStep (Data *data, timeStep *Dts, Grid *grid)
 #ifdef STAGGERED_MHD 
   CT_Update (data, data->Vs, 0.5*g_dt, grid);
   RBoxDefine (IBEG-1, IEND+1, JBEG-1, JEND+1, KBEG-1, KEND+1, CENTER, &sweepBox);  
-  CT_AverageStaggeredFields (data->Vs, Uh, &sweepBox, grid);
+
+  Data_Arr ptmp = data->Uc;
+  data->Uc = Uh;
+  CT_AverageStaggeredFields (data, 1, &sweepBox, grid);
+  Uh = data->Uc;
+  data->Uc = ptmp;
 #endif
 
 /* --------------------------------------------------------
@@ -548,7 +553,7 @@ int AdvanceStep (Data *data, timeStep *Dts, Grid *grid)
 
 #if PARTICLES
 
-#if (PARTICLES == PARTICLES_CR) || (PARTICLES == PARTICLES_DUST) || (PARTICLES == PARTICLES_MC) || (PARTICLES == PARTICLES_KIN)
+  #if (PARTICLES == PARTICLES_CR) || (PARTICLES == PARTICLES_DUST) || (PARTICLES == PARTICLES_MC) || (PARTICLES == PARTICLES_KIN)
   NVAR_LOOP(nv) TOT_LOOP(k,j,i) Vc_half[nv][k][j][i] = data->Vc[nv][k][j][i];
   #ifdef STAGGERED_MHD
   DIM_LOOP(nv)  TOT_LOOP(k,j,i) Bs_half[nv][k][j][i] = data->Vs[nv][k][j][i];
@@ -559,7 +564,7 @@ int AdvanceStep (Data *data, timeStep *Dts, Grid *grid)
 
   #if PARTICLES == PARTICLES_CR
   Particles_CR_Update(data, Dts, g_dt, grid);
-  #elif PARTICLES == PARTICLES_M
+  #elif PARTICLES == PARTICLES_MC
   Particles_MC_Update(d, Dts, g_dt, grid);
   #elif PARTICLES == PARTICLES_DUST
   Particles_Dust_Update(data, Dts, g_dt, grid);
@@ -739,7 +744,7 @@ int AdvanceStep (Data *data, timeStep *Dts, Grid *grid)
   }}
 
   RBoxDefine (IBEG, IEND,JBEG, JEND,KBEG, KEND, CENTER, &sweepBox);  
-  CT_AverageStaggeredFields (data->Vs, data->Uc, &sweepBox, grid);
+  CT_AverageStaggeredFields (data, 1, &sweepBox, grid);
 #endif
 
 /* --------------------------------------------------------
@@ -752,7 +757,7 @@ int AdvanceStep (Data *data, timeStep *Dts, Grid *grid)
   #elif PARTICLES == PARTICLES_DUST
   Particles_Dust_ConservativeFeedback (data->Uc, data->Fdust, g_dt, &sweepBox);
   #elif (PARTICLES == PARTICLES_LP) && (PARTICLES_LP_SPECTRA == YES)
-  Boundary (data, ALL_DIR, grid); /* Spectra update requires interpolating
+  Boundary (data, 0, grid); /* Spectra update requires interpolating
                                 * fluid quantities at particle position. */
   Particles_LP_UpdateSpectra (data, g_dt, grid);
   #endif
@@ -774,7 +779,7 @@ int AdvanceStep (Data *data, timeStep *Dts, Grid *grid)
    14. Convert conservative to primitive variables
    -------------------------------------------------------- */
 
-  ConsToPrim3D(data->Uc, data->Vc, data->flag, &sweepBox);
+  ConsToPrim3D(data->Uc, data->Vc, data->flag, &sweepBox, grid);
 
 #if SHOW_TIMING
   clock_end = clock();

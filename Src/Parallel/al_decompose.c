@@ -7,13 +7,13 @@
 
   \authors A. Malagoli (University of Chicago)
   \authors G. Muscianisi (g.muscianisi@cineca.it)
-  \authors A. Mignone (mignone@ph.unito.it)
+  \authors A. Mignone (andrea.mignone@unito.it)
 
   \date   Aug 24, 2012
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "al_hidden.h"  /*I "al_hidden.h" I*/
-//#include "macros.h"
+
 #include "io.h"
 
 extern char ***Array3D (int nx, int ny, int nz, size_t dsize);
@@ -389,6 +389,15 @@ int AL_Decompose(int sz_ptr, int *procs, int mode)
         s->lsamplingsubarr = ilsamplingsubarr;
 #endif
 
+        /* -----------------------------------------------------
+        Create the global subarray for MPI_Set_file_view
+       ----------------------------------------------------- */
+
+        for(nd=0;nd<ndim;nd++){
+            gdims[nd]  = s->arrdim[nd];
+            ldims[nd]  = s->larrdim[nd];
+            starts[nd] = s->beg[nd] - s->bg[nd];
+        }
 #ifdef DEBUG
         if(sz_ptr==4){  /* printLog SZ_stagx */
             printf("%d, gsubarr: gdims[0:2] %d,%d,%d, ldims[0:2] %d,%d,%d, starts[0:2] %d,%d,%d\n", s->rank, gdims[0], gdims[1], gdims[2], ldims[0], ldims[1], ldims[2], starts[0], starts[1], starts[2]);
@@ -397,18 +406,6 @@ int AL_Decompose(int sz_ptr, int *procs, int mode)
 
         //    AL_Type_create_subarray(ndim, gdims, ldims, starts,
         //                            AL_ORDER_FORTRAN, s->type, &igsubarr);
-        /*for(int i = 0; i < ndim; ++i){
-            printf("rank = %d, dim = %d, gdim = %d, ldim = %d, start = %d\n", myrank, i, gdims[i], ldims[i], starts[i]);
-        }*/
-        /* -----------------------------------------------------
-    Create the global subarray for MPI_Set_file_view
-   ----------------------------------------------------- */
-
-        for(nd=0;nd<ndim;nd++){
-            gdims[nd]  = s->arrdim[nd];
-            ldims[nd]  = s->larrdim[nd];
-            starts[nd] = s->beg[nd] - s->bg[nd];
-        }
         MPI_Type_create_subarray(ndim, gdims, ldims, starts,
                                  MPI_ORDER_FORTRAN, s->type, &igsubarr);
         MPI_Type_commit(&igsubarr);
@@ -492,9 +489,7 @@ int AL_Decompose(int sz_ptr, int *procs, int mode)
             gdims[nd]  = s->larrdim_gp[nd];
             ldims[nd]  = s->larrdim[nd];
             starts[nd] = s->lbeg[nd];
-            //printf("rank = %d, dimension = %d, start = %d\n", myrank, nd, starts[nd]);
         }
-
 #ifdef DEBUG
         if(sz_ptr==4){  /* printLog SZ_stagx */
             printf("%d, lsubarr: gdims[0:2] %d,%d,%d, ldims[0:2] %d,%d,%d, starts[0:2] %d,%d,%d \n", s->rank, gdims[0], gdims[1], gdims[2], ldims[0], ldims[1], ldims[2], starts[0], starts[1], starts[2]);
@@ -517,7 +512,6 @@ int AL_Decompose(int sz_ptr, int *procs, int mode)
                 gdims[nd]  = s->larrdim_gp[nd];
                 ldims[nd]  = s->larrdim[nd];
                 starts[nd] = s->lbeg[nd];
-                //printf("rank = %d, dimension = %d, start = %d\n", myrank, nd, starts[nd]);
             }
 
             /* --------------------------------------------------------------- */
@@ -787,13 +781,10 @@ int AL_Global_to_local_(int sz_ptr)
 
         AL_Decomp1d_(gdim, lproc, lloc, &start, &end);
 
-        //printf("rank = %d, dim = %d, start = %d, end = %d\n", myrank, i, start, end);
-        MPI_Barrier(AL_COMM_WORLD);
         s->beg[i] = start+s->bg[i];
         s->end[i] = end+s->bg[i];
         if( s->isstaggered[i] == AL_TRUE ){ s->end[i] = end+1+s->bg[i];}
         s->lbeg[i] = s->bg[i];
-
         /* -------------------------------------------------------------------- */
         /*! <b> Bug fixed on Dec 7, 2011: </b>
         The lines:

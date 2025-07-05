@@ -91,7 +91,7 @@ int AL_Write_array_begin(void *va, int sz_ptr, int *output_stag, int *output_dum
      k=k+1;
     }
   }
-
+  
 #ifdef NSAMPLING
   printf("async sampling\n");
   errcode = MPI_Type_indexed(count,block_leng, displ, s->lsamplingsubarr, &dtype_lsub_arr);

@@ -34,7 +34,7 @@
   will have size (NX1+nghost)*(NX3+nghost).
   The start[] array is always = nghost, unless i or k are equal to 0.  
 
-  \authors A. Mignone (mignone@to.infn.it)\n
+  \authors A. Mignone (andrea.mignone@unito.it)\n
          
   \date    Apr 15, 2021
 */

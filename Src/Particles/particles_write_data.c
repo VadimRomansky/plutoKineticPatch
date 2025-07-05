@@ -5,7 +5,7 @@
         stage.
   
  \authors B. Vaidya (bvaidya@unito.it)\n
-          A. Mignone (mignone@to.infn.it)\n
+          A. Mignone (andrea.mignone@unito.it)\n
   
  \date   Aug 20, 2020
  */
@@ -51,21 +51,20 @@ void Particles_WriteData(Data *d, Output *output, Grid *grid)
 #endif
 
   if (   output->type == PARTICLES_DBL_OUTPUT
-      || output->type == PARTICLES_FLT_OUTPUT) {
+      || output->type == PARTICLES_FLT_OUTPUT) { 
 
     Particles_WriteBinary(d, grid, 1.0/d->Dts->invDt_particles,
                           output, filename);
 
-  }else if (output->type == PARTICLES_VTK_OUTPUT) {
+  }else if (output->type == PARTICLES_VTK_OUTPUT) { 
 
     Particles_WriteVTK(d, grid, output, filename);
 
-  }else if (output->type == PARTICLES_TAB_OUTPUT) {
+  }else if (output->type == PARTICLES_TAB_OUTPUT) { 
 
     Particles_WriteTab(d, grid, filename);
-
+    
   }
-
   
 #ifdef PARALLEL
   MPI_Barrier (MPI_COMM_WORLD);

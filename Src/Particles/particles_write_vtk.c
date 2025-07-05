@@ -37,7 +37,7 @@
 
  
  \authors B. Vaidya (bvaidya@unito.it)\n
-          A. Mignone (mignone@to.infn.it)\n
+          A. Mignone (andrea.mignone@unito.it)\n
           D. Mukherjee
  
  \date    Aug 20, 2020
@@ -46,7 +46,6 @@
 #include "pluto.h"
 
 /* ********************************************************************* */
-
 void Particles_WriteVTK(Data* data, Grid* grid, Output *output, char filename[128])
  /*! 
  *  Write particle Data in Float binary format.
@@ -87,7 +86,7 @@ void Particles_WriteVTK(Data* data, Grid* grid, Output *output, char filename[12
    0. Create data arrays to be written (coordinates, velocities, 
       etc...). Swap byte ordering to big endian if necessary.
    -------------------------------------------------------------- */   
-
+   
 #if PARTICLES != PARTICLES_KIN
   i = 0;
   PARTICLES_LOOP(CurNode, data->PHead){
@@ -109,11 +108,11 @@ void Particles_WriteVTK(Data* data, Grid* grid, Output *output, char filename[12
     {
       double r   = CurNode->p.coord[IDIR];
       double th  = (DIMENSIONS >= 2 ? CurNode->p.coord[JDIR]:0.0);
-      double phi = (DIMENSIONS == 2 ? CurNode->p.coord[KDIR]:0.0);
+      double phi = (DIMENSIONS == 3 ? CurNode->p.coord[KDIR]:0.0);
 
       rcoord[IDIR] = r*sin(th)*cos(phi);
       rcoord[JDIR] = r*sin(th)*sin(phi);
-      rcoord[JDIR] = r*cos(th);
+      rcoord[KDIR] = r*cos(th);
     }
     #else
     rcoord[IDIR] = CurNode->p.coord[IDIR];  /* Standard Cartesian  */

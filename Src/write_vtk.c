@@ -45,8 +45,8 @@
 
   http://www.vtk.org/VTK/img/file-formats.pdf
 
-  \author A. Mignone (mignone@to.infn.it)
-  \date   Jun n11, 2021
+  \author A. Mignone (andrea.mignone@unito.it)
+  \date   Oct 16, 2022
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -214,7 +214,7 @@ void WriteVTK_Header (FILE *fvtk, Grid *grid)
 
   if (node_coord == NULL) node_coord = ARRAY_2D(nx1 + INCLUDE_IDIR, 3, float);
 
-  sprintf(header,"POINTS %d float\n", (nx1+INCLUDE_IDIR)*(nx2+INCLUDE_JDIR)*(nx3+INCLUDE_KDIR));
+  sprintf(header,"POINTS %ld float\n", (nx1+INCLUDE_IDIR)*(nx2+INCLUDE_JDIR)*(nx3+INCLUDE_KDIR));
   VTK_HEADER_WRITE_STRING(header);
 
 /* -- Write structured grid information -- */

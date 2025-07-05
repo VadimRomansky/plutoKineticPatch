@@ -3,8 +3,8 @@
   \file  
   \brief Print useful information about the current computations.
 
-  \author  A. Mignone (mignone@to.infn.it)
-  \date    Nov 27, 2020
+  \author  A. Mignone (andrea.mignone@unito.it)
+  \date    May 17, 2023
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -112,7 +112,6 @@ void ShowConfig (int argc, char *argv[], char *ini_file)
 
   print ("> Header configuration:\n\n");
 
-  if (PHYSICS == ADVECTION) print ("  PHYSICS:          ADVECTION\n");
   if (PHYSICS == HD)        print ("  PHYSICS:          HD\n");
   if (PHYSICS == RHD)       print ("  PHYSICS:          RHD\n");
   if (PHYSICS == MHD)       print ("  PHYSICS:          MHD    [div.B: ");
@@ -152,6 +151,24 @@ void ShowConfig (int argc, char *argv[], char *ini_file)
   #endif
 #endif
 
+
+#if (PHYSICS == ResRMHD)
+  print ("                    ResMHD [div.E: ");
+  #if DIVE_CONTROL == NO
+  print ("None]\n");
+  #elif DIVE_CONTROL == EIGHT_WAVES
+    print ("Powell's 8wave]\n");
+  #elif DIVE_CONTROL == DIV_CLEANING
+    #if GLM_EXTENDED == NO 
+    print ("Divergence Cleaning (GLM)]\n");
+    #elif GLM_EXTENDED == YES
+    print ("Divergence Cleaning (Extended GLM)]\n");
+    #endif
+  #elif DIVE_CONTROL == CONSTRAINED_TRANSPORT
+    print ("CT]\n");
+  #endif
+#endif
+
   print ("  DIMENSIONS:       %d\n", DIMENSIONS);
 
   print ("  GEOMETRY:         ");
@@ -163,72 +180,89 @@ void ShowConfig (int argc, char *argv[], char *ini_file)
   print ("  BODY_FORCE:       ");
   print (BODY_FORCE == NO ? "NO\n":"EXPLICIT\n");
 
-#if COOLING == H2_COOL
+  #if COOLING == H2_COOL
   print ("  COOLING:          H2_COOL\n");
-#elif COOLING == KROME
+  #elif COOLING == KROME
   print ("  COOLING:          KROME\n");
-#elif COOLING == MINEq
+  #elif COOLING == MINEq
   print ("  COOLING:          MINEq\n");
-#elif COOLING == POWER_LAW
+  #elif COOLING == POWER_LAW
   print ("  COOLING:          POWER_LAW\n");
-#elif COOLING == SNEq
+  #elif COOLING == SNEq
   print ("  COOLING:          SNEq\n");
-#elif COOLING == TABULATED
+  #elif COOLING == TABULATED
   print ("  COOLING:          Tabulated\n");
-#endif
+  #endif
 
   print ("  RECONSTRUCTION:   ");
-#ifndef FINITE_DIFFERENCE
-   if (RECONSTRUCTION == FLAT)        print ("Flat");
-   if (RECONSTRUCTION == LINEAR)      print ("Linear TVD");
-   if (RECONSTRUCTION == LimO3)       print ("LimO3");
-   if (RECONSTRUCTION == WENO3)       print ("WENO 3rd order");
-   if (RECONSTRUCTION == PARABOLIC)   print ("Parabolic");
-   if (RECONSTRUCTION == WENOZ)       print ("WENOZ (5-th order)");
-   if (RECONSTRUCTION == MP5)         print ("MP5");
- #ifdef CHAR_LIMITING
-   if (CHAR_LIMITING == YES) print (" (Characteristic lim)\n");
-   else                      print (" (Primitive lim)\n");
- #endif
-#endif
-
-#ifdef FINITE_DIFFERENCE
+  #ifndef FINITE_DIFFERENCE
+  if (RECONSTRUCTION == FLAT)      print ("Flat ");
+  if (RECONSTRUCTION == LINEAR)    print ("Linear ");
+  if (RECONSTRUCTION == LimO3)     print ("LimO3 ");
+  if (RECONSTRUCTION == WENO3)     print ("WENO3 ");
+  if (RECONSTRUCTION == PARABOLIC) print ("Parabolic ");
+  if (RECONSTRUCTION == WENOZ)     print ("WENOZ ");
+  if (RECONSTRUCTION == MP5)       print ("MP5 ");
+  #ifdef CHAR_LIMITING
+  if (CHAR_LIMITING == YES) print (" (Characteristic lim)\n");
+  else                      print (" (Primitive lim)\n");
+  #endif
+  #endif  /* ndef FINITE_DIFFERENCE */
+ 
+  #ifdef FINITE_DIFFERENCE
   if (RECONSTRUCTION == LIMO3_FD)     print ("LimO3 (FD), 3rd order\n");
   if (RECONSTRUCTION == WENO3_FD)     print ("WENO3 (FD), 3rd order\n");
   if (RECONSTRUCTION == WENOZ_FD)     print ("WENOZ (FD) 5th order\n");
   if (RECONSTRUCTION == MP5_FD)       print ("MP5 (FD), 5th order\n");
-#endif
+  #endif
 
   print ("  TIME STEPPING:    ");
   if (TIME_STEPPING == EULER)            print ("Euler\n");
-  if (TIME_STEPPING == RK2)              print ("Runga-Kutta II\n");
-  if (TIME_STEPPING == RK3)              print ("Runga_Kutta III\n");
+  if (TIME_STEPPING == RK2)              print ("Runge-Kutta II\n");
+  if (TIME_STEPPING == RK3)              print ("Runge_Kutta III\n");
+  if (TIME_STEPPING == RK4)              print ("Runge_Kutta IV\n");
   if (TIME_STEPPING == CHARACTERISTIC_TRACING)
                                          print ("Characteristic Tracing\n");
-#if TIME_STEPPING == HANCOCK
+  #if TIME_STEPPING == HANCOCK
   if (PRIMITIVE_HANCOCK == YES) print ("Hancock [Primitive]\n");
   else                          print ("Hancock [Conservative]\n");
-#endif
+  #endif
 
   print ("  TRACERS:          %d\n", NTRACER);
   print ("  VARIABLES:        %d\n", NVAR);
   print ("  ENTROPY_SWITCH:   %s\n",(ENTROPY_SWITCH != NO ? "ENABLED":"NO"));
-#if PHYSICS == MHD 
+  #if PHYSICS == MHD 
   print ("  BACKGROUND_FIELD: %s\n",(BACKGROUND_FIELD == YES ? "YES":"NO"));
-#endif
+  #endif
 
   print ("  LOADED MODULES:\n");
- #ifdef SHEARINGBOX
-    print ("\n  o [SHEARINGBOX]\n");
-    print ("     - Order:             %d\n", SB_ORDER);
-    print ("     - Sym Hydro Flux:    %s\n", 
-             (SB_SYMMETRIZE_HYDRO == YES ? "YES":"NO"));
-    print ("     - Sym Ey:            %s\n", 
-             (SB_SYMMETRIZE_EY == YES ? "YES":"NO"));
-    print ("     - Sym Ez:            %s\n", 
-             (SB_SYMMETRIZE_EZ == YES ? "YES":"NO"));
-    print ("     - Force EMF periods: %s\n", 
-             (SB_FORCE_EMF_PERIODS == YES ? "YES":"NO"));
+  #ifdef HIGH_ORDER
+  if      (HO_LAP_LIMITER == NO)             sprintf (str1,"NO");
+  else if (HO_LAP_LIMITER == HO_JAMESON_LIM) sprintf (str1,"HO_JAMESON_LIM");
+  else if (HO_LAP_LIMITER == HO_RDER_LIM)    sprintf (str1,"HO_RDER_LIM");
+  else sprintf (str1,"[undef]");
+
+  if      (HO_ORDER_REDUCTION == NO)     sprintf (str2,"NO");
+  else if (HO_ORDER_REDUCTION == LINEAR) sprintf (str2,"LINEAR");
+  else if (HO_ORDER_REDUCTION == WENO3)  sprintf (str2,"WENO3");
+  else sprintf (str2,"[undef]");
+
+  print ("\n  o [HIGH_ORDER]\n");
+  print ("     - HO_LAP_LIMITER:         %s\n", str1);
+  print ("     - HO_ORDER_REDUCTION:     %s\n", str2);
+  #endif
+
+  #ifdef SHEARINGBOX
+  print ("\n  o [SHEARINGBOX]\n");
+  print ("     - Order:             %d\n", SB_ORDER);
+  print ("     - Sym Hydro Flux:    %s\n", 
+           (SB_SYMMETRIZE_HYDRO == YES ? "YES":"NO"));
+  print ("     - Sym Ey:            %s\n", 
+           (SB_SYMMETRIZE_EY == YES ? "YES":"NO"));
+  print ("     - Sym Ez:            %s\n", 
+           (SB_SYMMETRIZE_EZ == YES ? "YES":"NO"));
+  print ("     - Force EMF periods: %s\n", 
+           (SB_FORCE_EMF_PERIODS == YES ? "YES":"NO"));
   #endif
   #ifdef FARGO
   print ("\n  o [FARGO]\n");
@@ -249,30 +283,53 @@ void ShowConfig (int argc, char *argv[], char *ini_file)
   else                          print ("None\n");
 
   #if PARABOLIC_FLUX != NO
-   print ("  DIFFUSION TERMS:");
-   #if (RESISTIVITY == EXPLICIT) 
+  print ("  DIFFUSION TERMS:");
+  #if (RESISTIVITY == EXPLICIT) 
     print ("  Resistivity  [EXPLICIT]\n");  
-   #elif (RESISTIVITY == SUPER_TIME_STEPPING)
+  #elif (RESISTIVITY == SUPER_TIME_STEPPING)
     print ("  Resistivity  [STS]\n");  
-   #elif (RESISTIVITY == RK_LEGENDRE)
+  #elif (RESISTIVITY == RK_LEGENDRE)
     print ("  Resistivity  [RKL]\n");
-   #endif
+  #endif
 
-   #if (THERMAL_CONDUCTION == EXPLICIT) 
+  #if (THERMAL_CONDUCTION == EXPLICIT) 
     print ("  Thermal Conduction [EXPLICIT]\n");  
-   #elif (THERMAL_CONDUCTION == SUPER_TIME_STEPPING)
+  #elif (THERMAL_CONDUCTION == SUPER_TIME_STEPPING)
     print ("  Thermal Conduction [STS]\n");  
-   #elif (THERMAL_CONDUCTION == RK_LEGENDRE)
+  #elif (THERMAL_CONDUCTION == RK_LEGENDRE)
     print ("  Thermal Conduction [RKL]\n");
-   #endif
+  #endif
 
-   #if (VISCOSITY == EXPLICIT) 
+  #if (VISCOSITY == EXPLICIT) 
     print ("  Viscosity [EXPLICIT]\n");  
-   #elif (VISCOSITY == SUPER_TIME_STEPPING)
+  #elif (VISCOSITY == SUPER_TIME_STEPPING)
     print ("  Viscosity [STS]\n");  
-   #elif (VISCOSITY == RK_LEGENDRE)
+  #elif (VISCOSITY == RK_LEGENDRE)
     print ("  Viscosity [RKL]\n");
-   #endif
+  #endif
+
+  #endif
+
+  #if RADIATION
+  print ("  RADIATION:        YES\n");
+  #if RADIATION_IMEX_SSP2
+  print ("    - IMEX scheme:  SSP2(2,2,2)\n");
+  #else
+  print ("    - IMEX scheme:  IMEX1\n");
+  #endif
+  #if RADIATION_IMPL == RADIATION_FIXEDPOINT_RAD
+    print ("    - Impl. method: FIXEDPOINT_RAD\n");
+  #elif RADIATION_IMPL == RADIATION_NEWTON_GAS
+    print ("    - Impl. method: NEWTON_GAS\n");
+  #elif RADIATION_IMPL == RADIATION_NEWTON_RAD
+    print ("    - Impl. method: NEWTON_RAD\n");
+  #elif RADIATION_IMPL == RADIATION_FIXEDPOINT_GAS
+    print ("    - Impl. method: FIXEDPOINT_GAS\n");
+  #elif RADIATION_IMPL == RADIATION_NEWTON_NR_GAS
+    print ("    - Impl. method: NEWTON_NR_GAS\n");
+  #elif RADIATION_IMPL == RADIATION_NEWTON_NR_RAD
+    print ("    - Impl. method: NEWTON_NR_RAD\n");
+  #endif
   #endif
 
   print ("\n");
@@ -365,5 +422,4 @@ void CheckConfig()
   #endif
 
 #endif
-   
 }

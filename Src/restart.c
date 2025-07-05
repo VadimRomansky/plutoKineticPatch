@@ -7,7 +7,7 @@
   from a double precision binary or HDF5 file in the static grid
   version of the code.
 
-  \author A. Mignone (mignone@to.infn.it)
+  \author A. Mignone (andrea.mignone@unito.it)
   \date   Apr 15, 2021
 */
 /* ///////////////////////////////////////////////////////////////////// */
@@ -176,6 +176,18 @@ void RestartFromFile (const Data *d, Runtime *ini, int nrestart, int type, Grid 
   FARGO_Restart(d, output->dir, output->nfile, swap_endian, grid);
   #endif
 
+/* --------------------------------------------------------
+   For High order, double precision, output->V[] points to 
+   d->Ucb. We need to transpose array before restarting 
+   computations. 
+   -------------------------------------------------------- */
+
+  #ifdef HIGH_ORDER 
+  {
+    int i,j,k;
+    NVAR_LOOP(nv) DOM_LOOP(k,j,i) d->Uc[k][j][i][nv] = d->Ucb[nv][k][j][i];
+  }
+  #endif
 }
 
 static int counter = -1;

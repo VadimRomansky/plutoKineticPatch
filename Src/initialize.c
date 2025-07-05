@@ -25,9 +25,9 @@
                      of processors in the three directions;
   - AL_MPI_DECOMP   [todo]
 
-  \author A. Mignone (mignone@to.infn.it)
+  \author A. Mignone (andrea.mignone@unito.it)
           B. Vaidya
-  \date   Dec 02 2020
+  \date   Sep 15, 2023
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -471,8 +471,8 @@ void Initialize(Data *data, Runtime *runtime, Grid *grid, cmdLine *cmd_line)
    ---------------------------------------------- */
 
   print ("\n> Memory allocation\n");
-  data->Vc = ARRAY_4D(NVAR, NX3_TOT, NX2_TOT, NX1_TOT, double);
-  data->Uc = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double); 
+  data->Vc  = ARRAY_4D(NVAR, NX3_TOT, NX2_TOT, NX1_TOT, double);
+  data->Uc  = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double);
 
 #if PARTICLES == PARTICLES_KIN
   data->Fkin = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NMOMENTUM, double);
@@ -564,6 +564,13 @@ void Initialize(Data *data, Runtime *runtime, Grid *grid, cmdLine *cmd_line)
   createLargeVectorBasis1(data->turbulentBasis, 5, NX3_TOT, NX2_TOT, NX1_TOT, NTURB);
 #endif
 
+#ifdef HIGH_ORDER
+  data->Upc    = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double);
+  data->Vpc    = ARRAY_4D(NVAR, NX3_TOT, NX2_TOT, NX1_TOT, double);
+  data->Ucb    = ARRAY_4D(NVAR, NX3_TOT, NX2_TOT, NX1_TOT, double);
+  data->ho_lim = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, char);
+#endif
+
 #ifdef STAGGERED_MHD
   data->Vs = ARRAY_1D(6, double ***);
   DIM_EXPAND(
@@ -571,7 +578,6 @@ void Initialize(Data *data, Runtime *runtime, Grid *grid, cmdLine *cmd_line)
     data->Vs[BX2s] = ARRAY_BOX( 0, NX3_TOT-1,-1, NX2_TOT-1, 0, NX1_TOT-1, double); ,
     data->Vs[BX3s] = ARRAY_BOX(-1, NX3_TOT-1, 0, NX2_TOT-1, 0, NX1_TOT-1, double);
   )
-
   #if (PHYSICS == ResRMHD) && (DIVE_CONTROL == CONSTRAINED_TRANSPORT)
   DIM_EXPAND(
     data->Vs[EX1s] = ARRAY_BOX( 0, NX3_TOT-1, 0, NX2_TOT-1,-1, NX1_TOT-1, double); ,
@@ -580,10 +586,29 @@ void Initialize(Data *data, Runtime *runtime, Grid *grid, cmdLine *cmd_line)
   )
   #endif
   data->q = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
-  
+
+  #ifdef HIGH_ORDER
+  data->Vps = ARRAY_1D(6, double ***);
+  DIM_EXPAND(
+    data->Vps[BX1s] = ARRAY_BOX( 0, NX3_TOT-1, 0, NX2_TOT-1,-1, NX1_TOT-1, double); ,
+    data->Vps[BX2s] = ARRAY_BOX( 0, NX3_TOT-1,-1, NX2_TOT-1, 0, NX1_TOT-1, double); ,
+    data->Vps[BX3s] = ARRAY_BOX(-1, NX3_TOT-1, 0, NX2_TOT-1, 0, NX1_TOT-1, double);
+  )
+    
+  #if (PHYSICS == ResRMHD) && (DIVE_CONTROL == CONSTRAINED_TRANSPORT)
+  DIM_EXPAND(
+    data->Vps[EX1s] = ARRAY_BOX( 0, NX3_TOT-1, 0, NX2_TOT-1,-1, NX1_TOT-1, double); ,
+    data->Vps[EX2s] = ARRAY_BOX( 0, NX3_TOT-1,-1, NX2_TOT-1, 0, NX1_TOT-1, double); ,
+    data->Vps[EX3s] = ARRAY_BOX(-1, NX3_TOT-1, 0, NX2_TOT-1, 0, NX1_TOT-1, double);
+  )
+  #endif
+  #endif /* HIGH_ORDER */
+
   data->emf = malloc(sizeof(EMF));
   CT_Allocate (data->emf);
-#endif  
+#endif /* STAGGERED_MHD */
+
+  
 
 #if PHYSICS == MHD || PHYSICS == RMHD || PHYSICS == ResRMHD
   data->Ex1 = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
@@ -620,17 +645,21 @@ void Initialize(Data *data, Runtime *runtime, Grid *grid, cmdLine *cmd_line)
   data->Fcr = ARRAY_4D(4, NX3_TOT, NX2_TOT, NX1_TOT, double);
   data->Jcr = ARRAY_4D(3, NX3_TOT, NX2_TOT, NX1_TOT, double);
   data->qcr = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  #if PARTICLES_CR_GC == YES
+  data->Vc0 = ARRAY_4D(NVAR, NX3_TOT, NX2_TOT, NX1_TOT, double);
+  #endif
   #elif PARTICLES == PARTICLES_MC
   data->Fcr = ARRAY_4D(4, NX3_TOT, NX2_TOT, NX1_TOT, double);
   data->Jcr = ARRAY_4D(3, NX3_TOT, NX2_TOT, NX1_TOT, double);
   data->qcr = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
-  #endif
+  #endif /* PARTICLES == PARTICLES_CR */
   #if PARTICLES == PARTICLES_DUST
   data->Fdust = ARRAY_4D(3, NX3_TOT, NX2_TOT, NX1_TOT, double);
   #endif
 #endif
 
   data->flag = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, uint16_t);
+  TOT_LOOP(k,j,i) data->flag[k][j][i] = 0;
 
 /* ----------------------------------------------
    7b. Riemann solver pointer
@@ -706,19 +735,6 @@ void Initialize(Data *data, Runtime *runtime, Grid *grid, cmdLine *cmd_line)
 #if !(defined CHOMBO) && (defined GNUPLOT_HEADER)
   GnuplotSetting(runtime, grid);
 #endif
-
-/*
-for (idim = 0; idim < DIMENSIONS; idim++){
-printLog ("Dim = %d\n",idim);
-for (i = 0; i <= grid->gend[idim] + GetNghost(); i++){
-  printLog ("%d   %12.6e   %12.6e  %12.6e\n",i, grid->xl_glob[idim][i],
-                                                grid->x_glob[idim][i],
-                                                grid->xr_glob[idim][i]);
-}
-}
-exit(1);
-*/
-
 
 }
 

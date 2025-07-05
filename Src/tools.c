@@ -3,7 +3,7 @@
   \file
   \brief Collection of general-purpose functions.
 
-  \author A. Mignone (mignone@to.infn.it)
+  \author A. Mignone (andrea.mignone@unito.it)
   \date   Jan 27, 2020
 */
 /* ///////////////////////////////////////////////////////////////////// */
@@ -176,7 +176,7 @@ void GnuplotSetting(Runtime *runtime, Grid *grid)
 
   if (flt_out){
     k = GetOutputVarNames(FLT_OUTPUT, var_name);
-    fprintf (fp, "if (dtype eq 'flt') {\n");
+    fprintf (fp, "if (dtype eq 'flt' || dtype eq 'tab') {\n");
     for (nv = 0; nv < k; nv++) {
       fprintf (fp, "  %s = %d\n",var_name[nv], nv);
     }
@@ -546,6 +546,53 @@ void SwapEndian (void *x, const int nbytes)
 
   for (k = nbytes; k--; ) Swapped[k] = *(c + nbytes - 1 - k);
   for (k = nbytes; k--; ) c[k] = Swapped[k];
+}
+
+/* ********************************************************************* */
+const char *VarName (int nv, int mode) 
+/*!
+ * Return the name of the variable with index nv.
+ * Mode 1/2 can be used to choose prim / conservative notations.
+ * 
+ * \return A string
+ *********************************************************************** */
+{
+  if (nv == RHO) return "RHO";
+  if (mode == 1) {
+    if (nv == VX1) return "VX1";
+    if (nv == VX2) return "VX2";
+    if (nv == VX3) return "VX3";
+  }else{
+    if (nv == MX1) return "MX1";
+    if (nv == MX2) return "MX2";
+    if (nv == MX3) return "MX3";
+  }
+
+  #if HAVE_ENERGY
+  if (mode == 1) {
+    if (nv == PRS) return "PRS";
+  }else{
+    if (nv == ENG) return "ENG";
+  }
+  #endif
+
+  #if (PHYSICS == MHD) || (PHYSICS == RMHD) || (PHYSICS == ResRMHD)
+  if (nv == BX1) return "BX1";
+  if (nv == BX2) return "BX2";
+  if (nv == BX3) return "BX3";
+  #endif
+
+  #if (PHYSICS == ResRMHD)
+  if (nv == EX1) return "EX1";
+  if (nv == EX2) return "EX2";
+  if (nv == EX3) return "EX3";
+  #endif
+  
+  #if NSCL > 0
+  if (nv == TRC) return "TRC";
+  #endif
+
+  return "(null)";
 }
 
 /* ********************************************************************* */

@@ -1,30 +1,30 @@
 /* ///////////////////////////////////////////////////////////////////// */
-/*! 
-  \file  
+/*!
+  \file
   \brief PLUTO header file for structure declarations.
 
-  \author A. Mignone (mignone@to.infn.it)
+  \author A. Mignone (andrea.mignone@unito.it)
   \date   March 23, 2020
 */
 /* ///////////////////////////////////////////////////////////////////// */
 
 typedef struct cmdLine_{
-  char restart;           /**< Enable restart from double precision binary files */      
-  char h5restart;         /**< Enable restart from hdf5 files   */      
+  char restart;           /**< Enable restart from double precision binary files */
+  char h5restart;         /**< Enable restart from hdf5 files   */
   char prestart;          /**< Enable / disable partice restart */
-  char makegrid;          /**< Write grid only                  */      
-  char write;             /**< Set it 1 or 0 to enable or disable writing. */         
+  char makegrid;          /**< Write grid only                  */
+  char write;             /**< Set it 1 or 0 to enable or disable writing. */
   char parallel_dim[3];   /**< Enable/disable domain decomp. in a given direction */
-  int nrestart;           /**< The file number used for restart */     
+  int nrestart;           /**< The file number used for restart */
   int maxsteps;           /**< The maximum number of steps (unless negative) */
   int jet;                /**< Follow jet evolution in a given direction */
   int nproc[3];           /**< User supplied number of processors */
   int xres;               /**< Change the resolution via command line */
-  char fill[26];               /* useless, it makes the struct a power of 2 */ 
+  char fill[26];               /* useless, it makes the struct a power of 2 */
 } cmdLine;
 
 /* ********************************************************************* */
-/*! The EMF structure is used to pull together all the information 
+/*! The EMF structure is used to pull together all the information
     necessary to build / use the electromotive force used to update
     the staggered components of magnetic field.
    ********************************************************************* */
@@ -32,7 +32,7 @@ typedef struct ElectroMotiveForce{
 
 /*! \name Face-centered electric field components.
     Three-dimensional arrays storing the emf components computed
-    at cell faces during the dimensional sweeps.     
+    at cell faces during the dimensional sweeps.
 */
 /**@{ */
   double ***exj; /**< Ex flux available at y-faces (j+1/2); */
@@ -53,7 +53,7 @@ typedef struct ElectroMotiveForce{
 #if PHYSICS == ResRMHD
 /*! \name Face-centered magnetic field components.
     Three-dimensional arrays storing the emf components computed
-    at cell faces during the dimensional sweeps.     
+    at cell faces during the dimensional sweeps.
 */
 /**@{ */
   double ***Bxj; /**< Bx flux available at y-faces (j+1/2); */
@@ -67,6 +67,15 @@ typedef struct ElectroMotiveForce{
   double ***Frho_k;
 /**@} */
 #endif
+
+  #if CONS_ENG_CORRECTION != NO
+  double ***Ez_pnt;
+  double ***Bxe;
+  double ***Bye;
+
+  double ***Fm_x;
+  double ***Fm_y;
+  #endif
 
   signed char ***svx, ***svy, ***svz;
 
@@ -102,22 +111,22 @@ typedef struct ElectroMotiveForce{
 /**@} */
 #endif
 } EMF;
- 
+
 /* ********************************************************************* */
-/*! The PLUTO Grid structure contains information pertaining to the 
-    computational mesh in a specific 1D coordinate direction. 
-    Since PLUTO assumes a logically rectangular system of coordinates, 
+/*! The PLUTO Grid structure contains information pertaining to the
+    computational mesh in a specific 1D coordinate direction.
+    Since PLUTO assumes a logically rectangular system of coordinates,
     the whole computational domain is obtained as the cartesian product
     of 2 or 3 grid structures.\n
 
     In parallel, each processor owns a different portion of the domain
     and the grid structures will be different.
-    For this reason, in the following member description, we use the 
+    For this reason, in the following member description, we use the
     word "global" or "local" to refer the the whole computational domain
     or to the sub-domain owned by a single processor.
- 
-    Similarly, variables ending with a "glob" suffix are intended to be 
-    global, i.e., they refer to the whole computational stencil and 
+
+    Similarly, variables ending with a "glob" suffix are intended to be
+    global, i.e., they refer to the whole computational stencil and
     not to the local processor sub-domain.
    ********************************************************************* */
 
@@ -127,8 +136,8 @@ typedef struct Grid_{
   double *x[3], *x_glob[3];   /**< Cell geometrical central points. */
   double *xr[3], *xr_glob[3]; /**< Cell right interface. */
   double *xl[3], *xl_glob[3]; /**< Cell left interface. */
-  double *dx[3], *dx_glob[3]; /**< Cell width.  */ 
-  double *xgc[3];          /**< Cell volumetric centroid 
+  double *dx[3], *dx_glob[3]; /**< Cell width.  */
+  double *xgc[3];          /**< Cell volumetric centroid
                              (!= x when geometry != CARTESIAN).  */
   double  ***dV;           /**< Cell volume.  */
   double  ***A[3];         /**< Right interface area, A[i] = \f$A_{i+\HALF}\f$. */
@@ -141,27 +150,27 @@ typedef struct Grid_{
   double *dmu;             /** < In spherical coordinates, gives the \theta
                                  volume = fabs(cos(th_m) - cos(th_p)) */
   double *inv_dx[3];       /**<      */
-  double *inv_dxi[3];      /**< inverse of the distance between the center of 
+  double *inv_dxi[3];      /**< inverse of the distance between the center of
                              two cells, inv_dxi = \f$\DS \frac{2}{\Delta x_i +
                              \Delta x_{i+1}}\f$.     */
   double dl_min[3];      /**<  minimum cell length (e.g. min[dr, r*dth,
                             r*sin(th)*dphi] (GLOBAL DOMAIN).  */
-  int np_tot_glob[3]; /**< Total number of points in the global domain 
+  int np_tot_glob[3]; /**< Total number of points in the global domain
                         (boundaries included). */
-  int np_int_glob[3]; /**< Total number of points in the global domain 
+  int np_int_glob[3]; /**< Total number of points in the global domain
                         (boundaries excluded). */
-  int np_tot[3];      /**< Total number of points in the local domain 
+  int np_tot[3];      /**< Total number of points in the local domain
                            (boundaries included). */
-  int np_int[3];      /**< Total number of points in the local domain 
+  int np_int[3];      /**< Total number of points in the local domain
                            (boundaries excluded). */
   int nghost[3];      /**< Number of ghost zones. */
   int lbound[3];      /**< When different from zero, it specifies the boundary
-                           condition to be applied at leftmost grid side where  
+                           condition to be applied at leftmost grid side where
                            the physical boundary is located.
-                           Otherwise, it equals zero if the current 
-                           processor does not touch the leftmost physical boundary. 
+                           Otherwise, it equals zero if the current
+                           processor does not touch the leftmost physical boundary.
                            This evantuality (lbound = 0) is possible only
-                           in PARALLEL mode.  */ 
+                           in PARALLEL mode.  */
   int rbound[3];      /**< Same as lbound, but for the right edge of the grid. */
   int gbeg[3];        /**< Global start index for the global array. */
   int gend[3];        /**< Global end   index for the global array. */
@@ -173,26 +182,26 @@ typedef struct Grid_{
   int nproc[3];       /**< number of processors for this grid. */
   int rank_coord[3];  /**< Parallel coordinate in a Cartesian topology. */
   int level;          /**< The current refinement level (chombo only). */
-  int *ring_av_csize; /**< The chunk size when RING_AVERAGE is turned on */   
+  int *ring_av_csize; /**< The chunk size when RING_AVERAGE is turned on */
   char fill[344];   /* useless, just to make the structure size a power of 2 */
 } Grid;
 
 /* ********************************************************************* */
-/*! The RBox (= Rectangular Box) defines a rectangular portion of the 
+/*! The RBox (= Rectangular Box) defines a rectangular portion of the
     domain in terms of the grid indices <tt>[ibeg,jbeg,kbeg]</tt> corresponding
     to the lower corner and <tt>[iend,jend,kend]</tt> corresponding to the
-    upper corner. 
-    The integer \c vpos specifies the variable location with respect to 
-    the grid (e.g. center/staggered). 
+    upper corner.
+    The integer \c vpos specifies the variable location with respect to
+    the grid (e.g. center/staggered).
 
     With some macros it is possible to sweep along the box by changing the
     direction order (e.g.  yxz rather than xyz), see ::BOX_TRANSVERSE_LOOP.
     In this case the index pointers <tt> n, t, b </tt> (normal, tangent
     and bitangent) and the corresponding lower and upper bounds must be
-    set properly using the RBoxSetDirections() function.   
+    set properly using the RBoxSetDirections() function.
     These are normally used as hidden indices inside the macro.
 
-    \note The lower and upper grid indices may also be reversed 
+    \note The lower and upper grid indices may also be reversed
           (e.g. <tt> box->ibeg > box->iend </tt>).
            In this case the macro ::BOX_LOOP
           automatically reset the directional increment (\c box->di) to -1.
@@ -205,11 +214,11 @@ typedef struct RBox_{
   int jend; /**< Upper corner index in the x2 direction. */
   int kbeg; /**< Lower corner index in the x3 direction. */
   int kend; /**< Upper corner index in the x3 direction. */
-  int di;   /**< Directional increment (+1 or -1) when looping over the 1st 
+  int di;   /**< Directional increment (+1 or -1) when looping over the 1st
                  dimension of the box. Automatically set by the ::BOX_LOOP macro. */
-  int dj;   /**< Directional increment (+1 or -1) when looping over the 2nd 
+  int dj;   /**< Directional increment (+1 or -1) when looping over the 2nd
                  dimension of the box. Automatically set by the ::BOX_LOOP macro. */
-  int dk;   /**< Directional increment (+1 or -1) when looping over the 3rd 
+  int dk;   /**< Directional increment (+1 or -1) when looping over the 3rd
                  dimension of the box. Automatically set by the ::BOX_LOOP macro. */
   int vpos; /**< Location of the variable inside the cell. */
   int *n;   /**< Pointer to the normal index when looping along a specified direction.
@@ -218,7 +227,7 @@ typedef struct RBox_{
                  (e.g. \c j when <tt> dir = IDIR </tt>).
                  Set manually or using a macro. */
   int *b;   /**< Pointer to binormal index when looping along a specified direction
-                 (e.g. \c k when <tt> dir = IDIR </tt>) 
+                 (e.g. \c k when <tt> dir = IDIR </tt>)
                  Set manually or using a macro. */
   int *nbeg; /**< Pointer to lower index in the normal direction.
                   Set by the RBoxSetDirections() function.  */
@@ -236,12 +245,12 @@ typedef struct RBox_{
 
 /* ********************************************************************* */
 /*! The restart structure contains restart information that must be
-    read from disk to restart PLUTO. 
+    read from disk to restart PLUTO.
 
-    Important: The restart structure should be aligned to a power of 2 to  
+    Important: The restart structure should be aligned to a power of 2 to
     prevent (for some compilers) from changing the alignment of the
-    structure and therefore troubleshooting when restarting 
-    from files written on different architectures.              
+    structure and therefore troubleshooting when restarting
+    from files written on different architectures.
    ********************************************************************* */
 
 typedef struct Restart_{
@@ -255,7 +264,7 @@ typedef struct Restart_{
 /* ********************************************************************* */
 /*! The State structure contains one-dimensional vectors of fluid
     quantities, often used during 1D computations (Riemann solver,
-    sound speed, etc..), 
+    sound speed, etc..),
    ********************************************************************* */
 
 typedef struct State_{
@@ -281,8 +290,8 @@ typedef struct State_{
 /* ********************************************************************* */
 /*! This structure contains one-dimensional vectors of conserved
     variables, primitive variables, fluxes and so on, used during
-    the reconstruct-Solve-Average strategy. 
-    It is a frequently passed to the Riemann solver routines, source and 
+    the reconstruct-Solve-Average strategy.
+    It is a frequently passed to the Riemann solver routines, source and
     flux functions, etc.
    ********************************************************************* */
 
@@ -291,9 +300,9 @@ typedef struct Sweep_{
                       v[i] = \f$ \vec{V}^n_i \f$ . */
   double **flux;      /**< upwind flux computed with the Riemann solver */
   double **tc_flux;   /**< Thermal conduction flux    */
-                          
+
   double *lmax;   /**< Define the maximum k-characteristic speed over the domain */
-  double **src;     
+  double **src;
 
   double **rhs;     /**< Conservative right hand side */
   double *press;    /**< Upwind pressure term computed with the Riemann solver */
@@ -306,7 +315,7 @@ typedef struct Sweep_{
   double *SrL;     /**< Leftmost interface velocity for radiation fields */
   double *SrR;     /**< Rightmost interface velocity for radiation fields */
   #endif
-  
+
   double **pnt_flux;
   double **dff_flux;
   double *SaL, *SaR, *Sc; /**< MHD alfven waves, contact wave */
@@ -322,10 +331,10 @@ typedef struct Sweep_{
 typedef struct Table2D_ {
   char **defined;
   int nx;  /**< Number of columns or points in the x direction */
-  int ny;  /**< Number of rows    or points in the y direction */  
+  int ny;  /**< Number of rows    or points in the y direction */
   int nf;
-  int interpolation;   /**< LINEAR/SPLINE1  */   
-  int **i; 
+  int interpolation;   /**< LINEAR/SPLINE1  */
+  int **i;
   int id;
   double *x;  /**< array of x-values (not uniform) */
   double *y;  /**< array of y-values (not uniform) */
@@ -335,7 +344,7 @@ typedef struct Table2D_ {
   double *lny; /**< array of log10(y) values (uniform) */
   double **f;
 
-  double **a;  /**< Spline coefficient (x^3) */ 
+  double **a;  /**< Spline coefficient (x^3) */
   double **b;  /**< Spline coefficient (x^2) */
   double **c;  /**< Spline coefficient (x)   */
   double **d;  /**< Spline coefficiten (1)   */
@@ -356,18 +365,23 @@ typedef struct Table2D_ {
 } Table2D;
 
 /* ********************************************************************* */
-/*! The timeStep structure contains essential information for 
+/*! The timeStep structure contains essential information for
     determining the time step.
    ********************************************************************* */
 
 typedef struct timeStep_{
   double *cmax;     /**< Maximum signal velocity for hyperbolic eqns. */
-  double invDt_hyp;   /**< Inverse of hyperbolic time step, 
+  double invDt_hyp;   /**< Inverse of hyperbolic time step,
                          \f$ \lambda/\Delta l\f$.*/
-  double invDt_par;   /**< Inverse of parabolic (diffusion)  time step 
+  double invDt_par;   /**< Inverse of parabolic (diffusion)  time step
                          \f$ \eta/\Delta l^2\f$. */
   double invDt_particles; /**< Max inverse dt for particles */
   double omega_particles; /**< Max Larmor frequency for particles */
+#if PARTICLES == PARTICLES_KIN
+  double invDt_advection; // dt < dx/v
+  double invDt_acceleration; // dt < dp/p divu
+  double invDt_diffusion; //dt < dx^2/D . It is not used for three diagonal solver!
+#endif
   double dt_cool;   /**< Cooling time step. */
   double cfl;       /**< Courant number for advection. */
   double cfl_par;   /**< Courant number for diffusion (STS only). */
@@ -419,7 +433,7 @@ typedef struct Output_{
 
 /* ********************************************************************* */
 /*! The Runtime structure contains runtime initialization parameters
-    read from pluto.ini (or equivalent). 
+    read from pluto.ini (or equivalent).
    ********************************************************************* */
 
 typedef struct Runtime_{
@@ -429,7 +443,7 @@ typedef struct Runtime_{
   int    grid_is_uniform[3];  /* = 1 when grid is uniform, 0 otherwise */
   int    npatch[5];           /**< The number of grid patches  */
   int    patch_npoint[5][16]; /* number of points per patch */
-  int    patch_type[5][16];             
+  int    patch_type[5][16];
   int    log_freq;            /**< The log frequency (\c log) */
   int    user_var;            /**< The number of additional user-variables being
                                  held in memory and written to disk */
@@ -444,7 +458,7 @@ typedef struct Runtime_{
   char   log_dir[256];            /**< The name of the output directory
                                        where log files will be written to.
                                        Default is output_dir. */
-  Output output[MAX_OUTPUT_TYPES];  
+  Output output[MAX_OUTPUT_TYPES];
   double patch_left_node[5][16];  /*  self-expl. */
   double  cfl;               /**< Hyperbolic cfl number (\c CFL) */
   double  cfl_max_var;       /**< Maximum increment between consecutive time
@@ -461,8 +475,8 @@ typedef struct Runtime_{
   double particles_tstart;  /**< Time at which particles are integrated */
   int     Nparticles_glob;  /**< Total number of particles in the whole domain */
   int     Nparticles_cell;  /**< Total number of particles per cell */
-    
-  double  aux[32];         /* we keep aux inside this structure, 
+
+  double  aux[32];         /* we keep aux inside this structure,
                               since in parallel execution it has
                               to be comunicated to all processors  */
 } Runtime;
@@ -496,7 +510,7 @@ typedef struct FLOAT_VECT{
     elements can be conveniently initialized upon declaration:
 
     intList list = {4, MX1, MX2, MX3, ENG};
-    
+
     list will have 4 elements so that, using the FOR_EACH macro
     a loop will be done on MX1, MX2, MX3, ENG.
    ********************************************************************* */
@@ -507,8 +521,8 @@ typedef struct intList_{
 } intList;
 
 /* ********************************************************************* */
-/*! The Data structure contains the main solution 3D arrays used by 
-    the code. 
+/*! The Data structure contains the main solution 3D arrays used by
+    the code.
    ********************************************************************* */
 
 #if PARTICLES == PARTICLES_KIN
@@ -574,13 +588,55 @@ typedef struct Data_{
                        are the locations of the cell in the \f$x_3\f$,
                        \f$x_2\f$ and \f$x_1\f$ direction. */
   double ****Vs;    /**< The main four-index data array used for face-centered
-                         staggered magnetic fields. 
+                         staggered magnetic fields.
                          The index order is <tt>Vc[nv][k][j][i]</tt>,
                          where \c nv gives the variable index, \c k,\c j and \c i
                          are the locations of the cell in the \f$x_3\f$,
                          \f$x_2\f$ and \f$x_1\f$ direction. */
-  double ****Vuser; /**< Array storing user-defined supplementary variables 
-                         written to disk. */ 
+  #ifdef HIGH_ORDER
+  double ****Upc;   /**< The main four-index data array used for cell-centered
+                         punctual conservative variables. The index order is
+                        <tt>Upc[k][j][i][nv]</tt> where \c nv gives the variable
+                        index while \c k,\c j and \c i are the
+                        locations of the cell in the \f$x_3\f$,
+                        \f$x_2\f$ and \f$x_1\f$ direction. */
+  double ****Vpc;   /**< The main four-index data array used for cell-centered
+                         punctual primitive variables. The index order is
+                        <tt>Upc[k][j][i][nv]</tt> where \c nv gives the variable
+                        index while \c k,\c j and \c i are the
+                        locations of the cell in the \f$x_3\f$,
+                        \f$x_2\f$ and \f$x_1\f$ direction. */
+  double ****Vps;   /**< The main four-index data array used for face-centered
+                         punctual staggered variables. The index order is
+                        <tt>Vps[nv][k][j][i]</tt> where \c nv gives the variable
+                        index while \c k,\c j and \c i are the
+                        locations of the face in the \f$x_3\f$,
+                        \f$x_2\f$ and \f$x_1\f$ direction.
+                        indexing starts at -1 to start at left faces. */
+  double ****Ucb;   /**< The main four-index data array used for boundary conditions.
+                        The index order is <tt>Upc[nv][k][j][i]</tt> where \c nv gives
+                        the variable index while \c k,\c j and \c i are the
+                        locations of the cell in the \f$x_3\f$,
+                        \f$x_2\f$ and \f$x_1\f$ direction. */
+
+  double ****Ueq_av;   /**< Equilibrium array (!!!!! BETA TEST ONLY !!!!!! ) */
+  double ****Ueq_pt;   /**< Equilibrium array (!!!!! BETA TEST ONLY !!!!!! ) */
+
+  char ***ho_lim;   /**< Discontinuity detector switch */
+
+  double ****Vdpc;   /* Used when HO_DIAG_SCHEME == YES */
+  double ****Vdmc;
+  double ****Vdcp;
+  double ****Vdcm;
+  double ****Vdpp;   /* Used when HO_DIAG_SCHEME == YES */
+  double ****Vdpm;
+  double ****Vdmp;
+  double ****Vdmm;
+
+  #endif
+
+  double ****Vuser; /**< Array storing user-defined supplementary variables
+                         written to disk. */
   double ***Ax1;    /**< Vector potential comp. in the \f$x_1\f$ dir.*/
   double ***Ax2;    /**< Vector potential comp. in the \f$x_2\f$ dir.*/
   double ***Ax3;    /**< Vector potential comp. in the \f$x_3\f$ dir.*/
@@ -598,17 +654,19 @@ typedef struct Data_{
   double ****Fcr;   /**< A four-element 3D array used to compute the three
                          components of the force and the energy source term
                          of the CR feedback on the fluid. */
-                    /** or for the MC particles */
+
   double ****Jcr;   /**< The CR current density 3D array. */
-  double ***qcr;    /**< The CR charge density 3D array. */
-  
+  double ***qcr;    /**< The CR charge density 3D array.  */
+
   double ****Fdust; /**< Drag force (dust particles only)   */
   struct Particle_ **pstr;  /**< Used to convert a linked list to array (useful ?) */
   int particles_GC_InvalidCount; /**< Number of particles for which GCA conditions are not fulfilled. */
-  
+  double ****Vc0; /* Use by Particles GC module to compute temporal derivatives. */
+
+
 /* EMF  */
   double ***Ex1; /**< cell-centered emf used in CT averaging or CR particles */
-  double ***Ex2; /**< cell-centered emf used in CT averaging or CR particles */  
+  double ***Ex2; /**< cell-centered emf used in CT averaging or CR particles */
   double ***Ex3; /**< cell-centered emf used in CT averaging or CR particles */
 
   struct ElectroMotiveForce *emf;
@@ -618,9 +676,8 @@ typedef struct Data_{
 
   /* ForcedTurb */
   struct ForcedTurb *Ft;
-  
+
   void (*fluidRiemannSolver)     (const Sweep *, int, int, double *, Grid *);
   void (*radiationRiemannSolver) (const Sweep *, int, int, double *, Grid *);
   char fill[54];  /* make the structure a power of two.  */
 } Data;
-

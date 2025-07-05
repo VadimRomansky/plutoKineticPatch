@@ -10,7 +10,6 @@
 */
 /* //////////////////////////////////////////////////////////////////// */
 #include "al_hidden.h"  /*I "al_hidden.h" I*/
-//#include "macros.h"
 #include "io.h"
 
 /* 

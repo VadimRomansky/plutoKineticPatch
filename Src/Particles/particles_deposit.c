@@ -26,7 +26,7 @@
   since quantities deposited in the ghost zones must be exchanged
   with neighbour processors. 
 
-  \authors A. Mignone (mignone@ph.unito.it)\n
+  \authors A. Mignone (andrea.mignone@unito.it)\n
 
   \b References
 
@@ -37,7 +37,6 @@
 
 #define NELEM_MAX     64
 /* ********************************************************************* */
-
 #if PARTICLES != PARTICLES_KIN
 void Particles_Deposit(particleNode *PHead, void (*Func)(Particle *, double *),
                        Data_Arr Q, int nelem, Grid *grid)

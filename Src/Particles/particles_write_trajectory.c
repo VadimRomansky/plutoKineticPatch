@@ -3,9 +3,9 @@
   \file  
   \brief Write trajectoy of a particle
   
-  \authors A. Mignone (mignone@to.infn.it)\n
+  \authors A. Mignone (andrea.mignone@unito.it)\n
 
-  \date   June 12, 2019
+  \date   Oct 9, 2023
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -18,7 +18,7 @@ void Particles_WriteTrajectory (Particle *p, char mode)
  *  "particle.<id>.dat" where <id> is the particle id.
  *  The file used a multiple column format,
  *
- *  <t>  <x1>  <x2>  <x3> <vx1>  <vx2>  <vx3>
+ *  <t>  <x1>  <x2>  <x3>  <ux1>  <ux2>  <ux3>
  *
  * where <t> is the time column and the other contain coordinates 
  * and velocities.
@@ -30,7 +30,7 @@ void Particles_WriteTrajectory (Particle *p, char mode)
 {
   FILE *fp;
   char fname[64];
-  char *legend[7] = {"t", "x(t)", "y(t)", "z(t)", "vx(t)", "vy(t)", "vz(t)"};
+  char *legend[7] = {"t", "x(t)", "y(t)", "z(t)", "ux(t)", "uy(t)", "uz(t)"};
   
   sprintf (fname,"particle.%04d.dat",p->id);
   if      (mode == 'w') {

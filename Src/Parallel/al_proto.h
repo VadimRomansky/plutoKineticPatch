@@ -6,7 +6,7 @@
   Contains the function prototypes used in the ArrayLib routines.
 
   \author A. Malagoli (University of Chicago)
-  \author A. Mignone (mignone@ph.unito.it)
+  \author A. Mignone (andrea.mignone@unito.it)
   \author G. Muscianisi (g.muscianisi@cineca.it)
  
   \date   Aug 16, 2012
@@ -16,7 +16,6 @@
 #ifndef __AL_PROTO
 #define __AL_PROTO
 
-//#include "macros.h"
 #include "io.h"
 
 

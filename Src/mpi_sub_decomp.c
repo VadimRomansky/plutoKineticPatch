@@ -315,7 +315,7 @@ void Analysis (const Data *d, Grid *grid)
 #endif	
 	/* -- Loop on k index and get averages in xy planes -- */
 	
-	Boundary (d, ALL_DIR, grid);
+	Boundary (d, 0, grid);
 	KDOM_LOOP(k){
 		k1 = k - KBEG;
 		for (n = 0; n < NAVERAGES; n++) av[k1][n] = 0.0;

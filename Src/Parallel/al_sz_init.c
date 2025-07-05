@@ -79,14 +79,15 @@ int AL_Sz_init(MPI_Comm comm, int *sz_ptr)
     sz_stack[*sz_ptr]->eg[i]=0;
     sz_stack[*sz_ptr]->offset[i]=1;
     sz_stack[*sz_ptr]->stride[i]=1;
- #ifdef NSAMPLING
-    sz_stack[*sz_ptr]->samplingarrdim[i]=1;
-    sz_stack[*sz_ptr]->samplinglarrdim[i]=1;
-    sz_stack[*sz_ptr]->samplinglstart[i] = 0;
-    sz_stack[*sz_ptr]->samplinggstart[i] = 0;
-    sz_stack[*sz_ptr]->sampledArray = NULL;
- #endif
+#ifdef NSAMPLING
+   sz_stack[*sz_ptr]->samplingarrdim[i]=1;
+   sz_stack[*sz_ptr]->samplinglarrdim[i]=1;
+   sz_stack[*sz_ptr]->samplinglstart[i] = 0;
+   sz_stack[*sz_ptr]->samplinggstart[i] = 0;
+   sz_stack[*sz_ptr]->sampledArray = NULL;
+#endif
   }
+
   sz_stack[*sz_ptr]->begs = NULL;
   sz_stack[*sz_ptr]->ends = NULL;
 

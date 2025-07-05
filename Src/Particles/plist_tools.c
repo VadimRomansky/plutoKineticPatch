@@ -6,7 +6,7 @@
   Collect various functions for adding / destroying 
   particles.         
 
-  \authors A. Mignone (mignone@to.infn.it)\n
+  \authors A. Mignone (andrea.mignone@unito.it)\n
 
   \date    Jul 25, 2019
 */

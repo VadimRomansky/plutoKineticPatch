@@ -6,10 +6,9 @@
   The integration log file is divided into a "pre-step"
   and a "post-step" output.
 
-  \authors A. Mignone(mignone@to.infn.it)\n
-           B. Vaidya
+  \authors A. Mignone(andrea.mignone@unito.it)\n
 
-  \date    Jul 28, 2020
+  \date    Apr 11, 2024
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -22,18 +21,23 @@ static char log_file_name[512];
 static void Particles_Log (Data *, timeStep *, Grid *);
 
 /* ********************************************************************* */
-void OutputLogPre(Data *data, timeStep *Dts, Runtime *ini, Grid *grid)
+void OutputLogPre(Data *data, timeStep *Dts, Runtime *runtime, Grid *grid)
 /*!
  *  Provide log-file information *before* integration starts
  *********************************************************************** */
 {
   char *indent = IndentString();
+#if GPLUTO_LOG == YES
+  print ("> nstep = %d; t = %0e; dt = %0e; %6.1f %%\n",
+          g_stepNumber, g_time, g_dt, 100.0*g_time/runtime->tstop);
+#else
   print ("step:%d; t = %10.4e; dt = %10.4e; %3.1f %%\n",
-           g_stepNumber, g_time, g_dt, 100.0*g_time/ini->tstop);
+           g_stepNumber, g_time, g_dt, 100.0*g_time/runtime->tstop);
+#endif
 }
 
 /* ********************************************************************* */
-void OutputLogPost(Data *data, timeStep *Dts, Runtime *ini, Grid *grid)
+void OutputLogPost(Data *data, timeStep *Dts, Runtime *runtime, Grid *grid)
 /*!
  *  Provide log-file information *after* integration ends
  *
@@ -41,6 +45,132 @@ void OutputLogPost(Data *data, timeStep *Dts, Runtime *ini, Grid *grid)
 {
   char *indent = IndentString();
   
+#if GPLUTO_LOG == YES
+
+    #ifdef GLM_MHD
+    print ("  glm_ch = %f\n",glm_ch);
+    #endif
+
+    #ifdef PARALLEL
+    // double xglob;
+    // double  xloc = Dts.invDt_hyp;
+    // MPI_Allreduce (&xloc, &xglob, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    // Dts.invDt_hyp = xglob;
+    #endif
+
+    int nv;
+    double mach[3], mach_max = 0.0, cs;
+    double vc_max[NVAR], vc_min[NVAR], vc_glob[NVAR];
+    NVAR_LOOP(nv) vc_max[nv] = -1.e18;
+    NVAR_LOOP(nv) vc_min[nv] =  1.e18;
+
+    #ifdef HIGH_ORDER
+    RBox box;
+    int ibeg = grid->lbeg[IDIR], iend = grid->lend[IDIR];
+    int jbeg = grid->lbeg[JDIR], jend = grid->lend[JDIR];
+    int kbeg = grid->lbeg[KDIR], kend = grid->lend[KDIR];
+
+    RBoxDefine(ibeg, iend, jbeg, jend, kbeg, kend, CENTER, &box);
+    ConsToPrim3D (data->Uc, data->Vc, data->flag, &box, grid);
+    #endif
+
+    for (int k = grid[0].lbeg[KDIR]; k <= grid[0].lend[KDIR]; k++){
+    for (int j = grid[0].lbeg[JDIR]; j <= grid[0].lend[JDIR]; j++){
+    for (int i = grid[0].lbeg[IDIR]; i <= grid[0].lend[IDIR]; i++){
+      #if HAVE_ENERGY
+        cs = data->Vc[PRS][k][j][i] / data->Vc[RHO][k][j][i];
+        cs = sqrt(cs);
+      #else
+        cs = g_isoSoundSpeed;
+      #endif
+      mach[IDIR] = fabs(data->Vc[VX1][k][j][i]) / cs;
+      mach[JDIR] = fabs(data->Vc[VX2][k][j][i]) / cs;
+      mach[KDIR] = fabs(data->Vc[VX3][k][j][i]) / cs;
+      mach_max = MAX(mach_max, mach[IDIR]);
+      // printf("%f\n",mach_max);
+      mach_max = MAX(mach_max, mach[JDIR]);
+      // printf("%f\n",mach_max);
+      mach_max = MAX(mach_max, mach[KDIR]);
+      // printf("%f\n",mach_max);
+      NVAR_LOOP(nv) {
+        vc_max[nv] = MAX(vc_max[nv], data->Vc[nv][k][j][i]);
+        vc_min[nv] = MIN(vc_min[nv], data->Vc[nv][k][j][i]);
+      }
+    }}}
+    #ifdef PARALLEL
+    double xglob;
+    MPI_Allreduce (&mach_max, &xglob, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    mach_max = xglob;
+
+    MPI_Allreduce (vc_min, vc_glob, NVAR, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+    NVAR_LOOP(nv) vc_min[nv] = vc_glob[nv];
+
+    MPI_Allreduce (vc_max, vc_glob, NVAR, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    NVAR_LOOP(nv) vc_max[nv] = vc_glob[nv];
+    #endif
+    print ("  Max(MACH) =  %f\n",mach_max);
+    #if PHYSICS==MHD || PHYSICS==RMHD
+    #if HAVE_ENERGY
+    #ifdef GLM_MHD
+    print ("  Max(vc)   = % 0e  % 0e  % 0e  % 0e  % 0e  % 0e  % 0e % 0e % 0e\n",
+               vc_max[RHO], vc_max[VX1], vc_max[VX2], vc_max[VX3],
+                            vc_max[BX1], vc_max[BX2], vc_max[BX3],
+                            vc_max[PRS], vc_max[PSI_GLM]);
+    print ("  Min(vc)   = % 0e  % 0e  % 0e  % 0e  % 0e  % 0e  % 0e % 0e % 0e\n",
+               vc_min[RHO], vc_min[VX1], vc_min[VX2], vc_min[VX3],
+                            vc_min[BX1], vc_min[BX2], vc_min[BX3],
+                            vc_min[PRS], vc_min[PSI_GLM]);
+    #else
+    print ("  Max(vc)   = % 0e  % 0e  % 0e  % 0e  % 0e  % 0e  % 0e % 0e\n",
+               vc_max[RHO], vc_max[VX1], vc_max[VX2], vc_max[VX3],
+                            vc_max[BX1], vc_max[BX2], vc_max[BX3], vc_max[PRS]);
+    print ("  Min(vc)   = % 0e  % 0e  % 0e  % 0e  % 0e  % 0e  % 0e % 0e\n",
+               vc_min[RHO], vc_min[VX1], vc_min[VX2], vc_min[VX3],
+                            vc_min[BX1], vc_min[BX2], vc_min[BX3], vc_min[PRS]);
+    #endif
+    #else
+    print ("  Max(vc)   = % 0e  % 0e  % 0e  % 0e  % 0e  % 0e  % 0e\n",
+               vc_max[RHO], vc_max[VX1], vc_max[VX2], vc_max[VX3],
+                            vc_max[BX1], vc_max[BX2], vc_max[BX3]);
+    print ("  Min(vc)   = % 0e  % 0e  % 0e  % 0e  % 0e  % 0e  % 0e\n",
+               vc_min[RHO], vc_min[VX1], vc_min[VX2], vc_min[VX3],
+                            vc_min[BX1], vc_min[BX2], vc_min[BX3]);
+    #endif
+    #endif
+
+    #if PHYSICS==ResRMHD
+    #ifdef GLM_MHD
+    print ("  Max(vc)   = % 0e  % 0e  % 0e  % 0e  % 0e  % 0e  % 0e % 0e % 0e % 0e % 0e % 0e % 0e\n",
+               vc_max[RHO], vc_max[VX1], vc_max[VX2], vc_max[VX3],
+               vc_max[BX1], vc_max[BX2], vc_max[BX3],
+               vc_min[EX1], vc_min[EX2], vc_min[EX3],
+               vc_max[PRS], vc_min[CRG], vc_max[PSI_GLM]);
+    print ("  Min(vc)   = % 0e  % 0e  % 0e  % 0e  % 0e  % 0e  % 0e % 0e % 0e % 0e % 0e % 0e % 0e\n",
+               vc_min[RHO], vc_min[VX1], vc_min[VX2], vc_min[VX3],
+               vc_min[BX1], vc_min[BX2], vc_min[BX3],
+               vc_min[EX1], vc_min[EX2], vc_min[EX3],
+               vc_min[PRS], vc_min[CRG], vc_min[PSI_GLM]);
+    #else
+    print ("  Max(vc)   = % 0e  % 0e  % 0e  % 0e  % 0e  % 0e  % 0e % 0e % 0e  % 0e % 0e\n",
+               vc_max[RHO], vc_max[VX1], vc_max[VX2], vc_max[VX3],
+               vc_min[EX1], vc_min[EX2], vc_min[EX3],
+               vc_max[BX1], vc_max[BX2], vc_max[BX3], vc_max[PRS]);
+    print ("  Min(vc)   = % 0e  % 0e  % 0e  % 0e  % 0e  % 0e  % 0e % 0e % 0e  % 0e % 0e\n",
+               vc_min[RHO], vc_min[VX1], vc_min[VX2], vc_min[VX3],
+               vc_min[EX1], vc_min[EX2], vc_min[EX3],
+               vc_min[BX1], vc_min[BX2], vc_min[BX3], vc_min[PRS]);
+    #endif
+    #endif
+
+    #if PHYSICS==HD || PHYSICS==RHD
+    print ("  Max(vc)   = % 0e  % 0e  % 0e  % 0e % 0e\n",
+               vc_max[RHO], vc_max[VX1], vc_max[VX2], vc_max[VX3], vc_max[PRS]);
+    print ("  Min(vc)   = % 0e  % 0e  % 0e  % 0e % 0e\n",
+               vc_min[RHO], vc_min[VX1], vc_min[VX2], vc_min[VX3], vc_min[PRS]);
+    #endif
+
+#else
+
   print ("%s [Mach = %f", indent, g_maxMach);
   if (g_maxRiemannIter > 0){
     print (", NRiemann = %d", g_maxRiemannIter);
@@ -61,6 +191,9 @@ void OutputLogPost(Data *data, timeStep *Dts, Runtime *ini, Grid *grid)
   #if (PARTICLES != NO)
   Particles_Log (data, Dts, grid);
   #endif
+
+#endif /* GPLUTO_LOG */
+
 }
 
 /* ********************************************************************* */
@@ -265,14 +398,16 @@ void printLog (const char *fmt, ...)
 
 #ifdef PARALLEL
 
+  #if MULTIPLE_LOG_FILES == NO
+  if (prank != 0) return;
+  #endif
+
   /* --------------------------------------------
       File may not be opened if
       MULTIPLE_LOG_FILES is set to NO.
      -------------------------------------------- */
 
-  #if MULTIPLE_LOG_FILES == NO
   if (g_flog == NULL)  g_flog = fopen(log_file_name, "a");
-  #endif
   vfprintf(g_flog, fmt, args);
 #else
   vprintf(fmt, args);
