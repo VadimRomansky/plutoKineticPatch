@@ -351,7 +351,7 @@ int AdvanceStep (Data *d, timeStep *Dts, Grid *grid)
        || (PARTICLES == PARTICLES_KIN && PARTICLES_KIN_FEEDBACK == NO)
    NVAR_LOOP(nv) DOM_LOOP(k,j,i) Vhalf[nv][k][j][i] += 0.5*d->Vc[nv][k][j][i];
    Vpnt  = d->Vc;  /* Save pointer */
-   printf("Vhalf or not?\n");
+   //printf("Vhalf or not?\n");
    //d->Vc = Vhalf;
    #if PARTICLES == PARTICLES_CR
    Particles_CR_Update(d, Dts, g_dt, grid);

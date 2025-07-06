@@ -129,6 +129,11 @@ int main (int argc, char *argv[])
   #endif
   Dts.invDt_particles  = 1.e-38;
   Dts.omega_particles  = 1.e-38;
+#if PARTICLES == PARTICLES_KIN
+  Dts.invDt_advection = 1.e-38;
+  Dts.invDt_acceleration = 1.e-38;
+  Dts.invDt_diffusion = 1.e-38;
+#endif
   Dts.particles_tstart = runtime.particles_tstart;
 #endif
 
@@ -542,6 +547,11 @@ double NextTimeStep (timeStep *Dts, Runtime *runtime, Grid *grid)
     #if PARTICLES == PARTICLES_CR
     print ("%s [1/omL(particles) =       %10.4e]\n",str, 1.0/Dts->omega_particles);
     #endif
+    #if PARTICLES == PARTICLES_KIN
+    print ("%s [dt(particles advection) =       %10.4e]\n",str, 1.0/Dts->invDt_advection);
+    print ("%s [dt(particles acceleration) =       %10.4e]\n",str, 1.0/Dts->invDt_acceleration);
+    print ("%s [dt(particles diffusion) =       %10.4e]\n",str, 1.0/Dts->invDt_diffusion);
+    #endif
     #endif
   }
 #endif
@@ -636,6 +646,11 @@ double NextTimeStep (timeStep *Dts, Runtime *runtime, Grid *grid)
     print ("! %s [dt(cool)      =       %10.4e]\n",str, Dts->dt_cool);
     #if PARTICLES != NO
     print ("! %s [dt(particles) =       %10.4e]\n",str, 1.0/Dts->invDt_particles);
+    #if PARTICLES == PARTICLES_KIN
+    print ("! %s [dt(particles advection) =       %10.4e]\n",str, 1.0/Dts->invDt_advection);
+    print ("! %s [dt(particles acceleration) =       %10.4e]\n",str, 1.0/Dts->invDt_acceleration);
+    print ("! %s [dt(particles diffusion) =       %10.4e]\n",str, 1.0/Dts->invDt_diffusion);
+    #endif
     #endif
     print ("! Cannot continue.\n");
     QUIT_PLUTO(1);
