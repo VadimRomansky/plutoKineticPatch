@@ -524,6 +524,20 @@ double NextTimeStep (timeStep *Dts, Runtime *runtime, Grid *grid)
   xloc = Dts->omega_particles;
   MPI_Allreduce (&xloc, &xglob, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
   Dts->omega_particles = xglob;
+
+#if PARTICLES == PARTICLES_KIN
+  xloc = Dts->invDt_advection;
+  MPI_Allreduce (&xloc, &xglob, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+  Dts->invDt_advection = xglob;
+
+  xloc = Dts->invDt_acceleration;
+  MPI_Allreduce (&xloc, &xglob, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+  Dts->invDt_acceleration = xglob;
+
+  xloc = Dts->invDt_diffusion;
+  MPI_Allreduce (&xloc, &xglob, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+  Dts->invDt_diffusion = xglob;
+#endif
   #endif
 #endif
 
