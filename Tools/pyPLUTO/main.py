@@ -140,7 +140,7 @@ UNIT_DENSITY=1.672E-24;
 UNIT_LENGTH=3.086E17;
 UNIT_VELOCITY=2.998E10;
 datatype = 'dbl'
-ntot = 9
+ntot = 3
 
 out_dir = ""
 
@@ -189,7 +189,7 @@ plot_density(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, tr
 
 ######## pressure
 
-plot_pressure(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, transponse = True, out_dir = out_dir)
+#plot_pressure(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, transponse = True, out_dir = out_dir)
 #plot_pressure_window(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, 0.0, 1E19, 0.0, 6E19, datatype, transponse = True, out_dir = out_dir)
 #plot_pressure_animated(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, transponse = True, out_dir = out_dir)
 #plot_pressure_animated_window(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, 0.1E19, 0.7E19, -0.3E19, 0.3E19, datatype, out_dir = out_dir)
@@ -224,8 +224,8 @@ plot_pressure(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, t
 #plot_entropy_window(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, 0.0, 1E19, 0.0, 6E19, datatype, transponse = True, out_dir = out_dir)
 
 ########### shock
-plot_shock(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, transponse = True, out_dir = out_dir)
-plot_shock_animated(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, transponse = True, out_dir = out_dir)
+#plot_shock(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, transponse = True, out_dir = out_dir)
+#plot_shock_animated(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, transponse = True, out_dir = out_dir)
 
 ########### gamma
 
@@ -302,8 +302,8 @@ plot_kinetic_distribution_animated(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_
 #plot_kinetic_distribution_at_p_along_axis(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, 8, file_name = 'distribution_at_momentum_mid_p.png', out_dir = out_dir)
 #plot_kinetic_distribution_at_p_along_axis(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, 14, file_name = 'distribution_at_momentum_high_p.png', out_dir = out_dir)
 #plot_kinetic_distribution_animated_at_p_along_axis(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, 10, out_dir = out_dir)
-plot_kinetic_distribution_window(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, 0, 3E19, 5E19, 1E20, -1E20, 1E20, datatype, out_dir = out_dir)
-plot_kinetic_distribution_animated_window(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, 0, 3E19, 5E19, 1E20, -1E20, 1E20, datatype, out_dir = out_dir)
+#plot_kinetic_distribution_window(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, 0, 3E19, 5E19, 1E20, -1E20, 1E20, datatype, out_dir = out_dir)
+#plot_kinetic_distribution_animated_window(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, 0, 3E19, 5E19, 1E20, -1E20, 1E20, datatype, out_dir = out_dir)
 #plot_distribution(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, out_dir = out_dir)
 #plot_distribution_animated(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, out_dir = out_dir)
 #plot_escaped_distribution(150, 2500, w_dir, datatype, out_dir = out_dir)
@@ -315,9 +315,9 @@ plot_Fkin_animated(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, dataty
 plot_Fkin_1d(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, out_dir = out_dir)
 plot_Fkin_animated_1d(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, out_dir = out_dir)
 
-plot_Pkin(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, out_dir = out_dir)
+#plot_Pkin(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, out_dir = out_dir)
 #plot_Pkin_animated(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, out_dir = out_dir)
-plot_Pkin_1d(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, out_dir = out_dir)
+#plot_Pkin_1d(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, out_dir = out_dir)
 #plot_Pkin_animated_1d(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, out_dir = out_dir)
 
 plot_particles_energy(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, out_dir = out_dir)

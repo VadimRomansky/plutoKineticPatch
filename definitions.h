@@ -47,9 +47,10 @@
 #define  PARTICLES_KIN_FEEDBACK         NO
 #define  PARTICLES_KIN_OUTPUT_STEP      1
 #define  PARTICLES_KIN_SOLVER           THREE_DIAGONAL
+#define  PARTICLES_KIN_EPS              0.2
 #define  TURBULENT_FIELD                NO
 #define  NTURB                          10
-#define  NMOMENTUM                      200
+#define  NMOMENTUM                      50
 #define  MAX_GMRES_ITERATIONS           20
 #define  WARNING_MESSAGES               NO
 #define  MULTIPLE_LOG_FILES             NO

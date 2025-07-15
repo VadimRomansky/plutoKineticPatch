@@ -27,7 +27,10 @@ bool equalsIndex(MatrixElement element1, MatrixElement element2) {
 MatrixElementNode* addElement(MatrixElementNode* curNode, double value, int k, int j, int i, int l){
     MatrixElementNode* tempNode = (MatrixElementNode*) malloc(sizeof(MatrixElementNode));
     tempNode->element = createMatrixElement(value, k,j,i,l);
-    tempNode->next = NULL;
+    tempNode->next = curNode->next;
+    if(curNode->next != NULL){
+        curNode->prev = tempNode;
+    }
     tempNode->prev = curNode;
     curNode->next = tempNode;
     return tempNode;
