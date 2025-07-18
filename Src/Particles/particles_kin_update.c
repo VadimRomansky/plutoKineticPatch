@@ -111,6 +111,7 @@ double evaluateDiffusionCoefficient(Data* data, int i, int j, int k, double u){
     }
 
     //D = 1E26/(UNIT_LENGTH*UNIT_VELOCITY);
+    D = coef/Bmag;
     D = D;
 
     return D;
@@ -296,7 +297,12 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 
 #if GEOMETRY == CARTESIAN
 #if INCLUDE_IDIR
-        divu += (data->Vc[VX1][k][j][i+1] - data->Vc[VX1][k][j][i-1])/(grid->x[0][i+1] - grid->x[0][i-1]);
+        //divu += (data->Vc[VX1][k][j][i+1] - data->Vc[VX1][k][j][i-1])/(grid->x[0][i+1] - grid->x[0][i-1]);
+        if(data->Vc[VX1][k][j][i] > 0){
+            divu += (data->Vc[VX1][k][j][i] - data->Vc[VX1][k][j][i-1])/(grid->x[0][i] - grid->x[0][i-1]);
+        } else {
+            divu += (data->Vc[VX1][k][j][i+1] - data->Vc[VX1][k][j][i])/(grid->x[0][i+1] - grid->x[0][i]);
+        }
 #endif
 #if INCLUDE_JDIR
         divu += (data->Vc[VX2][k][j+1][i] - data->Vc[VX2][k][j-1][i])/(grid->x[1][j+1] - grid->x[1][j-1]);
@@ -434,7 +440,7 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 #endif
 #if INCLUDE_KDIR
         inv_dt_new = fabs(2*data->Vc[VX3][k][j][i]/dx3)/PARTICLES_KIN_EPS;
-        Dts->invDt->advection = MAX(Dts->invDt_advection, inv_dt_new);
+        Dts->invDt_advection = MAX(Dts->invDt_advection, inv_dt_new);
 #endif
 
 

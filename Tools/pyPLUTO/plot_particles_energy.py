@@ -33,7 +33,7 @@ def plot_particles_energy(ns, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, d
     Einj = np.zeros([ns+1])
     sum = np.zeros([ns + 1])
 
-    outputstep = 2
+    outputstep = 1
 
     outputstep = outputstep**ndim
 
