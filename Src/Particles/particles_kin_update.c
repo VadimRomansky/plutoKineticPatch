@@ -111,7 +111,7 @@ double evaluateDiffusionCoefficient(Data* data, int i, int j, int k, double u){
     }
 
     //D = 1E26/(UNIT_LENGTH*UNIT_VELOCITY);
-    D = coef/Bmag;
+    //D = coef/Bmag;
     D = D;
 
     return D;
@@ -137,6 +137,8 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
     Dts->invDt_advection = inv_dt;
     Dts->invDt_acceleration = inv_dt;
     Dts->invDt_diffusion = inv_dt;
+    double Dr_uD = 1.e-18;
+    Dts->Dr_uD = Dr_uD;
 
 
     //crank-nickelson
@@ -297,12 +299,7 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 
 #if GEOMETRY == CARTESIAN
 #if INCLUDE_IDIR
-        //divu += (data->Vc[VX1][k][j][i+1] - data->Vc[VX1][k][j][i-1])/(grid->x[0][i+1] - grid->x[0][i-1]);
-        if(data->Vc[VX1][k][j][i] > 0){
-            divu += (data->Vc[VX1][k][j][i] - data->Vc[VX1][k][j][i-1])/(grid->x[0][i] - grid->x[0][i-1]);
-        } else {
-            divu += (data->Vc[VX1][k][j][i+1] - data->Vc[VX1][k][j][i])/(grid->x[0][i+1] - grid->x[0][i]);
-        }
+        divu += (data->Vc[VX1][k][j][i] - data->Vc[VX1][k][j][i-1])/(grid->x[0][i] - grid->x[0][i-1]);
 #endif
 #if INCLUDE_JDIR
         divu += (data->Vc[VX2][k][j+1][i] - data->Vc[VX2][k][j-1][i])/(grid->x[1][j+1] - grid->x[1][j-1]);
@@ -461,24 +458,28 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
             }*/
 
             double D = evaluateDiffusionCoefficient(data, i,j,k, data->p_grid[l]);
+            double Dr_uD_new = 0.0;
 #if INCLUDE_IDIR
             double Dleft =  evaluateDiffusionCoefficient(data, i-1,j,k, data->p_grid[l]);
 
             double Dright =  evaluateDiffusionCoefficient(data, i+1,j,k, data->p_grid[l]);
+            Dr_uD_new = Dr_uD_new + fabs(dx1*data->Vc[VX1][k][j][i])/D;
 #endif
 
 #if INCLUDE_JDIR
             double Dbottom =  evaluateDiffusionCoefficient(data, i,j-1,k, data->p_grid[l]);
 
             double Dtop = evaluateDiffusionCoefficient(data, i,j+1,k, data->p_grid[l]);
+            Dr_uD_new = Dr_uD_new + fabs(dx2*data->Vc[VX2][k][j][i])/D;
 #endif
 
 #if INCLUDE_KDIR
             double Dback = evaluateDiffusionCoefficient(data, i,j,k-1, data->p_grid[l]);
 
             double Dfront = evaluateDiffusionCoefficient(data, i,j,k+1, data->p_grid[l]);
+            Dr_uD_new = Dr_uD_new + fabs(dx3*data->Vc[VX3][k][j][i])/D;
 #endif
-
+            Dts->Dr_uD = MAX(Dts->Dr_uD, Dr_uD_new);
             inv_dt_new = fabs(2*4*D/(dx1*dx1))/PARTICLES_KIN_EPS;
             Dts->invDt_diffusion = MAX(Dts->invDt_diffusion, inv_dt_new);
 #if INCLUDE_JDIR

@@ -381,6 +381,7 @@ typedef struct timeStep_{
   double invDt_advection; // dt < dx/v
   double invDt_acceleration; // dt < dp/p divu
   double invDt_diffusion; //dt < dx^2/D . It is not used for three diagonal solver!
+  double Dr_uD; //check that dr u/D < 1
 #endif
   double dt_cool;   /**< Cooling time step. */
   double cfl;       /**< Courant number for advection. */

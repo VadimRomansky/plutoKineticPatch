@@ -133,6 +133,7 @@ int main (int argc, char *argv[])
   Dts.invDt_advection = 1.e-38;
   Dts.invDt_acceleration = 1.e-38;
   Dts.invDt_diffusion = 1.e-38;
+  Dts.Dr_uD = 1.e-38;
 #endif
   Dts.particles_tstart = runtime.particles_tstart;
 #endif
@@ -537,6 +538,10 @@ double NextTimeStep (timeStep *Dts, Runtime *runtime, Grid *grid)
   xloc = Dts->invDt_diffusion;
   MPI_Allreduce (&xloc, &xglob, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
   Dts->invDt_diffusion = xglob;
+
+  xloc = Dts->Dr_uD;
+  MPI_Allreduce (&xloc, &xglob, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+  Dts->Dr_uD = xglob;
 #endif
   #endif
 #endif
@@ -565,6 +570,7 @@ double NextTimeStep (timeStep *Dts, Runtime *runtime, Grid *grid)
     print ("%s [dt(particles advection) =       %10.4e]\n",str, 1.0/Dts->invDt_advection);
     print ("%s [dt(particles acceleration) =       %10.4e]\n",str, 1.0/Dts->invDt_acceleration);
     print ("%s [dt(particles diffusion) =       %10.4e]\n",str, 1.0/Dts->invDt_diffusion);
+    print ("%s [dr * V/D =       %10.4e]\n",str, Dts->Dr_uD);
     #endif
     #endif
   }
@@ -664,6 +670,7 @@ double NextTimeStep (timeStep *Dts, Runtime *runtime, Grid *grid)
     print ("! %s [dt(particles advection) =       %10.4e]\n",str, 1.0/Dts->invDt_advection);
     print ("! %s [dt(particles acceleration) =       %10.4e]\n",str, 1.0/Dts->invDt_acceleration);
     print ("! %s [dt(particles diffusion) =       %10.4e]\n",str, 1.0/Dts->invDt_diffusion);
+    print ("! %s [dr*V/D =       %10.4e]\n",str, Dts->Dr_uD);
     #endif
     #endif
     print ("! Cannot continue.\n");
