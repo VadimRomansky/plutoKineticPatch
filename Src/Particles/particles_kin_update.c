@@ -299,7 +299,12 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 
 #if GEOMETRY == CARTESIAN
 #if INCLUDE_IDIR
-        divu += (data->Vc[VX1][k][j][i] - data->Vc[VX1][k][j][i-1])/(grid->x[0][i] - grid->x[0][i-1]);
+        //divu += (data->Vc[VX1][k][j][i+1] - data->Vc[VX1][k][j][i-1])/(grid->x[0][i+1] - grid->x[0][i-1]);
+        if(data->Vc[VX1][k][j][i] > 0){
+            divu += (data->Vc[VX1][k][j][i] - data->Vc[VX1][k][j][i-1])/(grid->x[0][i] - grid->x[0][i-1]);
+        } else {
+            divu += (data->Vc[VX1][k][j][i+1] - data->Vc[VX1][k][j][i])/(grid->x[0][i+1] - grid->x[0][i]);
+        }
 #endif
 #if INCLUDE_JDIR
         divu += (data->Vc[VX2][k][j+1][i] - data->Vc[VX2][k][j-1][i])/(grid->x[1][j+1] - grid->x[1][j-1]);
@@ -1416,7 +1421,7 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
     }
 
     //crank-nickelson
-    DOM_LOOP(k,j,i){
+    TOT_LOOP(k,j,i){
         int maxNU = NMOMENTUM - 1;
 
 #if INCLUDE_IDIR
@@ -1492,7 +1497,7 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
                par_dim[2] = grid->nproc[KDIR] > 1;)
     multiplySpecialMatrixVector(data->rightPart, data->rightPartMatrix, data->Fkin, NMOMENTUM, par_dim);
 
-    DOM_LOOP(k,j,i){
+    TOT_LOOP(k,j,i){
         int maxNU = NMOMENTUM - 1;
 
 #if INCLUDE_IDIR
@@ -1583,8 +1588,12 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
     nproc = s->lsize[0];
     ndim = s->ndim;
     //printf("parallel solver x\n");
+    if(par_dim[0] != 0){
     parallelThreeDiagonalSolverX(data->Fkin, data->rightPart, data->ax, data->bx, data->cx, NMOMENTUM, nproc, myrank, comm);
-    DOM_LOOP(k,j,i){
+    } else {
+    noparallelThreeDiagonalSolverX(data->Fkin, data->rightPart, data->ax, data->bx, data->cx, NMOMENTUM);
+    }
+    TOT_LOOP(k,j,i){
         for(int l = 0; l < NMOMENTUM; ++l){
             data->rightPart[k][j][i][l] = data->Fkin[k][j][i][l];
         }
@@ -1597,8 +1606,12 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
     nproc = s->lsize[1];
     ndim = s->ndim;
     //printf("parallel solver y\n");
+    if(par_dim[1] != 0){
     parallelThreeDiagonalSolverY(data->Fkin, data->rightPart, data->ay, data->by, data->cy, NMOMENTUM, nproc, myrank, comm);
-    DOM_LOOP(k,j,i){
+    } else {
+    noparallelThreeDiagonalSolverY(data->Fkin, data->rightPart, data->ay, data->by, data->cy, NMOMENTUM);
+    }
+    TOT_LOOP(k,j,i){
         for(int l = 0; l < NMOMENTUM; ++l){
             data->rightPart[k][j][i][l] = data->Fkin[k][j][i][l];
         }
@@ -1611,8 +1624,12 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
     nproc = s->lsize[2];
     ndim = s->ndim;
     //printf("parallel solver z\n");
+    if(par_dim[2] != 0){
     parallelThreeDiagonalSolverZ(data->Fkin, data->rightPart, data->az, data->bz, data->cz, NMOMENTUM, nproc, myrank, comm);
-    DOM_LOOP(k,j,i){
+    } else {
+    noparallelThreeDiagonalSolverZ(data->Fkin, data->rightPart, data->az, data->bz, data->cz, NMOMENTUM);
+    }
+    TOT_LOOP(k,j,i){
         for(int l = 0; l < NMOMENTUM; ++l){
             data->rightPart[k][j][i][l] = data->Fkin[k][j][i][l];
         }
@@ -1621,7 +1638,7 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 #endif
     //printf("noparallel solver p\n");
     noparallelThreeDiagonalSolverP(data->Fkin, data->rightPart, data->ap, data->bp, data->cp, NMOMENTUM);
-    DOM_LOOP(k,j,i){
+    TOT_LOOP(k,j,i){
         for(int l = 0; l < NMOMENTUM; ++l){
             data->rightPart[k][j][i][l] = data->Fkin[k][j][i][l];
         }
