@@ -89,7 +89,11 @@ double evaluateError(double** hessenbergMatrix, double* vector, double beta, int
 
 void multiplySpecialMatrixVector(double**** result, MatrixElementNode***** matrix, double**** vector, int lnumber, int* par_dim) {
     int i,j,k;
-
+    TOT_LOOP(k,j,i){
+        for(int l = 0; l < lnumber; ++l){
+            result[k][j][i][l] = 0;
+        }
+    }
     DOM_LOOP(k,j,i){
 				for (int l = 0; l < lnumber; ++l) {
                     result[k][j][i][l] = 0;

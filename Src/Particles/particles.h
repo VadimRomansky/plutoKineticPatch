@@ -585,6 +585,7 @@ void    Particles_MC_addFlux(Particle* p, double t_step1, double dt, Data* data,
 #endif
 #endif
 #if PARTICLES == PARTICLES_KIN
+void    setBoundaryRightPartToZero(Data* data, Grid* grid);
 void    Particles_KIN_ComputeCurrent(const Data *, Grid *);
 void    Particles_KIN_ComputeForce(Data_Arr, const Data *, Grid *);
 void    Particles_KIN_ConservativeFeedback(Data_Arr, Data_Arr, double, RBox *);

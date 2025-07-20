@@ -143,6 +143,7 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 
     //crank-nickelson
     double factor = 0.5;
+    factor = 1.0;
 
     FlagShock(data, grid);
     //double err = ConsToPrim3D()
@@ -1421,152 +1422,19 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
     }
 
     //crank-nickelson
-    TOT_LOOP(k,j,i){
-        int maxNU = NMOMENTUM - 1;
-
-#if INCLUDE_IDIR
-        if(grid->lbound[0] != 0){
-            if(grid->lbound[0] != PERIODIC){
-            if(i == IBEG){
-                    for(int l = 0; l < maxNU; ++l){
-                        data->rightPart[k][j][i][l] = 0;
-                    }
-            }
-            }
-        }
-
-        if(grid->rbound[0] != 0){
-            if(grid->rbound[0] != PERIODIC){
-            if(i == IEND){
-                    for(int l = 0; l < maxNU; ++l){
-                        data->rightPart[k][j][i][l] = 0;
-                    }
-            }
-            }
-        }
-#endif
-
-#if INCLUDE_JDIR
-        if(grid->lbound[1] != 0){
-            if(grid->lbound[1] != PERIODIC){
-                if(j == JBEG){
-                        for(int l = 0; l < maxNU; ++l){
-                            data->rightPart[k][j][i][l] = 0;
-                        }
-                }
-            }
-        }
-
-        if(grid->rbound[1] != 0){
-            if(grid->rbound[1] != PERIODIC){
-                if(j == JEND){
-                        for(int l = 0; l < maxNU; ++l){
-                            data->rightPart[k][j][i][l] = 0;
-                        }
-                }
-            }
-        }
-#endif
-
-#if INCLUDE_KDIR
-        if(grid->lbound[2] != 0){
-            if(grid->lbound[2] != PERIODIC){
-                if(k == KBEG){
-                        for(int l = 0; l < maxNU; ++l){
-                            data->rightPart[k][j][i][l] = 0;
-                        }
-                }
-            }
-        }
-
-        if(grid->rbound[2] != 0){
-            if(grid->rbound[2] != PERIODIC){
-                if(k == KEND){
-                        for(int l = 0; l < maxNU; ++l)
-                            data->rightPart[k][j][i][l] = 0;
-                        }
-                }
-            }
-        }
-
-#endif
-}
+    setBoundaryRightPartToZero(data, grid);
     int  par_dim[3] = {0, 0, 0};
     DIM_EXPAND(par_dim[0] = grid->nproc[IDIR] > 1;  ,
                par_dim[1] = grid->nproc[JDIR] > 1;  ,
                par_dim[2] = grid->nproc[KDIR] > 1;)
-    multiplySpecialMatrixVector(data->rightPart, data->rightPartMatrix, data->Fkin, NMOMENTUM, par_dim);
-
+    //multiplySpecialMatrixVector(data->rightPart, data->rightPartMatrix, data->Fkin, NMOMENTUM, par_dim);
     TOT_LOOP(k,j,i){
-        int maxNU = NMOMENTUM - 1;
+       for(int l = 0; l < NMOMENTUM; ++l){
+           data->rightPart[k][j][i][l] = data->Fkin[k][j][i][l];
+       }
+    }
 
-#if INCLUDE_IDIR
-        if(grid->lbound[0] != 0){
-            if(grid->lbound[0] != PERIODIC){
-            if(i == IBEG){
-                    for(int l = 0; l < maxNU; ++l){
-                        data->rightPart[k][j][i][l] = 0;
-                    }
-            }
-            }
-        }
-
-        if(grid->rbound[0] != 0){
-            if(grid->rbound[0] != PERIODIC){
-            if(i == IEND){
-                    for(int l = 0; l < maxNU; ++l){
-                        data->rightPart[k][j][i][l] = 0;
-                    }
-            }
-            }
-        }
-#endif
-
-#if INCLUDE_JDIR
-        if(grid->lbound[1] != 0){
-            if(grid->lbound[1] != PERIODIC){
-                if(j == JBEG){
-                        for(int l = 0; l < maxNU; ++l){
-                            data->rightPart[k][j][i][l] = 0;
-                        }
-                }
-            }
-        }
-
-        if(grid->rbound[1] != 0){
-            if(grid->rbound[1] != PERIODIC){
-                if(j == JEND){
-                        for(int l = 0; l < maxNU; ++l){
-                            data->rightPart[k][j][i][l] = 0;
-                        }
-                }
-            }
-        }
-#endif
-
-#if INCLUDE_KDIR
-        if(grid->lbound[2] != 0){
-            if(grid->lbound[2] != PERIODIC){
-                if(k == KBEG){
-                        for(int l = 0; l < maxNU; ++l){
-                            data->rightPart[k][j][i][l] = 0;
-                        }
-                }
-            }
-        }
-
-        if(grid->rbound[2] != 0){
-            if(grid->rbound[2] != PERIODIC){
-                if(k == KEND){
-                        for(int l = 0; l < maxNU; ++l)
-                            data->rightPart[k][j][i][l] = 0;
-                        }
-                }
-            }
-        }
-
-#endif
-}
+    setBoundaryRightPartToZero(data, grid);
 
 #if PARTICLES_KIN_SOLVER == THREE_DIAGONAL
 #ifdef PARALLEL
@@ -1593,12 +1461,13 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
     } else {
     noparallelThreeDiagonalSolverX(data->Fkin, data->rightPart, data->ax, data->bx, data->cx, NMOMENTUM);
     }
+    exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx);
     TOT_LOOP(k,j,i){
         for(int l = 0; l < NMOMENTUM; ++l){
             data->rightPart[k][j][i][l] = data->Fkin[k][j][i][l];
         }
     }
-    exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx);
+    setBoundaryRightPartToZero(data, grid);
 #endif
 #if INCLUDE_JDIR
     comm = s->oned_comm[1];
@@ -1606,17 +1475,18 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
     nproc = s->lsize[1];
     ndim = s->ndim;
     //printf("parallel solver y\n");
-    if(par_dim[1] != 0){
+    /*if(par_dim[1] != 0){
     parallelThreeDiagonalSolverY(data->Fkin, data->rightPart, data->ay, data->by, data->cy, NMOMENTUM, nproc, myrank, comm);
     } else {
     noparallelThreeDiagonalSolverY(data->Fkin, data->rightPart, data->ay, data->by, data->cy, NMOMENTUM);
-    }
+    }*/
+    exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx);
     TOT_LOOP(k,j,i){
         for(int l = 0; l < NMOMENTUM; ++l){
             data->rightPart[k][j][i][l] = data->Fkin[k][j][i][l];
         }
     }
-    exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx);
+    setBoundaryRightPartToZero(data, grid);
 #endif
 #if INCLUDE_KDIR
     comm = s->oned_comm[2];
@@ -1629,62 +1499,66 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
     } else {
     noparallelThreeDiagonalSolverZ(data->Fkin, data->rightPart, data->az, data->bz, data->cz, NMOMENTUM);
     }
+    exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx);
     TOT_LOOP(k,j,i){
         for(int l = 0; l < NMOMENTUM; ++l){
             data->rightPart[k][j][i][l] = data->Fkin[k][j][i][l];
         }
     }
-    exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx);
+    setBoundaryRightPartToZero(data, grid);
 #endif
     //printf("noparallel solver p\n");
     noparallelThreeDiagonalSolverP(data->Fkin, data->rightPart, data->ap, data->bp, data->cp, NMOMENTUM);
+    exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx);
     TOT_LOOP(k,j,i){
         for(int l = 0; l < NMOMENTUM; ++l){
             data->rightPart[k][j][i][l] = data->Fkin[k][j][i][l];
         }
     }
-    exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx);
 
 
 #else
 #if INCLUDE_IDIR
     //printf("noparallel solver x\n");
     noparallelThreeDiagonalSolverX(data->Fkin, data->rightPart, data->ax, data->bx, data->cx, NMOMENTUM);
+    exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx);
     DOM_LOOP(k,j,i){
         for(int l = 0; l < NMOMENTUM; ++l){
             data->rightPart[k][j][i][l] = data->Fkin[k][j][i][l];
         }
     }
-    exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx);
+    setBoundaryRightPartToZero(data, grid);
 #endif
 #if INCLUDE_JDIR
     //printf("noparallel solver y\n");
-    noparallelThreeDiagonalSolverY(data->Fkin, data->rightPart, data->ay, data->by, data->cy, NMOMENTUM);
+    //noparallelThreeDiagonalSolverY(data->Fkin, data->rightPart, data->ay, data->by, data->cy, NMOMENTUM);
+    exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx);
     DOM_LOOP(k,j,i){
         for(int l = 0; l < NMOMENTUM; ++l){
             data->rightPart[k][j][i][l] = data->Fkin[k][j][i][l];
         }
     }
-    exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx);
+    setBoundaryRightPartToZero(data, grid);
 #endif
 #if INCLUDE_KDIR
     //printf("noparallel solver z\n");
     noparallelThreeDiagonalSolverZ(data->Fkin, data->rightPart, data->az, data->bz, data->cz, NMOMENTUM);
+    exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx);
     DOM_LOOP(k,j,i){
         for(int l = 0; l < NMOMENTUM; ++l){
             data->rightPart[k][j][i][l] = data->Fkin[k][j][i][l];
         }
     }
-    exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx);
+    setBoundaryRightPartToZero(data, grid);
 #endif
     //printf("noparallel solver p\n");
     noparallelThreeDiagonalSolverP(data->Fkin, data->rightPart, data->ap, data->bp, data->cp, NMOMENTUM);
+    exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx);
     DOM_LOOP(k,j,i){
         for(int l = 0; l < NMOMENTUM; ++l){
             data->rightPart[k][j][i][l] = data->Fkin[k][j][i][l];
         }
     }
-    exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx);
 
 #endif
 #else
@@ -1798,6 +1672,57 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
     }
 
     DEBUG_FUNC_END ("KIN_Update");
+}
+
+void setBoundaryRightPartToZero(Data* data, Grid* grid){
+        int k,j,i;
+        TOT_LOOP(k,j,i){
+            int maxNU = NMOMENTUM;
+
+    #if INCLUDE_IDIR
+            if(grid->lbound[0] != 0){
+                if(grid->lbound[0] != PERIODIC){
+                if(i == IBEG){
+                        for(int l = 0; l < maxNU; ++l){
+                            data->rightPart[k][j][i][l] = 0;
+                        }
+                }
+                }
+            }
+
+            if(grid->rbound[0] != 0){
+                if(grid->rbound[0] != PERIODIC){
+                if(i == IEND){
+                        for(int l = 0; l < maxNU; ++l){
+                            data->rightPart[k][j][i][l] = 0;
+                        }
+                }
+                }
+            }
+    #endif
+
+    #if INCLUDE_JDIR
+            if(grid->lbound[1] != 0){
+                if(grid->lbound[1] != PERIODIC){
+                    if(j == JBEG){
+                            for(int l = 0; l < maxNU; ++l){
+                                data->rightPart[k][j][i][l] = 0;
+                            }
+                    }
+                }
+            }
+
+            if(grid->rbound[1] != 0){
+                if(grid->rbound[1] != PERIODIC){
+                    if(j == JEND){
+                            for(int l = 0; l < maxNU; ++l){
+                                data->rightPart[k][j][i][l] = 0;
+                            }
+                    }
+                }
+            }
+    #endif
+    }
 }
 
 void Particles_KIN_LorentzTransformation(double *u, const double *vg) {
