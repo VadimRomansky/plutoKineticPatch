@@ -143,7 +143,7 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 
     //crank-nickelson
     double factor = 0.5;
-    factor = 1.0;
+    //factor = 1.0;
 
     FlagShock(data, grid);
     //double err = ConsToPrim3D()
@@ -1420,19 +1420,19 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
             }
         }
     }
-
     //crank-nickelson
     setBoundaryRightPartToZero(data, grid);
     int  par_dim[3] = {0, 0, 0};
     DIM_EXPAND(par_dim[0] = grid->nproc[IDIR] > 1;  ,
                par_dim[1] = grid->nproc[JDIR] > 1;  ,
                par_dim[2] = grid->nproc[KDIR] > 1;)
-    //multiplySpecialMatrixVector(data->rightPart, data->rightPartMatrix, data->Fkin, NMOMENTUM, par_dim);
-    TOT_LOOP(k,j,i){
+    exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx);
+    multiplySpecialMatrixVector(data->rightPart, data->rightPartMatrix, data->Fkin, NMOMENTUM, par_dim);
+    /*TOT_LOOP(k,j,i){
        for(int l = 0; l < NMOMENTUM; ++l){
            data->rightPart[k][j][i][l] = data->Fkin[k][j][i][l];
        }
-    }
+    }*/
 
     setBoundaryRightPartToZero(data, grid);
 
