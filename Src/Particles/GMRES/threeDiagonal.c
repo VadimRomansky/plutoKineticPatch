@@ -6,7 +6,6 @@
 //#include <crtdbg.h>
 
 //#include "memory_debug.h"
-
 #include "macros.h"
 #include "pluto.h"
 
@@ -593,13 +592,13 @@ void parallelThreeDiagonalSolverX(double**** x, double**** rightPart, double****
                 MPI_Allreduce(norm, temp, 1, MPI_DOUBLE, MPI_SUM, comm);
                 normRightPart = temp[0];
 
-                /*if (normRightPart <= 0) {
+                if (normRightPart <= 0) {
                     IDOM_LOOP(i) {
                         x[k][j][i][l] = 0;
                     }
 
                     continue;
-                }*/
+                }
 
                 //double u = a[k][j][0][l]/b[k][j][0][l];
                 //double v = c[k][j][Nx - 1][l]/b[k][j][Nx - 1][l];
@@ -795,13 +794,13 @@ void parallelThreeDiagonalSolverY(double**** x, double**** rightPart, double****
                 MPI_Allreduce(norm, temp, 1, MPI_DOUBLE, MPI_SUM, comm);
                 normRightPart = temp[0];
 
-                /*if (normRightPart <= 0) {
+                if (normRightPart <= 0) {
                     JDOM_LOOP(j) {
                         x[k][j][i][l] = 0;
                     }
 
                     continue;
-                }*/
+                }
 
                 //double u = a[k][j][0][l]/b[k][j][0][l];
                 //double v = c[k][j][Nx - 1][l]/b[k][j][Nx - 1][l];
@@ -986,13 +985,13 @@ void parallelThreeDiagonalSolverZ(double**** x, double**** rightPart, double****
                 MPI_Allreduce(norm, temp, 1, MPI_DOUBLE, MPI_SUM, comm);
                 normRightPart = temp[0];
 
-                /*if (normRightPart <= 0) {
+                if (normRightPart <= 0) {
                     KDOM_LOOP(k){
                         x[k][j][i][l] = 0;
                     }
 
                     continue;
-                }*/
+                }
 
                 //double u = a[k][j][0][l]/b[k][j][0][l];
                 //double v = c[k][j][Nx - 1][l]/b[k][j][Nx - 1][l];

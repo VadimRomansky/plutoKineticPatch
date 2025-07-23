@@ -1,6 +1,7 @@
 #include "stdlib.h"
 #include "stdio.h"
 //#include <crtdbg.h>
+#include <stdbool.h>
 
 //#include "memory_debug.h"
 #include "largeVectorBasis.h"
@@ -146,7 +147,7 @@ void clear(LargeVectorBasis* basis) {
     //basis->capacity = 0;
 }
 
-void exchangeLargeVector(double**** vector, int lnumber, int *dims, int sz_ptr){
+void exchangeLargeVector(double**** vector, int lnumber, int *dims, int sz_ptr, bool periodicX, bool periodicY, bool periodicZ){
     int i,j,k;
 #ifdef PARALLEL
     register int nd;
@@ -370,6 +371,7 @@ void exchangeLargeVector(double**** vector, int lnumber, int *dims, int sz_ptr){
     }
 #else
 #if INCLUDE_IDIR
+    if(periodicX){
     KTOT_LOOP(k){
         JTOT_LOOP(j){
             for(i = 0; i < IBEG; ++i){
@@ -380,9 +382,11 @@ void exchangeLargeVector(double**** vector, int lnumber, int *dims, int sz_ptr){
             }
         }
     }
+    }
 #endif
 
 #if INCLUDE_JDIR
+    if(periodicY){
     KTOT_LOOP(k){
         for(j = 0; j < JBEG; ++j){
             ITOT_LOOP(i){
@@ -393,9 +397,11 @@ void exchangeLargeVector(double**** vector, int lnumber, int *dims, int sz_ptr){
             }
         }
     }
+    }
 #endif
 
 #if INCLUDE_KDIR
+    if(periodicZ){
     for(k = 0; k < KBEG; ++k){
         JTOT_LOOP(j){
             ITOT_LOOP(i){
@@ -405,6 +411,7 @@ void exchangeLargeVector(double**** vector, int lnumber, int *dims, int sz_ptr){
                 }
             }
         }
+    }
     }
 #endif
 

@@ -111,7 +111,7 @@ void multiplySpecialMatrixVector(double**** result, MatrixElementNode***** matri
                 }
 	}
 
-    exchangeLargeVector(result, lnumber, par_dim, SZ_stagx);
+    exchangeLargeVector(result, lnumber, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
 }
 
 void arnoldiIterations(MatrixElementNode***** matrix, double** outHessenbergMatrix, int n,
@@ -168,7 +168,7 @@ void arnoldiIterations(MatrixElementNode***** matrix, double** outHessenbergMatr
 #ifdef PARALLEL
     MPI_Barrier(cartComm);
 #endif
-    exchangeLargeVector(gmresBasis->array[n - 1], lnumber, par_dim, SZ_stagx);
+    exchangeLargeVector(gmresBasis->array[n - 1], lnumber, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
 	//printf("finish orthogonalisation\n");
 	outHessenbergMatrix[n - 1][n - 2] = sqrt(
         scalarMultiplyLargeVectors(gmresBasis->array[n - 1], gmresBasis->array[n - 1], lnumber));
@@ -191,7 +191,7 @@ void arnoldiIterations(MatrixElementNode***** matrix, double** outHessenbergMatr
 		}
 	}
 
-    exchangeLargeVector(gmresBasis->array[n - 1], lnumber, par_dim, SZ_stagx);
+    exchangeLargeVector(gmresBasis->array[n - 1], lnumber, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
 }
 
 void generalizedMinimalResidualMethod1(Grid* grid, MatrixElementNode***** matrix, double ****rightPart, double ****outvector, LargeVectorBasis* gmresBasis, int lnumber, double precision,
@@ -252,7 +252,7 @@ void generalizedMinimalResidualMethod(Grid* grid, MatrixElementNode***** matrix,
 	                    periodicY, periodicZ, cartComm, cartCoord, cartDim, leftOutGmresBuffer, rightOutGmresBuffer,
 	                    leftInGmresBuffer, rightInGmresBuffer, frontOutGmresBuffer, backOutGmresBuffer, frontInGmresBuffer,
                         backInGmresBuffer, bottomOutGmresBuffer, topOutGmresBuffer, bottomInGmresBuffer, topInGmresBuffer);*/
-    exchangeLargeVector(rightPart, lnumber, par_dim, SZ_stagx);
+    exchangeLargeVector(rightPart, lnumber, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
     double norm = sqrt(scalarMultiplyLargeVectors(rightPart, rightPart, lnumber));
     //printf("right part norm = %g\n", norm);
 	//alertNaNOrInfinity(norm, "right partnorm = NaN in gmres\n");
@@ -265,7 +265,7 @@ void generalizedMinimalResidualMethod(Grid* grid, MatrixElementNode***** matrix,
 		}
 		return;
 	}
-    exchangeLargeVector(outvector, lnumber, par_dim, SZ_stagx);
+    exchangeLargeVector(outvector, lnumber, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
 
 	//#pragma omp parallel for
     DOM_LOOP(k,j,i){
@@ -273,7 +273,7 @@ void generalizedMinimalResidualMethod(Grid* grid, MatrixElementNode***** matrix,
                     rightPart[k][j][i][l] /= norm;
 				}
 	}
-    exchangeLargeVector(rightPart, lnumber, par_dim, SZ_stagx);
+    exchangeLargeVector(rightPart, lnumber, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
 
     double normRightPart = sqrt(scalarMultiplyLargeVectors(rightPart, rightPart, lnumber));
 
@@ -317,7 +317,7 @@ void generalizedMinimalResidualMethod(Grid* grid, MatrixElementNode***** matrix,
                     gmresBasis->array[0][k][j][i][l] = rightPart[k][j][i][l] - gmresBasis->array[0][k][j][i][l];
 				}
 	}
-    exchangeLargeVector(gmresBasis->array[0], lnumber, par_dim, SZ_stagx);
+    exchangeLargeVector(gmresBasis->array[0], lnumber, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
 	gmresBasis->size = 1;
 
     double norm1 = sqrt(scalarMultiplyLargeVectors(gmresBasis->array[0], gmresBasis->array[0], lnumber));
@@ -500,7 +500,7 @@ void generalizedMinimalResidualMethod(Grid* grid, MatrixElementNode***** matrix,
 #ifdef PARALLEL
 	MPI_Barrier(cartComm);
 #endif
-    exchangeLargeVector(outvector, lnumber, par_dim, SZ_stagx);
+    exchangeLargeVector(outvector, lnumber, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
     //exchangeLargeVector(outvector, xnumberAdded, ynumberAdded, znumberAdded, lnumber, additionalBinNumber, periodicX, periodicY, periodicZ, cartComm, cartCoord, cartDim, leftOutGmresBuffer, rightOutGmresBuffer, leftInGmresBuffer, rightInGmresBuffer, frontOutGmresBuffer, backOutGmresBuffer, frontInGmresBuffer, backInGmresBuffer, bottomOutGmresBuffer, topOutGmresBuffer, bottomInGmresBuffer, topInGmresBuffer);
 #ifdef PARALLEL
     MPI_Barrier(cartComm);
@@ -527,7 +527,7 @@ void generalizedMinimalResidualMethod(Grid* grid, MatrixElementNode***** matrix,
 					}*/
 				}
 	}
-    exchangeLargeVector(rightPart, lnumber, par_dim, SZ_stagx);
+    exchangeLargeVector(rightPart, lnumber, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
 }
 
 
@@ -770,9 +770,9 @@ void biconjugateGradientMethod(Grid* grid, MatrixElementNode***** matrix, double
 			}
 		}
 
-        exchangeLargeVector(outvector, lnumber, par_dim, SZ_stagx);
-        exchangeLargeVector(residual, lnumber, par_dim, SZ_stagx);
-        exchangeLargeVector(p, lnumber, par_dim, SZ_stagx);
+        exchangeLargeVector(outvector, lnumber, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
+        exchangeLargeVector(residual, lnumber, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
+        exchangeLargeVector(p, lnumber, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
 
         residualNorm2 = scalarMultiplyLargeVectors(p, residual, lnumber);
 
@@ -789,8 +789,8 @@ void biconjugateGradientMethod(Grid* grid, MatrixElementNode***** matrix, double
 			}
 		}
 
-        exchangeLargeVector(z, lnumber, par_dim, SZ_stagx);
-        exchangeLargeVector(s, lnumber, par_dim, SZ_stagx);
+        exchangeLargeVector(z, lnumber, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
+        exchangeLargeVector(s, lnumber, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
 
 		prevResidualNorm2 = residualNorm2;
         //todo???
@@ -930,7 +930,7 @@ void biconjugateStabilizedGradientMethod(Grid* grid, MatrixElementNode***** matr
 	double alpha = 1;
 	double rho = 1;
 	double omega = 1;
-    exchangeLargeVector(rightPart, lnumber, par_dim, SZ_stagx);
+    exchangeLargeVector(rightPart, lnumber, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
     rightPartNorm2 = scalarMultiplyLargeVectors(rightPart, rightPart, lnumber);
 
     double**** residual = (double****) malloc(NX3_TOT*sizeof(double***));
@@ -1030,9 +1030,9 @@ void biconjugateStabilizedGradientMethod(Grid* grid, MatrixElementNode***** matr
 						p[i][j][k][l] = residual[i][j][k][l] + beta * (p[i][j][k][l] - omega * v[i][j][k][l]);
 					}
 		}
-        exchangeLargeVector(p, lnumber, par_dim, SZ_stagx);
+        exchangeLargeVector(p, lnumber, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
         multiplySpecialMatrixVector(v, matrix, p, lnumber, par_dim);
-        exchangeLargeVector(v, lnumber, par_dim , SZ_stagx);
+        exchangeLargeVector(v, lnumber, par_dim , SZ_stagx, periodicX, periodicY, periodicZ);
         double firstRscalarV = scalarMultiplyLargeVectors(firstResidual, v, lnumber);
 		if (fabs(firstRscalarV) < 1E-100) {
 			if (rank == 0) printf("firstRscalarV = 0 in biconjugate\n");
@@ -1049,9 +1049,9 @@ void biconjugateStabilizedGradientMethod(Grid* grid, MatrixElementNode***** matr
 					}
 		}
 
-        exchangeLargeVector(s, lnumber, par_dim, SZ_stagx);
+        exchangeLargeVector(s, lnumber, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
         multiplySpecialMatrixVector(t, matrix, s, lnumber, par_dim);
-        exchangeLargeVector(t, lnumber, par_dim, SZ_stagx);
+        exchangeLargeVector(t, lnumber, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
         double tnorm2 = scalarMultiplyLargeVectors(t, t, lnumber);
 		if (fabs(tnorm2) < 1E-100) {
 			if (rank == 0) printf("tnorm2 = 0 in biconjugate\n");
@@ -1068,8 +1068,8 @@ void biconjugateStabilizedGradientMethod(Grid* grid, MatrixElementNode***** matr
 						residual[i][j][k][l] = s[i][j][k][l] - omega * t[i][j][k][l];
 					}
 		}
-        exchangeLargeVector(outVector, lnumber, par_dim, SZ_stagx);
-        exchangeLargeVector(residual, lnumber, par_dim, SZ_stagx);
+        exchangeLargeVector(outVector, lnumber, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
+        exchangeLargeVector(residual, lnumber, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
 
         residualNorm2 = scalarMultiplyLargeVectors(residual, residual, lnumber);
 
@@ -1362,8 +1362,8 @@ void conjugateGradientMethod(Grid* grid, MatrixElementNode***** matrix, double**
                         residual[i][j][k][l] = prevResidual[i][j][k][l] - alpha * tempVector[i][j][k][l];
                     }
         }
-        exchangeLargeVector(outVector, lnumber, par_dim, SZ_stagx);
-        exchangeLargeVector(residual, lnumber, par_dim, SZ_stagx);
+        exchangeLargeVector(outVector, lnumber, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
+        exchangeLargeVector(residual, lnumber, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
 
         residualNorm2 = scalarMultiplyLargeVectors(residual, residual, lnumber);
 
@@ -1374,7 +1374,7 @@ void conjugateGradientMethod(Grid* grid, MatrixElementNode***** matrix, double**
                         z[i][j][k][l] = residual[i][j][k][l] + beta * z[i][j][k][l];
                     }
         }
-        exchangeLargeVector(z, lnumber, par_dim, SZ_stagx);
+        exchangeLargeVector(z, lnumber, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
 
         prevResidualNorm2 = residualNorm2;
 

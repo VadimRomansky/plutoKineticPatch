@@ -148,6 +148,10 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
     FlagShock(data, grid);
     //double err = ConsToPrim3D()
 
+    bool periodicX = (grid->lbound[0] == PERIODIC);
+    bool periodicY = (grid->lbound[1] == PERIODIC);
+    bool periodicZ = (grid->lbound[2] == PERIODIC);
+
     TOT_LOOP(k,j,i){
         for(int l = 0; l < NMOMENTUM; ++l){
                 MatrixElementNode* curNode = data->matrix[k][j][i][l];
@@ -1426,7 +1430,7 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
     DIM_EXPAND(par_dim[0] = grid->nproc[IDIR] > 1;  ,
                par_dim[1] = grid->nproc[JDIR] > 1;  ,
                par_dim[2] = grid->nproc[KDIR] > 1;)
-    exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx);
+    exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
     multiplySpecialMatrixVector(data->rightPart, data->rightPartMatrix, data->Fkin, NMOMENTUM, par_dim);
     /*TOT_LOOP(k,j,i){
        for(int l = 0; l < NMOMENTUM; ++l){
@@ -1521,7 +1525,7 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 #if INCLUDE_IDIR
     //printf("noparallel solver x\n");
     noparallelThreeDiagonalSolverX(data->Fkin, data->rightPart, data->ax, data->bx, data->cx, NMOMENTUM);
-    exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx);
+    exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
     DOM_LOOP(k,j,i){
         for(int l = 0; l < NMOMENTUM; ++l){
             data->rightPart[k][j][i][l] = data->Fkin[k][j][i][l];
@@ -1532,7 +1536,7 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 #if INCLUDE_JDIR
     //printf("noparallel solver y\n");
     //noparallelThreeDiagonalSolverY(data->Fkin, data->rightPart, data->ay, data->by, data->cy, NMOMENTUM);
-    exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx);
+    exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
     DOM_LOOP(k,j,i){
         for(int l = 0; l < NMOMENTUM; ++l){
             data->rightPart[k][j][i][l] = data->Fkin[k][j][i][l];
@@ -1553,7 +1557,7 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 #endif
     //printf("noparallel solver p\n");
     noparallelThreeDiagonalSolverP(data->Fkin, data->rightPart, data->ap, data->bp, data->cp, NMOMENTUM);
-    exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx);
+    exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
     DOM_LOOP(k,j,i){
         for(int l = 0; l < NMOMENTUM; ++l){
             data->rightPart[k][j][i][l] = data->Fkin[k][j][i][l];
