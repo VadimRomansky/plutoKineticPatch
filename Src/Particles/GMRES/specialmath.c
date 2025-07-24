@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <math.h>
+#include <stdbool.h>
 #ifdef PARALLEL
 #include <mpi.h>
 #endif
@@ -87,7 +88,7 @@ double evaluateError(double** hessenbergMatrix, double* vector, double beta, int
 	return result;
 }*/
 
-void multiplySpecialMatrixVector(double**** result, MatrixElementNode***** matrix, double**** vector, int lnumber, int* par_dim) {
+void multiplySpecialMatrixVector(double**** result, MatrixElementNode***** matrix, double**** vector, int lnumber, int* par_dim, bool periodicX, bool periodicY, bool periodicZ) {
     int i,j,k;
     TOT_LOOP(k,j,i){
         for(int l = 0; l < lnumber; ++l){
@@ -115,7 +116,7 @@ void multiplySpecialMatrixVector(double**** result, MatrixElementNode***** matri
 }
 
 void arnoldiIterations(MatrixElementNode***** matrix, double** outHessenbergMatrix, int n,
-                       LargeVectorBasis* gmresBasis, double** prevHessenbergMatrix, int lnumber, int* par_dim) {
+                       LargeVectorBasis* gmresBasis, double** prevHessenbergMatrix, int lnumber, int* par_dim, bool periodicX, bool periodicY, bool periodicZ) {
 
     int i,j,k;
 #ifdef PARALLEL
@@ -140,7 +141,7 @@ void arnoldiIterations(MatrixElementNode***** matrix, double** outHessenbergMatr
 	if (n >= gmresBasis->capacity) {
         resize(gmresBasis, 2 * n);
 	}
-    multiplySpecialMatrixVector(gmresBasis->array[n - 1], matrix, gmresBasis->array[n - 2], lnumber, par_dim);
+    multiplySpecialMatrixVector(gmresBasis->array[n - 1], matrix, gmresBasis->array[n - 2], lnumber, par_dim, periodicX, periodicY, periodicZ);
 	gmresBasis->size += 1;
 	//printf("mult special matrix");
 
@@ -195,7 +196,7 @@ void arnoldiIterations(MatrixElementNode***** matrix, double** outHessenbergMatr
 }
 
 void generalizedMinimalResidualMethod1(Grid* grid, MatrixElementNode***** matrix, double ****rightPart, double ****outvector, LargeVectorBasis* gmresBasis, int lnumber, double precision,
-                                      int maxIteration, int verbosity) {
+                                      int maxIteration, int verbosity, bool periodicX, bool periodicY, bool periodicZ) {
     double**** initialVector = (double****) malloc(NX3_TOT*sizeof(double***));
     for(int k = 0; k < NX3_TOT; ++k){
         initialVector[k] = (double***) malloc(NX2_TOT*sizeof(double**));
@@ -210,7 +211,7 @@ void generalizedMinimalResidualMethod1(Grid* grid, MatrixElementNode***** matrix
         }
     }
 
-    generalizedMinimalResidualMethod(grid, matrix, rightPart, outvector, initialVector, gmresBasis, lnumber, precision, maxIteration, verbosity);
+    generalizedMinimalResidualMethod(grid, matrix, rightPart, outvector, initialVector, gmresBasis, lnumber, precision, maxIteration, verbosity, periodicX, periodicY, periodicZ);
 
     for(int k = 0; k < NX3_TOT; ++k){
         for(int j = 0; j < NX2_TOT; ++j){
@@ -225,7 +226,7 @@ void generalizedMinimalResidualMethod1(Grid* grid, MatrixElementNode***** matrix
 }
 
 void generalizedMinimalResidualMethod(Grid* grid, MatrixElementNode***** matrix, double ****rightPart, double ****outvector, double**** initialVector, LargeVectorBasis* gmresBasis, int lnumber, double precision,
-                                      int maxIteration, int verbosity) {
+                                      int maxIteration, int verbosity, bool periodicX, bool periodicY, bool periodicZ) {
     int rank = 0;
 	int nprocs;
     int i,j,k;
@@ -310,7 +311,7 @@ void generalizedMinimalResidualMethod(Grid* grid, MatrixElementNode***** matrix,
         resize(gmresBasis, 5);
 	}
 
-    multiplySpecialMatrixVector(gmresBasis->array[0], matrix, initialVector, lnumber, par_dim);
+    multiplySpecialMatrixVector(gmresBasis->array[0], matrix, initialVector, lnumber, par_dim, periodicX, periodicY, periodicZ);
 
     DOM_LOOP(k,j,i){
 				for (int l = 0; l < lnumber; ++l) {
@@ -351,7 +352,7 @@ void generalizedMinimalResidualMethod(Grid* grid, MatrixElementNode***** matrix,
 		for (int i = 0; i < n; ++i) {
             newHessenbergMatrix[i] = (double*) malloc((n-1)*sizeof(double));
 		}
-        arnoldiIterations(matrix, newHessenbergMatrix, n, gmresBasis, hessenbergMatrix, lnumber, par_dim);
+        arnoldiIterations(matrix, newHessenbergMatrix, n, gmresBasis, hessenbergMatrix, lnumber, par_dim, periodicX, periodicY, periodicZ);
 
 		hessenbergMatrix = newHessenbergMatrix;
 
@@ -657,7 +658,7 @@ void generalizedMinimalResidualMethod(Grid* grid, MatrixElementNode***** matrix,
 }*/
 
 void biconjugateGradientMethod(Grid* grid, MatrixElementNode***** matrix, double ****rightPart, double ****outvector, int lnumber, double precision,
-                               int maxIteration, int verbosity) {
+                               int maxIteration, int verbosity, bool periodicX, bool periodicY, bool periodicZ) {
     int rank = 0;
 	int nprocs;
     int i, j, k;
@@ -753,8 +754,8 @@ void biconjugateGradientMethod(Grid* grid, MatrixElementNode***** matrix, double
         relativeError > (precision / matrixDimension))) {
 		if (rank == 0 && verbosity > 1) printf("biconjugate gradient iteration %d\n", iteration);
 
-        multiplySpecialMatrixVector(tempVector, matrix, z, lnumber, par_dim);
-        multiplySpecialMatrixVector(tempVector2, transposedMatrix, s, lnumber, par_dim);
+        multiplySpecialMatrixVector(tempVector, matrix, z, lnumber, par_dim, periodicX, periodicY, periodicZ);
+        multiplySpecialMatrixVector(tempVector2, transposedMatrix, s, lnumber, par_dim, periodicX, periodicY, periodicZ);
 
         double alpha = prevResidualNorm2 / scalarMultiplyLargeVectors(tempVector, s, lnumber);
 
@@ -894,7 +895,7 @@ void transposeSpecialMatrix(MatrixElementNode***** result, MatrixElementNode****
 
 
 void biconjugateStabilizedGradientMethod(Grid* grid, MatrixElementNode***** matrix, double**** rightPart,
-                                         double**** outVector, int lnumber, double precision, int maxIteration, int verbosity) {
+                                         double**** outVector, int lnumber, double precision, int maxIteration, int verbosity, bool periodicX, bool periodicY, bool periodicZ) {
     int rank = 0;
     int nprocs;
     int i, j, k;
@@ -973,7 +974,7 @@ void biconjugateStabilizedGradientMethod(Grid* grid, MatrixElementNode***** matr
         }
     }
 
-    multiplySpecialMatrixVector(t, matrix, outVector, lnumber, par_dim);
+    multiplySpecialMatrixVector(t, matrix, outVector, lnumber, par_dim, periodicX, periodicY, periodicZ);
 
 
     TOT_LOOP(i,j,k){
@@ -1031,7 +1032,7 @@ void biconjugateStabilizedGradientMethod(Grid* grid, MatrixElementNode***** matr
 					}
 		}
         exchangeLargeVector(p, lnumber, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
-        multiplySpecialMatrixVector(v, matrix, p, lnumber, par_dim);
+        multiplySpecialMatrixVector(v, matrix, p, lnumber, par_dim, periodicX, periodicY, periodicZ);
         exchangeLargeVector(v, lnumber, par_dim , SZ_stagx, periodicX, periodicY, periodicZ);
         double firstRscalarV = scalarMultiplyLargeVectors(firstResidual, v, lnumber);
 		if (fabs(firstRscalarV) < 1E-100) {
@@ -1050,7 +1051,7 @@ void biconjugateStabilizedGradientMethod(Grid* grid, MatrixElementNode***** matr
 		}
 
         exchangeLargeVector(s, lnumber, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
-        multiplySpecialMatrixVector(t, matrix, s, lnumber, par_dim);
+        multiplySpecialMatrixVector(t, matrix, s, lnumber, par_dim, periodicX, periodicY, periodicZ);
         exchangeLargeVector(t, lnumber, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
         double tnorm2 = scalarMultiplyLargeVectors(t, t, lnumber);
 		if (fabs(tnorm2) < 1E-100) {
@@ -1261,7 +1262,7 @@ bool indexUpper(MatrixElement* element, int i, int j, int k, int l) {
 
 
 void conjugateGradientMethod(Grid* grid, MatrixElementNode***** matrix, double**** rightPart, double**** outVector, int lnumber,
-                             double precision, int maxIteration, int verbosity) {
+                             double precision, int maxIteration, int verbosity, bool periodicX, bool periodicY, bool periodicZ) {
     int rank = 0;
     int nprocs;
     int i,j,k;
@@ -1350,7 +1351,7 @@ void conjugateGradientMethod(Grid* grid, MatrixElementNode***** matrix, double**
         relativeError > (precision / matrixDimension))) {
         if ((rank == 0) && (verbosity > 1)) printf("conjugate gradient iteration %d\n", iteration);
 
-        multiplySpecialMatrixVector(tempVector, matrix, z, lnumber, par_dim);
+        multiplySpecialMatrixVector(tempVector, matrix, z, lnumber, par_dim, periodicX, periodicY, periodicZ);
 
         double alpha = prevResidualNorm2 / scalarMultiplyLargeVectors(tempVector, z, lnumber);
 
