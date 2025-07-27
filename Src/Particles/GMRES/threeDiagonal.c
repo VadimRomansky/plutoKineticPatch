@@ -21,6 +21,10 @@ void sequentialThreeDiagonalSolverX(double**** x, double**** rightPart, double**
                 double normRightPart = 0;
 
                 for (int i = 0; i < Nx; ++i) {
+                    if ((rightPart[k][j][i][l] != rightPart[k][j][i][l]) || (0 * rightPart[k][j][i][l] != 0 * rightPart[k][j][i][l])) {
+                        printf("rightPart = NaN in solver X 1, k = %d , j = %d, i = %d, l = %d\n", k, j, i, l);
+                        exit(0);
+                    }
                     normRightPart = normRightPart + rightPart[k][j][i][l] * rightPart[k][j][i][l];
                 }
 
@@ -596,7 +600,18 @@ void parallelThreeDiagonalSolverX(double**** x, double**** rightPart, double****
                     IDOM_LOOP(i) {
                         x[k][j][i][l] = 0;
                     }
-
+                    outcoef[outCount] = 0;
+                    outCount++;
+                    outcoef[outCount] = 0;
+                    outCount++;
+                    outcoef[outCount] = 0;
+                    outCount++;
+                    outcoef[outCount] = 0;
+                    outCount++;
+                    outcoef[outCount] = 0;
+                    outCount++;
+                    outcoef[outCount] = 0;
+                    outCount++;
                     continue;
                 }
 
@@ -616,6 +631,10 @@ void parallelThreeDiagonalSolverX(double**** x, double**** rightPart, double****
                     double r = 1.0 / (1 - a[k][j][i][l] * c[k][j][i - 1][l]);
                     //d[i] = -r * a[k][j][i][l] * d[i - 1];
                     rightPart[k][j][i][l] = r * (rightPart[k][j][i][l] - a[k][j][i][l] * rightPart[k][j][i - 1][l]);
+                    if((rightPart[k][j][i][l] != rightPart[k][j][i][l]) || (0*rightPart[k][j][i][l] != 0*rightPart[k][j][i][l])){
+                        printf("rightPart = NaN in parallel solver X 1, k = %d, j = %d, i = %d, l = %d\n", k,j,i,l);
+                        exit(0);
+                    }
                     a[k][j][i][l] = -r * a[k][j][i][l] * a[k][j][i - 1][l];
 
                     c[k][j][i][l] = r * c[k][j][i][l];
@@ -624,34 +643,76 @@ void parallelThreeDiagonalSolverX(double**** x, double**** rightPart, double****
 
                 for (int i = IEND - 2; i >= IBEG + 1; i = i - 1) {
                     rightPart[k][j][i][l] = rightPart[k][j][i][l] - rightPart[k][j][i + 1][l] * c[k][j][i][l];
+                    if((rightPart[k][j][i][l] != rightPart[k][j][i][l]) || (0*rightPart[k][j][i][l] != 0*rightPart[k][j][i][l])){
+                        printf("rightPart = NaN in parallel solver X 2, k = %d, j = %d, i = %d, l = %d\n", k,j,i,l);
+                        exit(0);
+                    }
                     a[k][j][i][l] = a[k][j][i][l] - c[k][j][i][l] * a[k][j][i + 1][l];
                     c[k][j][i][l] = -c[k][j][i][l] * c[k][j][i + 1][l];
                 }
 
                 double r = 1.0 / (1.0 - a[k][j][IBEG+1][l] * c[k][j][IBEG][l]);
                 rightPart[k][j][IBEG][l] = r * (rightPart[k][j][IBEG][l] - rightPart[k][j][IBEG+1][l] * c[k][j][IBEG][l]);
+                if((rightPart[k][j][IBEG][l] != rightPart[k][j][IBEG][l]) || (0*rightPart[k][j][IBEG][l] != 0*rightPart[k][j][IBEG][l])){
+                    printf("rightPart = NaN in parallel solver X, 3 k = %d, j = %d, i = %d, l = %d\n", k,j,IBEG,l);
+                    exit(0);
+                }
                 //c[k][j][0][l] = r * (u - c[k][j][0][l] * c[k][j][1][l]);
                 c[k][j][IBEG][l] = - r * c[k][j][IBEG][l] * c[k][j][IBEG+1][l];
 
 
                 //double* outcoef = (double*) malloc(6*sizeof(double));
                 outcoef[outCount] = a[k][j][IBEG][l];
+                if((outcoef[outCount] != outcoef[outCount]) || (0*outcoef[outCount] != 0*outcoef[outCount])){
+                    printf("outcoef = NaN 1, outCount = %d, rank = %d\n", outCount, rank);
+                    exit(0);
+                }
                 outCount++;
                 outcoef[outCount] = c[k][j][IBEG][l];
+                if((outcoef[outCount] != outcoef[outCount]) || (0*outcoef[outCount] != 0*outcoef[outCount])){
+                    printf("outcoef = NaN 1, outCount = %d, rank = %d\n", outCount, rank);
+                    exit(0);
+                }
                 outCount++;
                 outcoef[outCount] = rightPart[k][j][IBEG][l];
+                if((outcoef[outCount] != outcoef[outCount]) || (0*outcoef[outCount] != 0*outcoef[outCount])){
+                    printf("outcoef = NaN 1, outCount = %d, rank = %d\n", outCount, rank);
+                    exit(0);
+                }
                 outCount++;
+                if((rightPart[k][j][IBEG][l] != rightPart[k][j][IBEG][l]) || (0*rightPart[k][j][IBEG][l] != 0*rightPart[k][j][IBEG][l])){
+                    printf("rightPart = NaN in parallel solver X 4, k = %d, j = %d, i = %d, l = %d\n", k,j,IBEG,l);
+                    exit(0);
+                }
                 outcoef[outCount] = a[k][j][IEND][l];
+                if((outcoef[outCount] != outcoef[outCount]) || (0*outcoef[outCount] != 0*outcoef[outCount])){
+                    printf("outcoef = NaN 1, outCount = %d, rank = %d\n", outCount, rank);
+                    exit(0);
+                }
                 outCount++;
                 outcoef[outCount] = c[k][j][IEND][l];
+                if((outcoef[outCount] != outcoef[outCount]) || (0*outcoef[outCount] != 0*outcoef[outCount])){
+                    printf("outcoef = NaN 1, outCount = %d, rank = %d\n", outCount, rank);
+                    exit(0);
+                }
                 outCount++;
                 outcoef[outCount] = rightPart[k][j][IEND][l];
+                if((outcoef[outCount] != outcoef[outCount]) || (0*outcoef[outCount] != 0*outcoef[outCount])){
+                    printf("outcoef = NaN 1, outCount = %d, rank = %d\n", outCount, rank);
+                    exit(0);
+                }
                 outCount++;
+                if((rightPart[k][j][IEND][l] != rightPart[k][j][IEND][l]) || (0*rightPart[k][j][IEND][l] != 0*rightPart[k][j][IEND][l])){
+                    printf("rightPart = NaN in parallel solver X 5, k = %d, j = %d, i = %d, l = %d\n", k,j,IEND,l);
+                    exit(0);
+                }
 
                 //double* incoef = (double*) malloc(6*Nprocs*sizeof(double));
             }
         }
     }
+
+    MPI_Barrier(MPI_COMM_WORLD);
 
     MPI_Gather(outcoef, 6*NX2*NX3*Nmomentum, MPI_DOUBLE, incoef, 6*NX2*NX3*Nmomentum, MPI_DOUBLE, 0, comm);
 
@@ -671,18 +732,50 @@ void parallelThreeDiagonalSolverX(double**** x, double**** rightPart, double****
                         parallelB[k-KBEG][j-JBEG][2*m+1][l] = 1.0;*/
 
                     parallelA[k-KBEG][j-JBEG][2*m][l] = incoef[inCount];
+                    if((incoef[inCount] != incoef[inCount]) || (0*incoef[inCount] != 0*incoef[inCount])){
+                        printf("incoef = NaN, inCount = %d, rank = %d, m = %d\n", inCount, rank, m);
+                        exit(0);
+                    }
                     inCount++;
                     parallelC[k-KBEG][j-JBEG][2*m][l] = incoef[inCount];
+                    if((incoef[inCount] != incoef[inCount]) || (0*incoef[inCount] != 0*incoef[inCount])){
+                        printf("incoef = NaN, inCount = %d, rank = %d, m = %d\n", inCount, rank, m);
+                        exit(0);
+                    }
                     inCount++;
                     parallelRightPart[k-KBEG][j-JBEG][2*m][l] = incoef[inCount];
+                    if((incoef[inCount] != incoef[inCount]) || (0*incoef[inCount] != 0*incoef[inCount])){
+                        printf("incoef = NaN, inCount = %d, rank = %d, m = %d\n", inCount, rank, m);
+                        exit(0);
+                    }
                     inCount++;
+                    if((parallelRightPart[k-KBEG][j-JBEG][2*m][l] != parallelRightPart[k-KBEG][j-JBEG][2*m][l]) || (0*parallelRightPart[k-KBEG][j-JBEG][2*m][l] != 0*parallelRightPart[k-KBEG][j-JBEG][2*m][l])){
+                        printf("parallel right part = NaN k = %d, j = %d, i = %d, l = %d, rank = %d\n ", k-KBEG, j-JBEG, 2*m, l, rank);
+                        exit(0);
+                    }
                     parallelB[k-KBEG][j-JBEG][2*m][l] = 1.0;
                     parallelA[k-KBEG][j-JBEG][2*m+1][l] = incoef[inCount];
+                    if((incoef[inCount] != incoef[inCount]) || (0*incoef[inCount] != 0*incoef[inCount])){
+                        printf("incoef = NaN, inCount = %d, rank = %d, m = %d\n", inCount, rank, m);
+                        exit(0);
+                    }
                     inCount++;
                     parallelC[k-KBEG][j-JBEG][2*m+1][l] = incoef[inCount];
+                    if((incoef[inCount] != incoef[inCount]) || (0*incoef[inCount] != 0*incoef[inCount])){
+                        printf("incoef = NaN, inCount = %d, rank = %d, m = %d\n", inCount, rank, m);
+                        exit(0);
+                    }
                     inCount++;
                     parallelRightPart[k-KBEG][j-JBEG][2*m+1][l] = incoef[inCount];
+                    if((incoef[inCount] != incoef[inCount]) || (0*incoef[inCount] != 0*incoef[inCount])){
+                        printf("incoef = NaN, inCount = %d, rank = %d, m = %d\n", inCount, rank, m);
+                        exit(0);
+                    }
                     inCount++;
+                    if((parallelRightPart[k-KBEG][j-JBEG][2*m+1][l] != parallelRightPart[k-KBEG][j-JBEG][2*m+1][l]) || (0*parallelRightPart[k-KBEG][j-JBEG][2*m+1][l] != 0*parallelRightPart[k-KBEG][j-JBEG][2*m+1][l])){
+                        printf("parallel right part = NaN k = %d, j = %d, i = %d, l = %d, rank = %d\n", k-KBEG, j-JBEG, 2*m+1, l, rank);
+                        exit(0);
+                    }
                     parallelB[k-KBEG][j-JBEG][2*m+1][l] = 1.0;
                     }
                 }
@@ -719,7 +812,15 @@ void parallelThreeDiagonalSolverX(double**** x, double**** rightPart, double****
             JDOM_LOOP(j){
                 for(int l = 0; l < Nmomentum; ++l){
                     x[k][j][IBEG][l] = parallelX[k-KBEG][j-JBEG][0][l];
+                    if ((x[k][j][IBEG][l] != x[k][j][IBEG][l]) || (0 * x[k][j][IBEG][l] != 0 * x[k][j][IBEG][l])) {
+                        printf("x = NaN in solver X 1, k = %d , j = %d, i = %d, l = %d, rank = %d\n", k, j, IBEG, l, rank);
+                        exit(0);
+                    }
                     x[k][j][IEND][l] = parallelX[k-KBEG][j-JBEG][1][l];
+                    if ((x[k][j][IEND][l] != x[k][j][IEND][l]) || (0 * x[k][j][IEND][l] != 0 * x[k][j][IEND][l])) {
+                        printf("x = NaN in solver X 2, k = %d , j = %d, i = %d, l = %d, rank = %d\n", k, j, IEND, l, rank);
+                        exit(0);
+                    }
                 }
             }
         }
@@ -732,8 +833,16 @@ void parallelThreeDiagonalSolverX(double**** x, double**** rightPart, double****
             JDOM_LOOP(j){
                 for(int l = 0; l < Nmomentum; ++l){
                     x[k][j][IBEG][l] = recv[count];
+                    if ((x[k][j][IBEG][l] != x[k][j][IBEG][l]) || (0 * x[k][j][IBEG][l] != 0 * x[k][j][IBEG][l])) {
+                        printf("x = NaN in solver X 3, k = %d , j = %d, i = %d, l = %d, rank = %d\n", k, j, IBEG, l, rank);
+                        exit(0);
+                    }
                     count = count + 1;
                     x[k][j][IEND][l] = recv[count];
+                    if ((x[k][j][IEND][l] != x[k][j][IEND][l]) || (0 * x[k][j][IEND][l] != 0 * x[k][j][IEND][l])) {
+                        printf("x = NaN in solver X 4, k = %d , j = %d, i = %d, l = %d, rank = %d\n", k, j, IEND, l, rank);
+                        exit(0);
+                    }
                     count = count + 1;
                 }
             }
@@ -747,7 +856,7 @@ void parallelThreeDiagonalSolverX(double**** x, double**** rightPart, double****
                 for (int i = IBEG + 1; i < IEND; ++i) {
                     x[k][j][i][l] = rightPart[k][j][i][l] - a[k][j][i][l] * x[k][j][IBEG][l] - c[k][j][i][l] * x[k][j][IEND][l];
                     if ((x[k][j][i][l] != x[k][j][i][l]) || (0 * x[k][j][i][l] != 0 * x[k][j][i][l])) {
-                        printf("x = NaN in solver X, k = %d , j = %d, i = %d, l = %d\n", k, j, i, l);
+                        printf("x = NaN in solver X 5, k = %d , j = %d, i = %d, l = %d, rank = %d\n", k, j, i, l, rank);
                         exit(0);
                     }
                 }
@@ -939,7 +1048,7 @@ void parallelThreeDiagonalSolverY(double**** x, double**** rightPart, double****
                 for (j = JBEG + 1; j < JEND; ++j) {
                     x[k][j][i][l] = rightPart[k][j][i][l] - a[k][j][i][l] * x[k][JBEG][i][l] - c[k][j][i][l] * x[k][JEND][i][l];
                     if ((x[k][j][i][l] != x[k][j][i][l]) || (0 * x[k][j][i][l] != 0 * x[k][j][i][l])) {
-                        printf("x = NaN in solver X, k = %d , j = %d, i = %d, l = %d\n", k, j, i, l);
+                        printf("x = NaN in solver Y, k = %d , j = %d, i = %d, l = %d, rank = %d\n", k, j, i, l, rank);
                         exit(0);
                     }
                 }
@@ -1128,7 +1237,7 @@ void parallelThreeDiagonalSolverZ(double**** x, double**** rightPart, double****
                 for (k = KBEG + 1; k < KEND; ++k) {
                     x[k][j][i][l] = rightPart[k][j][i][l] - a[k][j][i][l] * x[KBEG][j][i][l] - c[k][j][i][l] * x[KEND][j][i][l];
                     if ((x[k][j][i][l] != x[k][j][i][l]) || (0 * x[k][j][i][l] != 0 * x[k][j][i][l])) {
-                        printf("x = NaN in solver X, k = %d , j = %d, i = %d, l = %d\n", k, j, i, l);
+                        printf("x = NaN in solver Z, k = %d , j = %d, i = %d, l = %d, rank %d\n", k, j, i, l, rank);
                         exit(0);
                     }
                 }

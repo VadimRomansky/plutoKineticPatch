@@ -140,6 +140,11 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
     double Dr_uD = 1.e-18;
     Dts->Dr_uD = Dr_uD;
 
+    //printf("particles kin update\n");
+#ifdef PARLLEL
+    MPI_Barrier(MPI_COMM_WORLD);
+#endif
+
 
     //crank-nickelson
     double factor = 0.5;
@@ -1438,6 +1443,12 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
        }
     }*/
 
+    TOT_LOOP(k,j,i){
+        for(int l = 0; l < NMOMENTUM; ++l){
+            data->Fkin[k][j][i][l] = 0;
+        }
+    }
+
     setBoundaryRightPartToZero(data, grid);
 
 #if PARTICLES_KIN_SOLVER == THREE_DIAGONAL
@@ -1458,12 +1469,28 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
     comm = s->oned_comm[0];
     myrank = s->lrank[0];
     nproc = s->lsize[0];
+
+    int globrank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &globrank);
+    int globcartrank;
+    MPI_Comm_rank(s->cart_comm, &globcartrank);
+    int cartrank;
+    MPI_Comm_rank(comm, &cartrank);
+    //printf("globrank = %d, globcartrank = %d, cartrank = %d\n", globrank, globcartrank, cartrank);
     ndim = s->ndim;
     //printf("parallel solver x\n");
     if(par_dim[0] != 0){
     parallelThreeDiagonalSolverX(data->Fkin, data->rightPart, data->ax, data->bx, data->cx, NMOMENTUM, nproc, myrank, comm);
     } else {
     noparallelThreeDiagonalSolverX(data->Fkin, data->rightPart, data->ax, data->bx, data->cx, NMOMENTUM);
+    }
+    TOT_LOOP(k,j,i){
+        for(int l = 0; l < NMOMENTUM; ++l){
+            if((data->Fkin[k][j][i][l] != data->Fkin[k][j][i][l]) || (0*data->Fkin[k][j][i][l] != 0*data->Fkin[k][j][i][l])){
+                printf("FKin = NaN 1 k = %d, j = %d, i = %d, l = %d rank = %d\n", k, j, i, l, myrank);
+                exit(0);
+            }
+        }
     }
     exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
     TOT_LOOP(k,j,i){
@@ -1472,6 +1499,15 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
         }
     }
     setBoundaryRightPartToZero(data, grid);
+
+    TOT_LOOP(k,j,i){
+        for(int l = 0; l < NMOMENTUM; ++l){
+            if((data->Fkin[k][j][i][l] != data->Fkin[k][j][i][l]) || (0*data->Fkin[k][j][i][l] != 0*data->Fkin[k][j][i][l])){
+                printf("FKin = NaN 2 k = %d, j = %d, i = %d, l = %d, rank = %d\n", k, j, i, l, myrank);
+                exit(0);
+            }
+        }
+    }
 #endif
 #if INCLUDE_JDIR
     comm = s->oned_comm[1];
@@ -1479,11 +1515,11 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
     nproc = s->lsize[1];
     ndim = s->ndim;
     //printf("parallel solver y\n");
-    /*if(par_dim[1] != 0){
+    if(par_dim[1] != 0){
     parallelThreeDiagonalSolverY(data->Fkin, data->rightPart, data->ay, data->by, data->cy, NMOMENTUM, nproc, myrank, comm);
     } else {
     noparallelThreeDiagonalSolverY(data->Fkin, data->rightPart, data->ay, data->by, data->cy, NMOMENTUM);
-    }*/
+    }
     exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
     TOT_LOOP(k,j,i){
         for(int l = 0; l < NMOMENTUM; ++l){

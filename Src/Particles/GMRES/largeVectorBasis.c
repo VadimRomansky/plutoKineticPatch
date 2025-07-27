@@ -152,6 +152,7 @@ void exchangeLargeVector(double**** vector, int lnumber, int *dims, int sz_ptr, 
 #ifdef PARALLEL
     register int nd;
     int myrank, nprocs;
+    int globrank;
     int ndim, gp, nleft, nright, tag1, tag2;
     int sendb, recvb;
     MPI_Datatype itype;
@@ -162,6 +163,8 @@ void exchangeLargeVector(double**** vector, int lnumber, int *dims, int sz_ptr, 
     s = sz_stack[sz_ptr];
 
     ndim = s->ndim;
+    globrank = s->rank;
+    comm = s->comm;
 
     //printf("ndim = %d\n", ndim);
 
@@ -171,11 +174,21 @@ void exchangeLargeVector(double**** vector, int lnumber, int *dims, int sz_ptr, 
         /* If gp=0, do nothing */
         if( gp > 0){
             if(dims[nd] != 0 ){
+                bool isperiodic = (s->isperiodic[nd] == AL_TRUE);
                 nleft = s->left[nd];
                 nright = s->right[nd];
                 myrank = s->lrank[nd];
                 nprocs = s->lsize[nd];
-                comm = s->oned_comm[nd];
+
+                /*if(isperiodic){
+                    printf("nd = %d, globalrank = %d, periodic\n", nd, globrank);
+                } else {
+                    printf("nd = %d, globrank = %d, not periodic\n", nd, globrank);
+                }*/
+
+
+                //printf("nd = %d, globrank = %d, nleft = %d, nright = %d, myrank = %d, nprocs = %d\n", nd, globrank, nleft, nright, myrank, nprocs);
+                MPI_Barrier(MPI_COMM_WORLD);
                 itype = s->type_rl[nd];
                 tag1 = s->tag1[nd];
 
@@ -245,7 +258,7 @@ void exchangeLargeVector(double**** vector, int lnumber, int *dims, int sz_ptr, 
                         JTOT_LOOP(j){
                             for(i = 0; i < IBEG; ++i){
                                 for(int l = 0; l < lnumber; ++l){
-                                    if((myrank < nprocs-1) || periodicX){
+                                    if((myrank < nprocs-1) || isperiodic){
                                     vector[k][j][IEND + i + 1][l] = inBuffer[count];
                                     }
                                     outBuffer[count] = vector[k][j][IEND - IBEG + i + 1][l];
@@ -260,7 +273,7 @@ void exchangeLargeVector(double**** vector, int lnumber, int *dims, int sz_ptr, 
                         for(j = 0; j < JBEG; ++j){
                             ITOT_LOOP(i){
                                 for(int l = 0; l < lnumber; ++l){
-                                    if((myrank < nprocs-1) || periodicY){
+                                    if((myrank < nprocs-1) || isperiodic){
                                     vector[k][JEND + j + 1][i][l] = inBuffer[count];
                                     }
                                     outBuffer[count] = vector[k][JEND - JBEG + j + 1][i][l];
@@ -275,7 +288,7 @@ void exchangeLargeVector(double**** vector, int lnumber, int *dims, int sz_ptr, 
                         JTOT_LOOP(j){
                             ITOT_LOOP(i){
                                 for(int l = 0; l < lnumber; ++l){
-                                    if((myrank < nprocs-1) || periodicZ){
+                                    if((myrank < nprocs-1) || isperiodic){
                                     vector[KEND + k + 1][j][i][l] = inBuffer[count];
                                     }
                                     outBuffer[count] = vector[KEND - KBEG + k + 1][j][i][l];
@@ -301,7 +314,7 @@ void exchangeLargeVector(double**** vector, int lnumber, int *dims, int sz_ptr, 
 
                 if(nd == 0){
                     int count = 0;
-                    if((myrank > 0) || periodicX){
+                    if((myrank > 0) || isperiodic){
                     KTOT_LOOP(k){
                         JTOT_LOOP(j){
                             for(i = 0; i < IBEG; ++i){
@@ -315,7 +328,7 @@ void exchangeLargeVector(double**** vector, int lnumber, int *dims, int sz_ptr, 
                     }
                 } else if(nd == 1){
                     int count = 0;
-                    if((myrank > 0) || periodicY){
+                    if((myrank > 0) || isperiodic){
                     KTOT_LOOP(k){
                         for(j = 0; j < JBEG; ++j){
                             ITOT_LOOP(i){
@@ -329,7 +342,7 @@ void exchangeLargeVector(double**** vector, int lnumber, int *dims, int sz_ptr, 
                     }
                 } else if(nd == 2){
                     int count = 0;
-                    if((myrank > 0) || periodicZ){
+                    if((myrank > 0) || isperiodic){
                     for(k = 0; k < KBEG; ++k){
                         JTOT_LOOP(j){
                             ITOT_LOOP(i){
@@ -361,6 +374,7 @@ void exchangeLargeVector(double**** vector, int lnumber, int *dims, int sz_ptr, 
                     }
                 } else if(nd == 1){
                     if(periodicY){
+                    //printf("noparallel exchange y\n");
                     KTOT_LOOP(k){
                         for(j = 0; j < JBEG; ++j){
                             ITOT_LOOP(i){
