@@ -659,6 +659,7 @@ void parallelThreeDiagonalSolverX(double**** x, double**** rightPart, double****
                 }
                 //c[k][j][0][l] = r * (u - c[k][j][0][l] * c[k][j][1][l]);
                 c[k][j][IBEG][l] = - r * c[k][j][IBEG][l] * c[k][j][IBEG+1][l];
+                a[k][j][IBEG][l] = r*a[k][j][IBEG][l];
 
 
                 //double* outcoef = (double*) malloc(6*sizeof(double));
@@ -943,6 +944,7 @@ void parallelThreeDiagonalSolverY(double**** x, double**** rightPart, double****
                 rightPart[k][JBEG][i][l] = r * (rightPart[k][JBEG][i][l] - rightPart[k][JBEG + 1][i][l] * c[k][JBEG][i][l]);
 
                 c[k][JBEG][i][l] = - r * c[k][JBEG][i][l] * c[k][JBEG+1][i][l];
+                a[k][JBEG][i][l] = r*a[k][JBEG][i][l];
 
 
                 //double* outcoef = (double*) malloc(6*sizeof(double));
@@ -1134,6 +1136,7 @@ void parallelThreeDiagonalSolverZ(double**** x, double**** rightPart, double****
                 rightPart[KBEG][j][i][l] = r * (rightPart[KBEG][j][i][l] - rightPart[KBEG + 1][j][i][l] * c[KBEG][j][i][l]);
 
                 c[KBEG][j][i][l] = - r * c[KBEG][j][i][l] * c[KBEG+1][j][i][l];
+                a[KBEG][j][i][l] = r*a[KBEG][j][i][l];
 
 
                 //double* outcoef = (double*) malloc(6*sizeof(double));
