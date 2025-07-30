@@ -411,6 +411,7 @@ int Integrate (Data *d, timeStep *Dts, Grid *grid)
     Particles_LP_Update (d, Dts, g_dt, grid);
     #endif
     #endif
+    Particles_Inject(d, grid);
     return 0;
   }
 #endif
