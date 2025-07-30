@@ -10,6 +10,7 @@ list of changes:
 5) sparce output (every Nth point) (works only for dbl output)
 6) renaming SZ and SZ
 7) fixed bug with reading multiple files in pypluto and added some plots
+8) added particles injection after tfreeze
 
 Install
 
