@@ -92,6 +92,7 @@ double evaluateTurbulentField(Data* data, int i, int j, int k, double* B0, doubl
 #endif
 
 double evaluateDiffusionCoefficient(Data* data, int i, int j, int k, double u){
+    double UNIT_MFIELD = (UNIT_VELOCITY*sqrt(4.0*CONST_PI*UNIT_DENSITY));
     const double coef = (PARTICLES_KIN_C / (PARTICLES_KIN_E_MC))*(CONST_c/UNIT_VELOCITY)/3.0;
     double B[3];
     B[IDIR] = data->Vc[BX1][k][j][i];
@@ -102,6 +103,11 @@ double evaluateDiffusionCoefficient(Data* data, int i, int j, int k, double u){
 #else
     double Bmag = sqrt(B[IDIR]*B[IDIR] + B[JDIR]*B[JDIR] + B[KDIR]*B[KDIR]);
 #endif
+
+    if(Bmag <= 0){
+        Bmag = 1E-15/UNIT_MFIELD;
+    }
+
     double D = coef*u/Bmag;
 
     if ((D != D) || (D*0 != D*0)){
@@ -317,10 +323,20 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
         }
 #endif
 #if INCLUDE_JDIR
-        divu += (data->Vc[VX2][k][j+1][i] - data->Vc[VX2][k][j-1][i])/(grid->x[1][j+1] - grid->x[1][j-1]);
+        //divu += (data->Vc[VX2][k][j+1][i] - data->Vc[VX2][k][j-1][i])/(grid->x[1][j+1] - grid->x[1][j-1]);
+        if(data->Vc[VX2][k][j][i] > 0){
+            divu += (data->Vc[VX2][k][j][i] - data->Vc[VX2][k][j-1][i])/(grid->x[1][j] - grid->x[1][j-1]);
+        } else {
+            divu += (data->Vc[VX2][k][j+1][i] - data->Vc[VX2][k][j][i])/(grid->x[1][j+1] - grid->x[1][j]);
+        }
 #endif
 #if INCLUDE_KDIR
         divu += (data->Vc[VX3][k+1][j][i] - data->Vc[VX3][k-1][j][i])/(grid->x[2][k+1] - grid->x[2][k-1]);
+        if(data->Vc[VX3][k][j][i] > 0){
+            divu += (data->Vc[VX3][k][j][i] - data->Vc[VX3][k-1][j][i])/(grid->x[2][k] - grid->x[2][k-1]);
+        } else {
+            divu += (data->Vc[VX3][k+1][j][i] - data->Vc[VX3][k][j][i])/(grid->x[2][k+1] - grid->x[2][k]);
+        }
 #endif
 #elif GEOMETRY == CYLINDRICAL
 #if INCLUDE_IDIR
@@ -1571,7 +1587,7 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 #endif
 #if INCLUDE_JDIR
     //printf("noparallel solver y\n");
-    //noparallelThreeDiagonalSolverY(data->Fkin, data->rightPart, data->ay, data->by, data->cy, NMOMENTUM);
+    noparallelThreeDiagonalSolverY(data->Fkin, data->rightPart, data->ay, data->by, data->cy, NMOMENTUM);
     exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
     DOM_LOOP(k,j,i){
         for(int l = 0; l < NMOMENTUM; ++l){

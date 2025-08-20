@@ -69,6 +69,7 @@ void sequentialThreeDiagonalSolverX(double**** x, double**** rightPart, double**
                 double r = 1.0 / (1.0 - a[k][j][1][l] * c[k][j][0][l]);
                 rightPart[k][j][0][l] = r * (rightPart[k][j][0][l] - rightPart[k][j][1][l] * c[k][j][0][l]);
                 c[k][j][0][l] = r * (u - c[k][j][0][l] * c[k][j][1][l]);
+                a[k][j][0][l] = r*a[k][j][0][l];
 
                 double a1 = 1.0;
                 double c1 = c[k][j][0][l];
@@ -161,6 +162,7 @@ void sequentialThreeDiagonalSolverY(double**** x, double**** rightPart, double**
                 double r = 1.0 / (1.0 - a[k][1][i][l] * c[k][0][i][l]);
                 rightPart[k][0][i][l] = r * (rightPart[k][0][i][l] - rightPart[k][1][i][l] * c[k][0][i][l]);
                 c[k][0][i][l] = r * (u - c[k][0][i][l] * c[k][1][i][l]);
+                a[k][0][i][l] = r*a[k][0][i][l];
 
                 double a1 = 1.0;
                 double c1 = c[k][0][i][l];
@@ -253,6 +255,7 @@ void sequentialThreeDiagonalSolverZ(double**** x, double**** rightPart, double**
                 double r = 1.0 / (1.0 - a[1][j][i][l] * c[0][j][i][l]);
                 rightPart[0][j][i][l] = r * (rightPart[0][j][i][l] - rightPart[1][j][i][l] * c[0][j][i][l]);
                 c[0][j][i][l] = r * (u - c[0][j][i][l] * c[1][j][i][l]);
+                a[0][j][i][l] = r*a[0][j][i][l];
 
                 double a1 = 1.0;
                 double c1 = c[0][j][i][l];
@@ -392,6 +395,7 @@ void sequentialThreeDiagonalSolverP(double**** x, double**** rightPart, double**
                     double r = 1.0 / (1.0 - a[k][j][i][1] * c[k][j][i][0]);
                     rightPart[k][j][i][0] = r * (rightPart[k][j][i][0] - rightPart[k][j][i][1] * c[k][j][i][0]);
                     c[k][j][i][0] = r * (u - c[k][j][i][0] * c[k][j][i][1]);
+                    a[k][j][i][0] = r * a[k][j][i][0];
 
                     double a1 = 1.0;
                     double c1 = c[k][j][i][0];
