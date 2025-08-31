@@ -73,8 +73,10 @@ int main (int argc, char *argv[])
    -------------------------------------------------------- */
 
 #ifdef PARALLEL
+  printf("AL_Init\n");
   AL_Init (&argc, &argv);
   MPI_Comm_rank (MPI_COMM_WORLD, &prank);
+  printf("AL_Init finish\n");
 #endif
 
   time (&tbeg);

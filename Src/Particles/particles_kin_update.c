@@ -1574,6 +1574,7 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 
 
 #else
+
 #if INCLUDE_IDIR
     //printf("noparallel solver x\n");
     noparallelThreeDiagonalSolverX(data->Fkin, data->rightPart, data->ax, data->bx, data->cx, NMOMENTUM);
@@ -1585,6 +1586,7 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
     }
     setBoundaryRightPartToZero(data, grid);
 #endif
+
 #if INCLUDE_JDIR
     //printf("noparallel solver y\n");
     noparallelThreeDiagonalSolverY(data->Fkin, data->rightPart, data->ay, data->by, data->cy, NMOMENTUM);
@@ -1596,6 +1598,8 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
     }
     setBoundaryRightPartToZero(data, grid);
 #endif
+
+
 #if INCLUDE_KDIR
     //printf("noparallel solver z\n");
     noparallelThreeDiagonalSolverZ(data->Fkin, data->rightPart, data->az, data->bz, data->cz, NMOMENTUM);
@@ -1635,7 +1639,7 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 
     double precision = 0.1/data->p_grid[NMOMENTUM - 1];
     precision = 1E-5;
-    generalizedMinimalResidualMethod(grid, data->matrix, data->rightPart, data->Fkin, initialVector, data->gmresBasis, NMOMENTUM, precision, MAX_GMRES_ITERATIONS, 1);
+    generalizedMinimalResidualMethod(grid, data->matrix, data->rightPart, data->Fkin, initialVector, data->gmresBasis, NMOMENTUM, precision, MAX_GMRES_ITERATIONS, 1, periodicX, periodicY, periodicZ);
     //generalizedMinimalResidualMethod1(grid, data->matrix, data->rightPart, data->Fkin, data->gmresBasis, NMOMENTUM, precision, MAX_GMRES_ITERATIONS, 1);
     //biconjugateStabilizedGradientMethod(grid, data->matrix, data->rightPart, data->Fkin, NMOMENTUM, precision, MAX_GMRES_ITERATIONS, 1);
 
@@ -1662,8 +1666,13 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
     inv_dt = MAX(inv_dt, Dts->invDt_advection);
     inv_dt = MAX(inv_dt, Dts->invDt_acceleration);
 
+#if PARTICLES_KIN_SOLVER == GMRES
+    inv_dt = MAX(inv_dt, Dts->invDt_diffusion);
+#endif
+
     Dts->invDt_particles = inv_dt;
     Dts->omega_particles = inv_dt;
+
 
     DOM_LOOP(k,j,i){
         data->Pkin[k][j][i] = 0.0;

@@ -1,6 +1,8 @@
 /* ///////////////////////////////////////////////////////////////////// */
 #include "math.h"
 #include "string.h"
+#include <stdbool.h>
+
 #include "pluto.h"
 #include "time.h"
 
@@ -45,8 +47,8 @@ void Init (double *us, double x1, double x2, double x3)
     us[BX2] = B_amb;
     us[BX3] = 0.0;
 #elif GEOMETRY == CARTESIAN
-    us[BX1] = B_amb;      // Uniform MF in z direction
-    us[BX2] = 0;
+    us[BX1] = 0;      // Uniform MF in z direction
+    us[BX2] = B_amb;
     us[BX3] = 0;
 #endif
 
@@ -110,24 +112,28 @@ void InitDomain (Data *d, Grid *grid)
     int i,j,k;
 
     TOT_LOOP(k,j,i){
-        if(grid->x[0][i] < (grid->xend_glob[0] + grid->xbeg_glob[0])/2){
+        //if(grid->x[0][i] < (grid->xend_glob[0] + grid->xbeg_glob[0])/2.0){
+        bool flag = (grid->x[1][j] < (grid->xend_glob[1] + grid->xbeg_glob[1])/2.0);
+        if(flag){
             d->Vc[RHO][k][j][i] = rho_1;
             d->Vc[PRS][k][j][i] = p_1;
-            d->Vc[VX1][k][j][i] = V_1;
-            d->Vc[VX2][k][j][i] = 0;
+            d->Vc[VX1][k][j][i] = 0;
+            d->Vc[VX2][k][j][i] = V_1;
             d->Vc[VX3][k][j][i] = 0;
-            d->Vc[BX1][k][j][i] = B_amb;
-            d->Vc[BX2][k][j][i] = 0;
+            d->Vc[BX1][k][j][i] = 0;
+            d->Vc[BX2][k][j][i] = B_amb;
             d->Vc[BX3][k][j][i] = 0;
+            //printf("1\n");
         } else {
             d->Vc[RHO][k][j][i] = rho_2;
             d->Vc[PRS][k][j][i] = p_2;
-            d->Vc[VX1][k][j][i] = V_2;
-            d->Vc[VX2][k][j][i] = 0;
+            d->Vc[VX1][k][j][i] = 0;
+            d->Vc[VX2][k][j][i] = V_2;
             d->Vc[VX3][k][j][i] = 0;
-            d->Vc[BX1][k][j][i] = B_amb;
-            d->Vc[BX2][k][j][i] = 0;
+            d->Vc[BX1][k][j][i] = 0;
+            d->Vc[BX2][k][j][i] = B_amb;
             d->Vc[BX3][k][j][i] = 0;
+            //print("0\n");
         }
     }
 
@@ -157,7 +163,7 @@ void InitDomain (Data *d, Grid *grid)
     double temp_p_min = 0.01*(grid->dl_min[0]*UNIT_LENGTH)*g_inputParam[B_AMB]*CONST_e/(CONST_mp*CONST_c*CONST_c);
     p_grid_min = 100;
     double ratio = temp_p_min/p_grid_min;
-    p_grid_max = 1000*p_grid_min;
+    p_grid_max = 100000*p_grid_min;
     double factor1 = pow(p_grid_max/p_grid_min, 1.0/(NMOMENTUM - 1.0));
     d->p_grid[0] = p_grid_min;
     for(i = 1; i < NMOMENTUM; ++i){

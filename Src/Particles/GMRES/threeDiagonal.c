@@ -118,6 +118,10 @@ void sequentialThreeDiagonalSolverY(double**** x, double**** rightPart, double**
                 double normRightPart = 0;
 
                 for (int j = 0; j < Ny; ++j) {
+                    if ((rightPart[k][j][i][l] != rightPart[k][j][i][l]) || (0 * rightPart[k][j][i][l] != 0 * rightPart[k][j][i][l])) {
+                        printf("rightPart = NaN in solver Y 1, k = %d , j = %d, i = %d, l = %d\n", k, j, i, l);
+                        exit(0);
+                    }
                     normRightPart = normRightPart + rightPart[k][j][i][l] * rightPart[k][j][i][l];
                 }
 
@@ -211,6 +215,10 @@ void sequentialThreeDiagonalSolverZ(double**** x, double**** rightPart, double**
                 double normRightPart = 0;
 
                 for (int k = 0; k < Nz; ++k) {
+                    if ((rightPart[k][j][i][l] != rightPart[k][j][i][l]) || (0 * rightPart[k][j][i][l] != 0 * rightPart[k][j][i][l])) {
+                        printf("rightPart = NaN in solver Z 1, k = %d , j = %d, i = %d, l = %d\n", k, j, i, l);
+                        exit(0);
+                    }
                     normRightPart = normRightPart + rightPart[k][j][i][l] * rightPart[k][j][i][l];
                 }
 
@@ -423,7 +431,7 @@ void sequentialThreeDiagonalSolverP(double**** x, double**** rightPart, double**
                 }
 
 
-                for (int l = 0; l < Nmomentum; ++l) {
+                for (int l = 1; l < Nmomentum-1; ++l) {
                     x[k][j][i][l] = rightPart[k][j][i][l] - a[k][j][i][l] * y1 - c[k][j][i][l] * y2;
                     if ((x[k][j][i][l] != x[k][j][i][l]) || (0 * x[k][j][i][l] != 0 * x[k][j][i][l])) {
                         printf("x = NaN in solver P, k = %d , j = %d, i = %d, l = %d\n", k, j, i, l);
