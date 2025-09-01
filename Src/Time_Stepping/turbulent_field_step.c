@@ -1,4 +1,5 @@
 #include "pluto.h"
+#include <stdbool.h>
 
 #include "matrixElement.h"
 #include "specialmath.h"
@@ -8,6 +9,16 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
     int k,j,i;
     //printf("trubulent field\n");
     //return;
+
+    bool periodicX = (grid->lbound[0] == PERIODIC);
+    bool periodicY = (grid->lbound[1] == PERIODIC);
+    bool periodicZ = (grid->lbound[2] == PERIODIC);
+
+    double inv_dt, inv_dt_new;
+    inv_dt = 1.e-18;
+
+    Dts->invDt_magnetic = inv_dt;
+
     TOT_LOOP(k,j,i){
         for(int l = 0; l < NTURB; ++l){
                 MatrixElementNode* curNode = d->turbulent_matrix[k][j][i][l];
@@ -114,6 +125,10 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
             double u3 = d->Vc[VX3][k][j][i];
 
             double G = 0;
+
+            inv_dt_new = G;
+
+            Dts->invDt_magnetic = MAX(Dts->invDt_magnetic, inv_dt_new);
 
             curNode = addElement(curNode, -dt*G, k, j, i, l);
 
@@ -495,7 +510,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
 
 //printf("finish creating turbulent matrix\n");
 
-    generalizedMinimalResidualMethod(grid, d->turbulent_matrix, d->turbulent_rightPart, d->Wt, d->turbulentBasis, NTURB, 1E-5, MAX_GMRES_ITERATIONS, 1);
+    generalizedMinimalResidualMethod1(grid, d->turbulent_matrix, d->turbulent_rightPart, d->Wt, d->turbulentBasis, NTURB, 1E-5, MAX_GMRES_ITERATIONS, 1, periodicX, periodicY, periodicZ);
 
     DOM_LOOP(k,j,i){
         for(int l = 0; l < NTURB; ++l){

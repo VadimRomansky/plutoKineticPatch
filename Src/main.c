@@ -547,6 +547,11 @@ double NextTimeStep (timeStep *Dts, Runtime *runtime, Grid *grid)
   Dts->Dr_uD = xglob;
 #endif
   #endif
+#if TURBULENT_FIELD == YES
+  xloc = Dts->invDt_magnetic;
+  MPI_Allreduce (&xloc, &xglob, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+  Dts->invDt_magnetic = xglob;
+#endif
 #endif
 
 /* --------------------------------------------------------
@@ -575,6 +580,9 @@ double NextTimeStep (timeStep *Dts, Runtime *runtime, Grid *grid)
     print ("%s [dt(particles diffusion) =       %10.4e]\n",str, 1.0/Dts->invDt_diffusion);
     print ("%s [dr * V/D =       %10.4e]\n",str, Dts->Dr_uD);
     #endif
+    #endif
+    #if TURBULENT_FIELD == YES
+    print ("%s [dt (magnetic amplification) =       %10.4e]\n",str, 1.0/Dts->invDt_magnetic);
     #endif
   }
 #endif
@@ -652,6 +660,10 @@ double NextTimeStep (timeStep *Dts, Runtime *runtime, Grid *grid)
 #endif
 #endif
 
+#if TURBULENT_FIELD == YES
+  dtnext       = MIN(dtnext, 1.0/Dts->invDt_magnetic);
+#endif
+
 /* --------------------------------------------------------
    8. Allow time step to increase at most by a factor
       runtime->cfl_max_var.
@@ -675,6 +687,9 @@ double NextTimeStep (timeStep *Dts, Runtime *runtime, Grid *grid)
     print ("! %s [dt(particles diffusion) =       %10.4e]\n",str, 1.0/Dts->invDt_diffusion);
     print ("! %s [dr*V/D =       %10.4e]\n",str, Dts->Dr_uD);
     #endif
+    #endif
+    #if TURBULENT_FIELD == YES
+    print ("! %s [dt(pmagnetic amplification) =       %10.4e]\n",str, 1.0/Dts->invDt_magnetic);
     #endif
     print ("! Cannot continue.\n");
     QUIT_PLUTO(1);
