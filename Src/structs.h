@@ -560,6 +560,11 @@ typedef struct Data_{
     double**** bp;
     double**** cp;
 
+    double*** shockWidth;
+    double*** velocityJump;
+    double*** downstreamDensity;
+    double*** upstreamDensity;
+
     struct MatrixElementNode***** matrix;
     struct MatrixElementNode***** rightPartMatrix;
     struct LargeVectorBasis* gmresBasis;

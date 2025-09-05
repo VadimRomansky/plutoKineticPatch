@@ -480,6 +480,11 @@ void Initialize(Data *data, Runtime *runtime, Grid *grid, cmdLine *cmd_line)
   data->Pkin = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
   data->injectedEnergy = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
 
+  data->shockWidth = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  data->velocityJump = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  data->upstreamDensity = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  data->downstreamDensity = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+
 #if INCLUDE_IDIR
   data->ax = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NMOMENTUM, double);
   data->bx = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NMOMENTUM, double);

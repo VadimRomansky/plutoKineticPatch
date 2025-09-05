@@ -363,6 +363,17 @@ void Particles_Inject(Data *data, Grid *grid)
 #endif
 }
 
+void updateShokFront(Data* d, Grid* grid){
+    int i,j,k;
+
+    TOT_LOOP(k,j,i){
+        d->shockWidth[k][j][i] = grid->dx[0][i];
+        d->velocityJump[k][j][i] = 0.0;
+        d->upstreamDensity[k][j][i] = d->Vc[RHO][k][j][i];
+        d->downstreamDensity[k][j][i] = d->Vc[RHO][k][j][i];
+    }
+}
+
 /* ********************************************************************* */
 void Particles_UserDefBoundary(Data *d, int side, Grid *grid)
 /*
