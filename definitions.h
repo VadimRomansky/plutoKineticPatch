@@ -18,10 +18,10 @@
 
 /* -- user-defined parameters (labels) -- */
 
-#define  RHO_d                          0
-#define  V_d                            1
+#define  RHO_AMB                        0
+#define  T_AMB                          1
 #define  B_AMB                          2
-#define  SIGMA                          3
+#define  T_COR                          3
 
 /* [Beg] user-defined constants (do not change this line) */
 
@@ -47,10 +47,10 @@
 #define  PARTICLES_KIN_FEEDBACK         NO
 #define  PARTICLES_KIN_OUTPUT_STEP      1
 #define  PARTICLES_KIN_SOLVER           THREE_DIAGONAL
-#define  PARTICLES_KIN_EPS              0.2
+#define  PARTICLES_KIN_EPS              0.1
 #define  TURBULENT_FIELD                NO
 #define  NTURB                          10
-#define  NMOMENTUM                      50
+#define  NMOMENTUM                      100
 #define  MAX_GMRES_ITERATIONS           20
 #define  WARNING_MESSAGES               NO
 #define  MULTIPLE_LOG_FILES             NO

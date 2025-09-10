@@ -22,6 +22,7 @@ void ComputeUserVar (const Data *d, Grid *grid)
   double ***Pkin;
   double ***rho;
   double ***prs;
+  double ***Vjump;
   double mu;
   double us[256];
   int nv;
@@ -37,6 +38,7 @@ void ComputeUserVar (const Data *d, Grid *grid)
   Fkin = GetUserVar("Fkin");
   Pkin = GetUserVar("Pkin");
 #endif
+  Vjump = GetUserVar("Vjump");
 
 #if TURBULENT_FIELD == YES
   Bturb = GetUserVar("Bturb");
@@ -56,6 +58,7 @@ void ComputeUserVar (const Data *d, Grid *grid)
       if(!(d->flag[k][j][i] & FLAG_ENTROPY)){
           Shock[k][j][i] = 1.0;
       }
+      Vjump[k][j][i] = d->velocityJump[k][j][i];
 #if TURBULENT_FIELD == YES
       double B2 = 0;
       double Jx = 0;

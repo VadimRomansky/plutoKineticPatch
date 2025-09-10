@@ -16,41 +16,33 @@ void Init (double *us, double x1, double x2, double x3)
  *********************************************************************** */
 {
     g_maxCoolingRate = 0.99;
-    double T_amb, cs_amb, rho_amb, V_amb, B_amb, mu;
+    double mu;
     mu = MeanMolecularWeight(us);
     g_usersTemporal = MeanMolecularWeight(us);
+
     double UNIT_MASS = UNIT_DENSITY*pow(UNIT_LENGTH, 3.0);
     double UNIT_TIME = UNIT_LENGTH/UNIT_VELOCITY;
     double UNIT_ENERGY = UNIT_MASS*UNIT_VELOCITY*UNIT_VELOCITY;
     double UNIT_MFIELD = (UNIT_VELOCITY*sqrt(4.0*CONST_PI*UNIT_DENSITY));
 
-    cs_amb  = 0.1*g_inputParam[V_d] / UNIT_VELOCITY;
-    double rho_ism   = g_inputParam[RHO_d]; //interstellar medium density
-    B_amb   = g_inputParam[B_AMB]/UNIT_MFIELD;
+    double B_amb   = g_inputParam[B_AMB]/UNIT_MFIELD;
+    double rho = g_inputParam[RHO];
+    double T = g_inputParam[T_AMB];
+    double T1 = g_inputParam[T_COR];
+
+    double p = (rho*1.38E-16*T/mu)/UNIT_ENERGY;
 
 
-    double r = x1;
+    double rmax = 1.0;
 
-
-    us[RHO] = rho_ism;
-    us[PRS] = us[RHO]*cs_amb*cs_amb/g_gamma;
+    us[RHO] = rho;
+    us[PRS] = p;
     us[VX1] = 0;
     us[VX2] = 0;
     us[VX3] = 0;
-
-#if GEOMETRY == SPHERICAL
-    us[BX1] = B_amb*cos(x2);      // Uniform MF in z direction
-    us[BX2] = B_amb*sin(x2);
-    us[BX3] = 0.0;
-#elif GEOMETRY == CYLINDRICAL
-    us[BX1] = 0;    // Uniform MF in z direction
-    us[BX2] = B_amb;
-    us[BX3] = 0.0;
-#elif GEOMETRY == CARTESIAN
-    us[BX1] = 0;      // Uniform MF in z direction
-    us[BX2] = B_amb;
-    us[BX3] = 0;
-#endif
+    us[BX1] = 0;
+    us[BX2] = 0;
+    us[BX3] = B_amb;
 
 
     us[TRC] = 0.0;        // Zero valued scalar tracer
@@ -77,9 +69,10 @@ void InitDomain (Data *d, Grid *grid)
     double UNIT_MFIELD = (UNIT_VELOCITY*sqrt(4.0*CONST_PI*UNIT_DENSITY));
 
     double B_amb   = g_inputParam[B_AMB]/UNIT_MFIELD;
-    double rho_2 = g_inputParam[RHO_d];
-    double V_2 = g_inputParam[V_d]/UNIT_VELOCITY;
-    double sigma = g_inputParam[SIGMA];
+    double rho = g_inputParam[RHO];
+    double T = g_inputParam[T_AMB];
+    double T1 = g_inputParam[T_COR];
+
 
     printf("NX1 = %d\n", NX1);
     printf("NX1_TOT = %d\n", NX1_TOT);
@@ -101,40 +94,35 @@ void InitDomain (Data *d, Grid *grid)
     MPI_Barrier(cartComm);
 #endif
 
-    double rho_1 = rho_2/sigma;
-    double V_1 = V_2*sigma;
-
-    double flux = rho_2*V_2;
-
-    double p_1 = ((g_gamma - 1.0)/g_gamma)*flux*flux*((g_gamma + 1.0)/(2*rho_2*(g_gamma - 1.0)) - 1.0/(2*rho_1));
-    double p_2 = p_1 + flux*flux*(1.0/rho_1 - 1.0/rho_2);
-
     int i,j,k;
+
+    double xc = (grid->xend_glob[0] + grid->xbeg_glob[0])/2.0;
+    double yc = (grid->xend_glob[1] + grid->xbeg_glob[1])/2.0;
+
+    double rmax = 50.0;
 
     TOT_LOOP(k,j,i){
         //if(grid->x[0][i] < (grid->xend_glob[0] + grid->xbeg_glob[0])/2.0){
-        bool flag = (grid->x[1][j] < (grid->xend_glob[1] + grid->xbeg_glob[1])/2.0);
-        if(flag){
-            d->Vc[RHO][k][j][i] = rho_1;
-            d->Vc[PRS][k][j][i] = p_1;
+
+            double mu = MeanMolecularWeight(d->Uc[k][j][i]);
+
+            double p = (rho*1.38E-16*T/((CONST_mp/UNIT_MASS)*mu))/UNIT_ENERGY;
+
+            d->Vc[RHO][k][j][i] = rho;
+            d->Vc[PRS][k][j][i] = p;
             d->Vc[VX1][k][j][i] = 0;
-            d->Vc[VX2][k][j][i] = V_1;
+            d->Vc[VX2][k][j][i] = 0;
             d->Vc[VX3][k][j][i] = 0;
             d->Vc[BX1][k][j][i] = 0;
-            d->Vc[BX2][k][j][i] = B_amb;
-            d->Vc[BX3][k][j][i] = 0;
-            //printf("1\n");
-        } else {
-            d->Vc[RHO][k][j][i] = rho_2;
-            d->Vc[PRS][k][j][i] = p_2;
-            d->Vc[VX1][k][j][i] = 0;
-            d->Vc[VX2][k][j][i] = V_2;
-            d->Vc[VX3][k][j][i] = 0;
-            d->Vc[BX1][k][j][i] = 0;
-            d->Vc[BX2][k][j][i] = B_amb;
-            d->Vc[BX3][k][j][i] = 0;
-            //print("0\n");
-        }
+            d->Vc[BX2][k][j][i] = 0;
+            d->Vc[BX3][k][j][i] = B_amb;
+
+            double r = sqrt((grid->x[0][i] - xc)*(grid->x[0][i] - xc) + (grid->x[1][j] - yc)*(grid->x[1][j] - yc));
+            if(r < rmax){
+                d->Vc[PRS][k][j][i] = p*T1/T;
+                //d->Vc[VX1][k][j][i] = 0.1;
+            }
+
     }
 
 #if TURBULENT_FIELD == YES
@@ -186,6 +174,11 @@ void InitDomain (Data *d, Grid *grid)
             d->rightPart[k][j][i][l] = 0.0;
             d->Pkin[k][j][i] = 0.0;
             d->injectedEnergy[k][j][i] = 0.0;
+
+            d->shockWidth[k][j][i] = grid->dx[0][i];
+            d->velocityJump[k][j][i] = 0.0;
+            d->upstreamDensity[k][j][i] = d->Vc[RHO][k][j][i];
+            d->downstreamDensity[k][j][i] = d->Vc[RHO][k][j][i];
         }
     }
 #endif
