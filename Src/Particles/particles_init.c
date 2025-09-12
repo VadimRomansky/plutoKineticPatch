@@ -156,30 +156,30 @@ void updateShockFront(Data* d, Grid* grid){
 void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double vx, double vy, double vz, int* i, int* j, int* k){
 //todo proper stright lines for other geometries
 #if INCLUDE_KDIR
-    double lx = grid->xl[0][*i]/grid->dx_dl[IDIR][*j][*i];
-    double rx = grid->xr[0][*i]/grid->dx_dl[IDIR][*j][*i];
-    double ly = grid->xl[1][*j]/grid->dx_dl[JDIR][*j][*i];
-    double ry = grid->xr[1][*j]/grid->dx_dl[JDIR][*j][*i];
-    double lz = grid->xl[2][*k]/grid->dx_dl[KDIR][*j][*i];
-    double rz = grid->xr[2][*k]/grid->dx_dl[KDIR][*j][*i];
+    double lx = grid->xl[0][*i];
+    double rx = grid->xr[0][*i];
+    double ly = grid->xl[1][*j];
+    double ry = grid->xr[1][*j];
+    double lz = grid->xl[2][*k];
+    double rz = grid->xr[2][*k];
 
     double dx;
     double dy;
     double dz;
     if(vx > 0){
-        dx = rx - *x1;
+        dx = (rx - *x1)/grid->dx_dl[IDIR][*j][*i];
     } else {
-        dx = *x1 - lx;
+        dx = (*x1 - lx)/grid->dx_dl[IDIR][*j][*i];
     }
     if(vy > 0){
-        dy = ry - *x2;
+        dy = (ry - *x2)/grid->dx_dl[JDIR][*j][*i];
     } else {
-        dy = *x2 - ly;
+        dy = (*x2 - ly)/grid->dx_dl[JDIR][*j][*i];
     }
     if(vz > 0){
-        dz = rz - *x3;
+        dz = (rz - *x3)/grid->dx_dl[KDIR][*j][*i];
     } else {
-        dz = *x3 - lz;
+        dz = (*x3 - lz)/grid->dx_dl[KDIR][*j][*i];
     }
 
     if(fabs(dx*vy) > fabs(dy*vx)){
@@ -189,10 +189,10 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double vx, do
             *x3 = *x3 + dt*vz;
             if(vy > 0){
                 *x2 = ry;
-                *j = *j+1;
+                *j = (*j)+1;
             } else {
                 *x2 = ly;
-                *j = *j-1;
+                *j = (*j)-1;
             }
         } else {
             double dt = fabs(dz/vz);
@@ -200,10 +200,10 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double vx, do
             *x2 = *x2 + dt*vy;
             if(vz > 0){
                 *x3 = rz;
-                *k = *k+1;
+                *k = (*k)+1;
             } else {
                 *x3 = lz;
-                *k = *k-1;
+                *k = (*k)-1;
             }
         }
     } else {
@@ -213,10 +213,10 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double vx, do
             *x3 = *x3 + dt*vz;
             if(vx > 0){
                 *x1 = rx;
-                *i = *i+1;
+                *i = (*i)+1;
             } else {
                 *x1 = lx;
-                *i = *i-1;
+                *i = (*i)-1;
             }
         } else {
             double dt = fabs(dz/vz);
@@ -224,31 +224,31 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double vx, do
             *x2 = *x2 + dt*vy;
             if(vz > 0){
                 *x3 = rz;
-                *k = *k+1;
+                *k = (*k)+1;
             } else {
                 *x3 = lz;
-                *k = *k-1;
+                *k = (*k)-1;
             }
         }
     }
 #elif INCLUDE_JDIR
     int a = *i;
-    double lx = grid->xl[0][*i]/grid->dx_dl[IDIR][*j][*i];
-    double rx = grid->xr[0][*i]/grid->dx_dl[IDIR][*j][*i];
-    double ly = grid->xl[1][*j]/grid->dx_dl[JDIR][*j][*i];
-    double ry = grid->xr[1][*j]/grid->dx_dl[JDIR][*j][*i];
+    double lx = grid->xl[0][*i];
+    double rx = grid->xr[0][*i];
+    double ly = grid->xl[1][*j];
+    double ry = grid->xr[1][*j];
 
     double dx;
     double dy;
     if(vx > 0){
-        dx = rx - *x1;
+        dx = (rx - *x1)/grid->dx_dl[IDIR][*j][*i];
     } else {
-        dx = *x1 - lx;
+        dx = (*x1 - lx)/grid->dx_dl[IDIR][*j][*i];
     }
     if(vy > 0){
-        dy = ry - *x2;
+        dy = (ry - *x2)/grid->dx_dl[JDIR][*j][*i];
     } else {
-        dy = *x2 - ly;
+        dy = (*x2 - ly)/grid->dx_dl[JDIR][*j][*i];
     }
 
     if(fabs(dx*vy) > fabs(dy*vx)){
@@ -256,29 +256,29 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double vx, do
         *x1 = *x1 + dt*vx;
         if(vy > 0){
             *x2 = ry;
-            *j = *j+1;
+            *j = (*j)+1;
         } else {
             *x2 = ly;
-            *j = *j-1;
+            *j = (*j)-1;
         }
     } else {
         double dt = fabs(dx/vx);
         *x2 = *x2 + dt*vy;
         if(vx > 0){
             *x1 = rx;
-            *i = *i+1;
+            *i = (*i)+1;
         } else {
             *x1 = lx;
-            *i = *i-1;
+            *i = (*i)-1;
         }
     }
 #else
     if(v1 > 0){
         *x1 = grid->xr[0][*i];
-        *i = *i + 1;
+        *i = (*i) + 1;
     } else if (v1 < 0){
         *x1 = grid->xl[0][*i];
-        *i = *i - 1;
+        *i = (*i) - 1;
     } else {
         printLog("vx = 0 in trace cell\n");
         exit(0);
@@ -604,8 +604,8 @@ void Particles_Inject(Data *data, Grid *grid)
                 p.speed[KDIR] = 0;
 
                 //p.mass = 1.0*grid->dV[k][j][i];
-                p.mass        = 1.0E-26;
-                p.color = prank;
+                //p.mass        = 1.0E-26;
+                //p.color = prank;
 
 #if PARTICLES == PARTICLES_MC
                 p.scattering_time = 0;
