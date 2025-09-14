@@ -49,7 +49,7 @@ void updateShockFront(Data* d, Grid* grid){
                 pgradx = grid->dx_dl[IDIR][j][i]*(d->Vc[PRS][k][j][i+1] - d->Vc[PRS][k][j][i-1])/(grid->x[0][i+1] - grid->x[0][i-1]);
 #endif
 #if INCLUDE_JDIR
-                pgrady = grid->dx_dl[JDIR][j][i]*(d->Vc[PRS][k][j+1][i] - d->Vc[PRS][k][j+1][i])/(grid->x[1][j+1] - grid->x[1][j-1]);
+                pgrady = grid->dx_dl[JDIR][j][i]*(d->Vc[PRS][k][j+1][i] - d->Vc[PRS][k][j-1][i])/(grid->x[1][j+1] - grid->x[1][j-1]);
 #endif
 #if INCLUDE_KDIR
                 pgradz = grid->dx_dl[KDIR][j][i]*(d->Vc[PRS][k+1][j][i] - d->Vc[PRS][k-1][j][i])/(grid->x[2][k+1] - grid->x[2][k-1]);
@@ -74,7 +74,7 @@ void updateShockFront(Data* d, Grid* grid){
                 pgradx = grid->dx_dl[IDIR][j][i]*(d->Vc[PRS][k][j][i+1] - d->Vc[PRS][k][j][i-1])/(grid->x[0][i+1] - grid->x[0][i-1]);
 #endif
 #if INCLUDE_JDIR
-                pgrady = grid->dx_dl[JDIR][j][i]*(d->Vc[PRS][k][j+1][i] - d->Vc[PRS][k][j+1][i])/(grid->x[1][j+1] - grid->x[1][j-1]);
+                pgrady = grid->dx_dl[JDIR][j][i]*(d->Vc[PRS][k][j+1][i] - d->Vc[PRS][k][j-1][i])/(grid->x[1][j+1] - grid->x[1][j-1]);
 #endif
 #if INCLUDE_KDIR
                 pgradz = grid->dx_dl[KDIR][j][i]*(d->Vc[PRS][k+1][j][i] - d->Vc[PRS][k-1][j][i])/(grid->x[2][k+1] - grid->x[2][k-1]);
