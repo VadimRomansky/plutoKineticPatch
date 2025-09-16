@@ -474,16 +474,23 @@ void Initialize(Data *data, Runtime *runtime, Grid *grid, cmdLine *cmd_line)
   data->Vc  = ARRAY_4D(NVAR, NX3_TOT, NX2_TOT, NX1_TOT, double);
   data->Uc  = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double);
 
+  data->shockWidth = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  data->velocityJump = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  data->upstreamDensity = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  data->downstreamDensity = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+
+  TOT_LOOP(k,j,i){
+      data->shockWidth[k][j][i] = 0.0;
+      data->velocityJump[k][j][i] = 0.0;
+      data->upstreamDensity[k][j][i] = 0.0;
+      data->downstreamDensity[k][j][i] = 0.0;
+  }
+
 #if PARTICLES == PARTICLES_KIN
   data->Fkin = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NMOMENTUM, double);
   data->rightPart = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NMOMENTUM, double);
   data->Pkin = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
   data->injectedEnergy = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
-
-  data->shockWidth = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
-  data->velocityJump = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
-  data->upstreamDensity = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
-  data->downstreamDensity = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
 
 #if INCLUDE_IDIR
   data->ax = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NMOMENTUM, double);

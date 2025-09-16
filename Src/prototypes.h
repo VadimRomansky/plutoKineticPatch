@@ -76,6 +76,9 @@ int  FlagCheck  (uint16_t ***, int);
 void FlagShock (const Data *, Grid *);
 void FlagShow (Data *, uint16_t);
 
+void updateShockFront(Data* d, Grid* grid);
+void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double vx, double vy, double vz, int* i, int* j, int* k);
+
 void Flatten (const Sweep *, int, int, Grid *);
 void FluidInterfaceBoundary(const Sweep *, int, int, Grid *);
 void FreeGrid (Grid *);

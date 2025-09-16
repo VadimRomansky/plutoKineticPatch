@@ -560,15 +560,15 @@ typedef struct Data_{
     double**** bp;
     double**** cp;
 
-    double*** shockWidth;
-    double*** velocityJump;
-    double*** downstreamDensity;
-    double*** upstreamDensity;
-
     struct MatrixElementNode***** matrix;
     struct MatrixElementNode***** rightPartMatrix;
     struct LargeVectorBasis* gmresBasis;
 #endif
+
+    double*** shockWidth;
+    double*** velocityJump;
+    double*** downstreamDensity;
+    double*** upstreamDensity;
 
 #if PARTICLES == PARTICLES_KIN || TURBULENT_FIELD == YES
     double ****Jkin1; /**< The CR current density momentum distribution */
