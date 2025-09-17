@@ -106,6 +106,51 @@ void putTracerListToArray(CellTracerNode* tracersList, int* outbuf, double* outb
     }
 }
 
+CellTracerNode* putArrayToTracerList(int* inbuf, double* inbufd, int Nin){
+	int count = 0;
+	int countd = 0;
+	CellTracerNode* list = NULL;
+	for(int l = 0; l < Nin; ++l){
+		int rank0 = inbuf[count];
+		count++;
+		int i0 = inbuf[count];
+		count++;
+		int j0 = inbuf[count];
+		count++;
+		int k0 = inbuf[count];
+		count++;
+		int i = inbuf[count];
+		count++;
+		int j = inbuf[count];
+		count++;
+		int k = inbuf[count];
+		count++;
+		double x = inbufd[countd];
+		countd++;
+		double y = inbufd[countd];
+		countd++;
+		double z = inbufd[countd];
+		countd++;
+		double vx = inbufd[countd];
+		countd++;
+		double vy = inbufd[countd];
+		countd++;
+		double vz = inbufd[countd];
+		countd++;
+		double rho = inbufd[countd];
+		countd++;
+		
+		CellTracerNode* temp = createTracer(rank0, i0, j0, k0, x, y, z, i, j, k, vx, vy, vz, rho);
+		
+		temp->next = list;
+		if(list != NULL){
+			list->prev = temp;
+		}
+		list = temp;
+	}
+	return list;
+}
+
 void updateShockFront(Data* d, Grid* grid){
     int i,j,k;
     FlagShock(d, grid);
@@ -172,9 +217,7 @@ void updateShockFront(Data* d, Grid* grid){
     int a[1];
     a[0] = NactiveTracers[0];
     MPI_Allreduce(a, NactiveTracers, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-    //todo check can it be null and then not null;
 
-    //todo another cycle
     while(NactiveTracers[0] > 0){
 #if INCLUDE_IDIR
         NtoLeft = 0;
@@ -338,6 +381,7 @@ void updateShockFront(Data* d, Grid* grid){
                 stoppedTracers->prev = NULL;
             }
         }
+        NactiveTracers[0] = 0;
 
 #if INCLUDE_IDIR
         int Nout[1];
@@ -351,6 +395,8 @@ void updateShockFront(Data* d, Grid* grid){
         MPI_Sendrecv(Nout, 1, MPI_INT, nleft, tag1,
                      Nin, 1, MPI_INT, nright, tag1,
                      comm, &status);
+                     
+        NactiveTracers[0] = NactiveTracers[0] + Nin[0];
 
         int* outbuf;
         double* outbufd;
@@ -364,7 +410,280 @@ void updateShockFront(Data* d, Grid* grid){
         int* inbuf;
         double* inbufd;
         if(Nin[0] != 0){
+        	inbuf = (int*) malloc(7*Nin[0]*sizeof(int));
+        	inbufd = (double*) malloc(7*Nin[0]*sizeof(double));
+        	CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
+        	while(tracersFrom != NULL){
+        		tracersFrom->i = IEND;
+        		tracersFrom->x1 = grid->xr[0][IEND];
+        		CellTracerNode* temp = tracersFrom;
+        		tracersFrom = tracersFrom->next;
+        		if(tracersFrom != NULL){
+        			tracersFrom->prev = NULL;
+				}
+				temp->next = tracers;
+				if(tracers != NULL){
+					tracers->prev = temp;
+				}
+				temp->prev = NULL;
+				tracers = temp;
+			}
         }
+        
+        if(Nout[0] > 0){
+        	free(outbuf);
+        	free(outbufd);
+		}
+		if(Nin[0] > 0){
+			free(inbuf);
+			free(inbufd);
+		}
+		
+		Nout[0] = NtoRight;
+
+        MPI_Sendrecv(Nout, 1, MPI_INT, nright, tag1,
+                     Nin, 1, MPI_INT, nleft, tag1,
+                     comm, &status);
+                     
+        NactiveTracers[0] = NactiveTracers[0] + Nin[0];
+
+        if(Nout[0] != 0){
+            outbuf = (int*) malloc(7*Nout[0]*sizeof(int));
+            outbufd = (double*) malloc(7*Nout[0]*sizeof(double));
+            putTracerListToArray(tracersToRight, outbuf, outbufd);
+            tracersToRight = NULL;
+            NtoRight = 0;
+        }
+
+        if(Nin[0] != 0){
+        	inbuf = (int*) malloc(7*Nin[0]*sizeof(int));
+        	inbufd = (double*) malloc(7*Nin[0]*sizeof(double));
+        	CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
+        	while(tracersFrom != NULL){
+        		tracersFrom->i = IBEG;
+        		tracersFrom->x1 = grid->xl[0][IBEG];
+        		CellTracerNode* temp = tracersFrom;
+        		tracersFrom = tracersFrom->next;
+        		if(tracersFrom != NULL){
+        			tracersFrom->prev = NULL;
+				}
+				temp->next = tracers;
+				if(tracers != NULL){
+					tracers->prev = temp;
+				}
+				temp->prev = NULL;
+				tracers = temp;
+			}
+        }
+        
+        if(Nout[0] > 0){
+        	free(outbuf);
+        	free(outbufd);
+		}
+		if(Nin[0] > 0){
+			free(inbuf);
+			free(inbufd);
+		}
+#endif
+#if INCLUDE_JDIR
+        Nout[0] = NtoDown;
+
+        nleft = s->left[1];
+        nright = s->right[1];
+        tag1 = s->tag1[1];
+
+        MPI_Sendrecv(Nout, 1, MPI_INT, nleft, tag1,
+                     Nin, 1, MPI_INT, nright, tag1,
+                     comm, &status);
+                     
+        NactiveTracers[0] = NactiveTracers[0] + Nin[0];
+
+        int* outbuf;
+        double* outbufd;
+        if(Nout[0] != 0){
+            outbuf = (int*) malloc(7*Nout[0]*sizeof(int));
+            outbufd = (double*) malloc(7*Nout[0]*sizeof(double));
+            putTracerListToArray(tracersToDown, outbuf, outbufd);
+            tracersToDown = NULL;
+            NtoLeft = 0;
+        }
+        int* inbuf;
+        double* inbufd;
+        if(Nin[0] != 0){
+        	inbuf = (int*) malloc(7*Nin[0]*sizeof(int));
+        	inbufd = (double*) malloc(7*Nin[0]*sizeof(double));
+        	CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
+        	while(tracersFrom != NULL){
+        		tracersFrom->j = JEND;
+        		tracersFrom->x2 = grid->xr[1][JEND];
+        		CellTracerNode* temp = tracersFrom;
+        		tracersFrom = tracersFrom->next;
+        		if(tracersFrom != NULL){
+        			tracersFrom->prev = NULL;
+				}
+				temp->next = tracers;
+				if(tracers != NULL){
+					tracers->prev = temp;
+				}
+				temp->prev = NULL;
+				tracers = temp;
+			}
+        }
+        
+        if(Nout[0] > 0){
+        	free(outbuf);
+        	free(outbufd);
+		}
+		if(Nin[0] > 0){
+			free(inbuf);
+			free(inbufd);
+		}
+		
+		Nout[0] = NtoUp;
+
+        MPI_Sendrecv(Nout, 1, MPI_INT, nright, tag1,
+                     Nin, 1, MPI_INT, nleft, tag1,
+                     comm, &status);
+                     
+        NactiveTracers[0] = NactiveTracers[0] + Nin[0];
+
+        if(Nout[0] != 0){
+            outbuf = (int*) malloc(7*Nout[0]*sizeof(int));
+            outbufd = (double*) malloc(7*Nout[0]*sizeof(double));
+            putTracerListToArray(tracersToUp, outbuf, outbufd);
+            tracersToUp = NULL;
+            NtoRight = 0;
+        }
+
+        if(Nin[0] != 0){
+        	inbuf = (int*) malloc(7*Nin[0]*sizeof(int));
+        	inbufd = (double*) malloc(7*Nin[0]*sizeof(double));
+        	CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
+        	while(tracersFrom != NULL){
+        		tracersFrom->j = JBEG;
+        		tracersFrom->x2 = grid->xl[1][JBEG];
+        		CellTracerNode* temp = tracersFrom;
+        		tracersFrom = tracersFrom->next;
+        		if(tracersFrom != NULL){
+        			tracersFrom->prev = NULL;
+				}
+				temp->next = tracers;
+				if(tracers != NULL){
+					tracers->prev = temp;
+				}
+				temp->prev = NULL;
+				tracers = temp;
+			}
+        }
+        
+        if(Nout[0] > 0){
+        	free(outbuf);
+        	free(outbufd);
+		}
+		if(Nin[0] > 0){
+			free(inbuf);
+			free(inbufd);
+		}
+#endif
+#if INCLUDE_KDIR
+        Nout[0] = NtoBack;
+
+        nleft = s->left[2];
+        nright = s->right[2];
+        tag1 = s->tag1[2];
+
+        MPI_Sendrecv(Nout, 1, MPI_INT, nleft, tag1,
+                     Nin, 1, MPI_INT, nright, tag1,
+                     comm, &status);
+                     
+        NactiveTracers[0] = NactiveTracers[0] + Nin[0];
+
+        int* outbuf;
+        double* outbufd;
+        if(Nout[0] != 0){
+            outbuf = (int*) malloc(7*Nout[0]*sizeof(int));
+            outbufd = (double*) malloc(7*Nout[0]*sizeof(double));
+            putTracerListToArray(tracersToBack, outbuf, outbufd);
+            tracersToBack = NULL;
+            NtoLeft = 0;
+        }
+        int* inbuf;
+        double* inbufd;
+        if(Nin[0] != 0){
+        	inbuf = (int*) malloc(7*Nin[0]*sizeof(int));
+        	inbufd = (double*) malloc(7*Nin[0]*sizeof(double));
+        	CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
+        	while(tracersFrom != NULL){
+        		tracersFrom-k = KEND;
+        		tracersFrom->x3 = grid->xr[2][KEND];
+        		CellTracerNode* temp = tracersFrom;
+        		tracersFrom = tracersFrom->next;
+        		if(tracersFrom != NULL){
+        			tracersFrom->prev = NULL;
+				}
+				temp->next = tracers;
+				if(tracers != NULL){
+					tracers->prev = temp;
+				}
+				temp->prev = NULL;
+				tracers = temp;
+			}
+        }
+        
+        if(Nout[0] > 0){
+        	free(outbuf);
+        	free(outbufd);
+		}
+		if(Nin[0] > 0){
+			free(inbuf);
+			free(inbufd);
+		}
+		
+		Nout[0] = NtoFront;
+
+        MPI_Sendrecv(Nout, 1, MPI_INT, nright, tag1,
+                     Nin, 1, MPI_INT, nleft, tag1,
+                     comm, &status);
+                     
+        NactiveTracers[0] = NactiveTracers[0] + Nin[0];
+
+        if(Nout[0] != 0){
+            outbuf = (int*) malloc(7*Nout[0]*sizeof(int));
+            outbufd = (double*) malloc(7*Nout[0]*sizeof(double));
+            putTracerListToArray(tracersToFront, outbuf, outbufd);
+            tracersToFront = NULL;
+            NtoRight = 0;
+        }
+
+        if(Nin[0] != 0){
+        	inbuf = (int*) malloc(7*Nin[0]*sizeof(int));
+        	inbufd = (double*) malloc(7*Nin[0]*sizeof(double));
+        	CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
+        	while(tracersFrom != NULL){
+        		tracersFrom->k = KBEG;
+        		tracersFrom->x3 = grid->xl[2][KBEG];
+        		CellTracerNode* temp = tracersFrom;
+        		tracersFrom = tracersFrom->next;
+        		if(tracersFrom != NULL){
+        			tracersFrom->prev = NULL;
+				}
+				temp->next = tracers;
+				if(tracers != NULL){
+					tracers->prev = temp;
+				}
+				temp->prev = NULL;
+				tracers = temp;
+			}
+        }
+        
+        if(Nout[0] > 0){
+        	free(outbuf);
+        	free(outbufd);
+		}
+		if(Nin[0] > 0){
+			free(inbuf);
+			free(inbufd);
+		}
 #endif
     }
 #else
