@@ -1,4 +1,110 @@
+#include <stdio.h>
+#include <stdbool.h>
+
+#ifdef PARALLEL
+#include "al_hidden.h"
+#endif
+
+#ifdef PARALLEL
+extern struct SZ *sz_stack[AL_MAX_ARRAYS];
+extern int stack_ptr[AL_MAX_ARRAYS];
+#endif
+
 #include "pluto.h"
+
+typedef struct CellTracerNode_{
+    int rank0;
+    int i0;
+    int j0;
+    int k0;
+    double x1;
+    double x2;
+    double x3;
+    int i;
+    int j;
+    int k;
+    double v1;
+    double v2;
+    double v3;
+    double rho;
+    struct CellTracerNode_* next;
+    struct CellTracerNode_* prev;
+} CellTracerNode;
+
+CellTracerNode* createTracer(int vrank0, int vi0, int vj0, int vk0, double x1v, double x2v, double x3v, int vi, int vj, int vk, double vv1, double vv2, double vv3, double vrho){
+    CellTracerNode* tempNode = (CellTracerNode*) malloc(sizeof(CellTracerNode));
+    tempNode->rank0 = vrank0;
+    tempNode->i0 = vi0;
+    tempNode->j0 = vj0;
+    tempNode->k0 = vk0;
+    tempNode->x1 = x1v;
+    tempNode->x2 = x2v;
+    tempNode->x3 = x3v;
+    tempNode->i = vi;
+    tempNode->j = vj;
+    tempNode->k = vk;
+    tempNode->v1 = vv1;
+    tempNode->v2 = vv2;
+    tempNode->v3 = vv3;
+    tempNode->rho = vrho;
+    tempNode->next = NULL;
+    tempNode->prev = NULL;
+    return tempNode;
+}
+
+CellTracerNode* addElementAfter(CellTracerNode* curNode, int vrank0, int vi0, int vj0, int vk0, double x1v, double x2v, double x3v, int vi, int vj, int vk, double vv1, double vv2, double vv3, double vrho){
+    CellTracerNode* tempNode = createTracer(vrank0, vi0, vj0, vk0, x1v, x2v, x3v, vi, vj, vk, vv1, vv2, vv3, vrho);
+    tempNode->next = curNode->next;
+    if(curNode->next != NULL){
+        curNode->prev = tempNode;
+    }
+    tempNode->prev = curNode;
+    curNode->next = tempNode;
+    return tempNode;
+}
+
+void putTracerListToArray(CellTracerNode* tracersList, int* outbuf, double* outbufd){
+    int count = 0;
+    int countd = 0;
+    while(tracersList != NULL){
+        outbuf[count] = tracersList->rank0;
+        count++;
+        outbuf[count] = tracersList->i0;
+        count++;
+        outbuf[count] = tracersList->j0;
+        count++;
+        outbuf[count] = tracersList->k0;
+        count++;
+        outbuf[count] = tracersList->i;
+        count++;
+        outbuf[count] = tracersList->j;
+        count++;
+        outbuf[count] = tracersList->k;
+        count++;
+
+        outbufd[countd] = tracersList->x1;
+        countd++;
+        outbufd[countd] = tracersList->x2;
+        countd++;
+        outbufd[countd] = tracersList->x3;
+        countd++;
+        outbufd[countd] = tracersList->v1;
+        countd++;
+        outbufd[countd] = tracersList->v2;
+        countd++;
+        outbufd[countd] = tracersList->v3;
+        countd++;
+        outbufd[countd] = tracersList->rho;
+        countd++;
+
+        CellTracerNode* temp = tracersList;
+        tracersList = tracersList->next;
+        if(tracersList != NULL){
+            tracersList->prev = NULL;
+        }
+        free(temp);
+    }
+}
 
 void updateShockFront(Data* d, Grid* grid){
     int i,j,k;
@@ -9,6 +115,259 @@ void updateShockFront(Data* d, Grid* grid){
         d->upstreamDensity[k][j][i] = d->Vc[RHO][k][j][i];
         d->downstreamDensity[k][j][i] = d->Vc[RHO][k][j][i];
     }
+
+#ifdef PARALLEL
+    register int nd;
+    int myrank, nprocs;
+    int globrank;
+    int ndim, gp, nleft, nright, tag1, tag2;
+    int sendb, recvb;
+    MPI_Datatype itype;
+    MPI_Comm comm;
+    MPI_Status status;
+    struct szz *s;
+    int sz_ptr = SZ_stagx;
+
+    s = sz_stack[sz_ptr];
+
+    ndim = s->ndim;
+    globrank = s->rank;
+    comm = s->comm;
+
+    CellTracerNode* tracers = NULL;
+    CellTracerNode* stoppedTracers = NULL;
+    int NactiveTracers[1];
+#if INCLUDE_IDIR
+    int NtoLeft = 0;
+    int NtoRight = 0;
+    CellTracerNode* tracersToLeft = NULL;
+    CellTracerNode* tracersToRight = NULL;
+#endif
+#if INCLUDE_JDIR
+    int NtoUp = 0;
+    int NtoDown = 0;
+    CellTracerNode* tracersToUp = NULL;
+    CellTracerNode* tracersToDown = NULL;
+#endif
+#if INCLUDE_KDIR
+    int NtoBack = 0;
+    int NtoFront = 0;
+    CellTracerNode* tracersToFront = NULL;
+    CellTracerNode* tracersToBack = NULL;
+#endif
+    NactiveTracers[0] = 0;
+    DOM_LOOP(k,j,i){
+        if(!(d->flag[k][j][i] & FLAG_ENTROPY)){
+            CellTracerNode* tempTracer = createTracer(globrank, i,j,k, grid->x[0][i], grid->x[1][j], grid->x[2][k], i,j,k, 0.0, 0.0, 0.0, d->Vc[RHO][k][j][i]);
+            if(tracers == NULL){
+                tracers = tempTracer;
+            } else {
+                tempTracer->next = tracers;
+                tracers->prev = tempTracer;
+                tracers = tempTracer;
+            }
+            NactiveTracers[0] = NactiveTracers[0] + 1;
+        }
+    }
+    int a[1];
+    a[0] = NactiveTracers[0];
+    MPI_Allreduce(a, NactiveTracers, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+    //todo check can it be null and then not null;
+
+    //todo another cycle
+    while(NactiveTracers[0] > 0){
+#if INCLUDE_IDIR
+        NtoLeft = 0;
+        NtoRight = 0;
+#endif
+#if INCLUDE_JDIR
+        NtoDown = 0;
+        NtoUp = 0;
+#endif
+#if INCLUDE_KDIR
+        NtoBack = 0;
+        NtoFront = 0;
+#endif
+        while(tracers != NULL){
+            int upstreami = tracers->i;
+            int upstreamj = tracers->j;
+            int upstreamk = tracers->k;
+            double x = tracers->x1;
+            double y = tracers->x2;
+            double z = tracers->x3;
+
+            bool stopped = true;
+
+            while(!(d->flag[upstreamk][upstreamj][upstreami] & FLAG_ENTROPY)){
+#if INCLUDE_IDIR
+                if(upstreami < IBEG){
+                    CellTracerNode* temp = tracersToLeft;
+                    tracersToLeft = tracers;
+                    tracers = tracers->next;
+                    if(tracers != NULL){
+                        tracers->prev = NULL;
+                    }
+                    tracersToLeft->next = temp;
+                    tracersToLeft->prev = NULL;
+                    if(temp != NULL){
+                        temp->prev = tracersToLeft;
+                    }
+                    NtoLeft = NtoLeft + 1;
+                    stopped = false;
+                    break;
+                }
+                if(upstreami > IEND){
+                    CellTracerNode* temp = tracersToRight;
+                    tracersToRight = tracers;
+                    tracers = tracers->next;
+                    if(tracers != NULL){
+                        tracers->prev = NULL;
+                    }
+                    tracersToRight->next = temp;
+                    tracersToRight->prev = NULL;
+                    if(temp != NULL){
+                        temp->prev = tracersToRight;
+                    }
+                    NtoRight = NtoRight + 1;
+                    stopped = false;
+                    break;
+                }
+#endif
+#if INCLUDE_JDIR
+                if(upstreamj < JBEG){
+                    CellTracerNode* temp = tracersToDown;
+                    tracersToDown = tracers;
+                    tracers = tracers->next;
+                    if(tracers != NULL){
+                        tracers->prev = NULL;
+                    }
+                    tracersToDown->next = temp;
+                    tracersToDown->prev = NULL;
+                    if(temp != NULL){
+                        temp->prev = tracersToDown;
+                    }
+                    NtoDown = NtoDown + 1;
+                    stopped = false;
+                    break;
+                }
+                if(upstreamj > JEND){
+                    CellTracerNode* temp = tracersToUp;
+                    tracersToUp = tracers;
+                    tracers = tracers->next;
+                    if(tracers != NULL){
+                        tracers->prev = NULL;
+                    }
+                    tracersToUp->next = temp;
+                    tracersToUp->prev = NULL;
+                    if(temp != NULL){
+                        temp->prev = tracersToUp;
+                    }
+                    NtoUp = NtoUp + 1;
+                    stopped = false;
+                    break;
+                }
+#endif
+#if INCLUDE_KDIR
+                if(upstreamk < KBEG){
+                    CellTracerNode* temp = tracersToBack;
+                    tracersToBack = tracers;
+                    tracers = tracers->next;
+                    if(tracers != NULL){
+                        tracers->prev = NULL;
+                    }
+                    tracersToBack->next = temp;
+                    tracersToBack->prev = NULL;
+                    if(temp != NULL){
+                        temp->prev = tracersToBack;
+                    }
+                    NtoBack = NtoBack + 1;
+                    stopped = false;
+                    break;
+                }
+                if(upstreamk > KEND){
+                    CellTracerNode* temp = tracersToFront;
+                    tracersToFront = tracers;
+                    tracers = tracers->next;
+                    if(tracers != NULL){
+                        tracers->prev = NULL;
+                    }
+                    tracersToFront->next = temp;
+                    tracersToFront->prev = NULL;
+                    if(temp != NULL){
+                        temp->prev = tracersToFront;
+                    }
+                    NtoFront = NtoFront + 1;
+                    stopped = false;
+                    break;
+                }
+#endif
+                double pgradx = 0;
+                double pgrady = 0;
+                double pgradz = 0;
+
+#if INCLUDE_IDIR
+                pgradx = grid->dx_dl[IDIR][j][i]*(d->Vc[PRS][k][j][i+1] - d->Vc[PRS][k][j][i-1])/(grid->x[0][i+1] - grid->x[0][i-1]);
+#endif
+#if INCLUDE_JDIR
+                pgrady = grid->dx_dl[JDIR][j][i]*(d->Vc[PRS][k][j+1][i] - d->Vc[PRS][k][j-1][i])/(grid->x[1][j+1] - grid->x[1][j-1]);
+#endif
+#if INCLUDE_KDIR
+                pgradz = grid->dx_dl[KDIR][j][i]*(d->Vc[PRS][k+1][j][i] - d->Vc[PRS][k-1][j][i])/(grid->x[2][k+1] - grid->x[2][k-1]);
+#endif
+                traceNextCell(grid, &x, &y, &z, -pgradx, -pgrady, -pgradz, &upstreami, &upstreamj, &upstreamk);
+
+                tracers->i = upstreami;
+                tracers->j = upstreamj;
+                tracers->k = upstreamk;
+                tracers->x1 = x;
+                tracers->x2 = y;
+                tracers->x3 = z;
+                tracers->v1 = d->Vc[VX1][k][j][i];
+                tracers->v2 = d->Vc[VX2][k][j][i];
+                tracers->v3 = d->Vc[VX3][k][j][i];
+                tracers->rho = d->Vc[RHO][k][j][i];
+            }
+            if(stopped){
+                CellTracerNode* temp = stoppedTracers;
+                stoppedTracers = tracers;
+                tracers = tracers->next;
+                if(tracers != NULL){
+                    tracers->prev = NULL;
+                }
+                stoppedTracers->next = temp;
+                stoppedTracers->prev = NULL;
+            }
+        }
+
+#if INCLUDE_IDIR
+        int Nout[1];
+        int Nin[1];
+        Nout[0] = NtoLeft;
+
+        nleft = s->left[0];
+        nright = s->right[0];
+        tag1 = s->tag1[0];
+
+        MPI_Sendrecv(Nout, 1, MPI_INT, nleft, tag1,
+                     Nin, 1, MPI_INT, nright, tag1,
+                     comm, &status);
+
+        int* outbuf;
+        double* outbufd;
+        if(Nout[0] != 0){
+            outbuf = (int*) malloc(7*Nout[0]*sizeof(int));
+            outbufd = (double*) malloc(7*Nout[0]*sizeof(double));
+            putTracerListToArray(tracersToLeft, outbuf, outbufd);
+            tracersToLeft = NULL;
+            NtoLeft = 0;
+        }
+        int* inbuf;
+        double* inbufd;
+        if(Nin[0] != 0){
+        }
+#endif
+    }
+#else
 
     DOM_LOOP(k,j,i){
         if(!(d->flag[k][j][i] & FLAG_ENTROPY)){
@@ -132,10 +491,11 @@ void updateShockFront(Data* d, Grid* grid){
             d->downstreamDensity[k][j][i] = rhod;
         }
     }
+#endif
 }
 
 void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double vx, double vy, double vz, int* i, int* j, int* k){
-//todo proper stright lines for other geometries
+    //todo proper stright lines for other geometries
 #if INCLUDE_KDIR
     double lx = grid->xl[0][*i];
     double rx = grid->xr[0][*i];
