@@ -34,6 +34,7 @@ int    CheckData (Data_Arr, Data_Arr, Data_Arr, int, RBox *, const char *);
 
 void   CheckPrimStates (double **, double **, double **, int, int);
 int    CheckNaN   (double **, int, int, const char *);
+int    CheckNanOrInfinity(double a, const char* str);
 
 void   ComputeUserVar (const Data *, Grid *);
 float  ***Convert_dbl2flt (double ***, double, int);

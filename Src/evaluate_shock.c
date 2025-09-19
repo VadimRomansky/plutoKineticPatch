@@ -33,6 +33,13 @@ typedef struct CellTracerNode_{
 
 CellTracerNode* createTracer(int vrank0, int vi0, int vj0, int vk0, double x1v, double x2v, double x3v, int vi, int vj, int vk, double vv1, double vv2, double vv3, double vrho){
     CellTracerNode* tempNode = (CellTracerNode*) malloc(sizeof(CellTracerNode));
+    CheckNanOrInfinity(x1v, "x1 = NaN\n");
+    CheckNanOrInfinity(x2v, "x2 = NaN\n");
+    CheckNanOrInfinity(x3v, "x3 = NaN\n");
+    CheckNanOrInfinity(vv1, "v1 = NaN\n");
+    CheckNanOrInfinity(vv2, "v2 = NaN\n");
+    CheckNanOrInfinity(vv3, "v3 = NaN\n");
+    CheckNanOrInfinity(vrho, "rho = Nan\n");
     tempNode->rank0 = vrank0;
     tempNode->i0 = vi0;
     tempNode->j0 = vj0;
@@ -349,13 +356,13 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
                 double pgradz = 0;
 
 #if INCLUDE_IDIR
-                pgradx = grid->dx_dl[IDIR][j][i]*(d->Vc[PRS][k][j][i+1] - d->Vc[PRS][k][j][i-1])/(grid->x[0][i+1] - grid->x[0][i-1]);
+                pgradx = grid->dx_dl[IDIR][upstreamj][upstreami]*(d->Vc[PRS][upstreamk][upstreamj][upstreami+1] - d->Vc[PRS][upstreamk][upstreamj][upstreami-1])/(grid->x[0][upstreami+1] - grid->x[0][upstreami-1]);
 #endif
 #if INCLUDE_JDIR
-                pgrady = grid->dx_dl[JDIR][j][i]*(d->Vc[PRS][k][j+1][i] - d->Vc[PRS][k][j-1][i])/(grid->x[1][j+1] - grid->x[1][j-1]);
+                pgrady = grid->dx_dl[JDIR][upstreamj][upstreami]*(d->Vc[PRS][upstreamk][upstreamj+1][upstreami] - d->Vc[PRS][upstreamk][upstreamj-1][upstreami])/(grid->x[1][upstreamj+1] - grid->x[1][upstreamj-1]);
 #endif
 #if INCLUDE_KDIR
-                pgradz = grid->dx_dl[KDIR][j][i]*(d->Vc[PRS][k+1][j][i] - d->Vc[PRS][k-1][j][i])/(grid->x[2][k+1] - grid->x[2][k-1]);
+                pgradz = grid->dx_dl[KDIR][upstreamj][upstreami]*(d->Vc[PRS][upstreamk+1][upstreamj][upstreami] - d->Vc[PRS][upstreamk-1][upstreamj][upstreami])/(grid->x[2][upstreamk+1] - grid->x[2][upstreamk-1]);
 #endif
                 traceNextCell(grid, &x, &y, &z, direction*pgradx, direction*pgrady, direction*pgradz, &upstreami, &upstreamj, &upstreamk);
 
@@ -392,6 +399,7 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
 
 #if INCLUDE_IDIR
         Nout[0] = NtoLeft;
+        Nin[0] = 0;
 
         nleft = s->left[0];
         nright = s->right[0];
@@ -441,6 +449,7 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
         }
 
         Nout[0] = NtoRight;
+        Nin[0] = 0;
 
         MPI_Sendrecv(Nout, 1, MPI_INT, nright, tag1,
                      Nin, 1, MPI_INT, nleft, tag1,
@@ -488,6 +497,7 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
 #endif
 #if INCLUDE_JDIR
         Nout[0] = NtoDown;
+        Nin[0] = 0;
 
         nleft = s->left[1];
         nright = s->right[1];
@@ -538,6 +548,7 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
         }
 
         Nout[0] = NtoUp;
+        Nin[0] = 0;
 
         MPI_Sendrecv(Nout, 1, MPI_INT, nright, tag1,
                      Nin, 1, MPI_INT, nleft, tag1,
@@ -585,6 +596,7 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
 #endif
 #if INCLUDE_KDIR
         Nout[0] = NtoBack;
+        Nin[0] = 0;
 
         nleft = s->left[2];
         nright = s->right[2];
@@ -635,6 +647,7 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
         }
 
         Nout[0] = NtoFront;
+        Nin[0] = 0;
 
         MPI_Sendrecv(Nout, 1, MPI_INT, nright, tag1,
                      Nin, 1, MPI_INT, nleft, tag1,
@@ -704,6 +717,7 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
         sendcountsd[i] = 0;
         sdispls[i] = 0;
         sdisplsd[i] = 0;
+        srelposition[i] = 0;
         recvcounts[i] = 0;
         recvcountsd[i] = 0;
         rdispls[i] = 0;
@@ -845,26 +859,26 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
                 double pgradz = 0;
 
 #if INCLUDE_IDIR
-                pgradx = grid->dx_dl[IDIR][j][i]*(d->Vc[PRS][k][j][i+1] - d->Vc[PRS][k][j][i-1])/(grid->x[0][i+1] - grid->x[0][i-1]);
+                pgradx = grid->dx_dl[IDIR][upstreamj][upstreami]*(d->Vc[PRS][upstreamk][upstreamj][upstreami+1] - d->Vc[PRS][upstreamk][upstreamj][upstreami-1])/(grid->x[0][upstreami+1] - grid->x[0][upstreami-1]);
 #endif
 #if INCLUDE_JDIR
-                pgrady = grid->dx_dl[JDIR][j][i]*(d->Vc[PRS][k][j+1][i] - d->Vc[PRS][k][j-1][i])/(grid->x[1][j+1] - grid->x[1][j-1]);
+                pgrady = grid->dx_dl[JDIR][upstreamj][upstreami]*(d->Vc[PRS][upstreamk][upstreamj+1][upstreami] - d->Vc[PRS][upstreamk][upstreamj-1][upstreami])/(grid->x[1][upstreamj+1] - grid->x[1][upstreamj-1]);
 #endif
 #if INCLUDE_KDIR
-                pgradz = grid->dx_dl[KDIR][j][i]*(d->Vc[PRS][k+1][j][i] - d->Vc[PRS][k-1][j][i])/(grid->x[2][k+1] - grid->x[2][k-1]);
+                pgradz = grid->dx_dl[KDIR][upstreamj][upstreami]*(d->Vc[PRS][upstreamk+1][upstreamj][upstreami] - d->Vc[PRS][upstreamk-1][upstreamj][upstreami])/(grid->x[2][upstreamk+1] - grid->x[2][upstreamk-1]);
 #endif
                 traceNextCell(grid, &x, &y, &z, direction*pgradx, direction*pgrady, direction*pgradz, &upstreami, &upstreamj, &upstreamk);
             }
 
-            x1 = grid->x[0][upstreami];
-            x2 = grid->x[1][upstreamj];
-            x3 = grid->x[2][upstreamk];
+            x1[k][j][i] = grid->x[0][upstreami];
+            x2[k][j][i] = grid->x[1][upstreamj];
+            x3[k][j][i] = grid->x[2][upstreamk];
 
-            v1 = d->Vc[VX1][upstreamk][upstreamj][upstreami];
-            v2 = d->Vc[VX2][upstreamk][upstreamj][upstreami];
-            v3 = d->Vc[VX3][upstreamk][upstreamj][upstreami];
+            v1[k][j][i] = d->Vc[VX1][upstreamk][upstreamj][upstreami];
+            v2[k][j][i] = d->Vc[VX2][upstreamk][upstreamj][upstreami];
+            v3[k][j][i] = d->Vc[VX3][upstreamk][upstreamj][upstreami];
 
-            rho = d->Vc[RHO][upstreamk][upstreamj][upstreami];
+            rho[k][j][i] = d->Vc[RHO][upstreamk][upstreamj][upstreami];
         }
     }
 }
@@ -945,6 +959,12 @@ void updateShockFront(Data* d, Grid* grid){
 
 void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double vx, double vy, double vz, int* i, int* j, int* k){
     //todo proper stright lines for other geometries
+    double v2 = vx*vx + vy*vy + vz*vz;
+    if(v2 <= 0){
+        printf("v = 0 in traceNextCell\n");
+        printLog("v = 0 in traceNextCell\n");
+        QUIT_PLUTO(1);
+    }
 #if INCLUDE_KDIR
     double lx = grid->xl[0][*i];
     double rx = grid->xr[0][*i];
@@ -1021,6 +1041,9 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double vx, do
             }
         }
     }
+    CheckNanOrInfinity(*x1, "x1 = NaN\n");
+    CheckNanOrInfinity(*x2, "x2 = NaN\n");
+    CheckNanOrInfinity(*x3, "x3 = NaN\n");
 #elif INCLUDE_JDIR
     int a = *i;
     double lx = grid->xl[0][*i];
@@ -1062,6 +1085,8 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double vx, do
             *i = (*i)-1;
         }
     }
+    CheckNanOrInfinity(*x1, "x1 = NaN\n");
+    CheckNanOrInfinity(*x2, "x2 = NaN\n");
 #else
     if(v1 > 0){
         *x1 = grid->xr[0][*i];
@@ -1073,5 +1098,6 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double vx, do
         printLog("vx = 0 in trace cell\n");
         exit(0);
     }
+    CheckNanOrInfinity(*x1, "x1 = NaN\n");
 #endif
 }
