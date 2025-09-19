@@ -174,14 +174,28 @@ void InitDomain (Data *d, Grid *grid)
             d->rightPart[k][j][i][l] = 0.0;
             d->Pkin[k][j][i] = 0.0;
             d->injectedEnergy[k][j][i] = 0.0;
-
-            d->shockWidth[k][j][i] = grid->dx[0][i];
-            d->velocityJump[k][j][i] = 0.0;
-            d->upstreamDensity[k][j][i] = d->Vc[RHO][k][j][i];
-            d->downstreamDensity[k][j][i] = d->Vc[RHO][k][j][i];
         }
     }
 #endif
+
+    TOT_LOOP(k,j,i){
+        d->shockWidth[k][j][i] = grid->dx[0][i];
+        d->velocityJump[k][j][i] = 0.0;
+        d->upstreamDensity[k][j][i] = d->Vc[RHO][k][j][i];
+        d->downstreamDensity[k][j][i] = d->Vc[RHO][k][j][i];
+        d->upstreamx1[k][j][i] = grid->x[0][i];
+        d->upstreamx2[k][j][i] = grid->x[1][j];
+        d->upstreamx3[k][j][i] = grid->x[2][k];
+        d->downstreamx1[k][j][i] = grid->x[0][i];
+        d->downstreamx2[k][j][i] = grid->x[1][j];
+        d->downstreamx3[k][j][i] = grid->x[2][k];
+        d->upstreamV1[k][j][i] = 0;
+        d->upstreamV2[k][j][i] = 0;
+        d->upstreamV3[k][j][i] = 0;
+        d->downstreamV1[k][j][i] = 0;
+        d->downstreamV2[k][j][i] = 0;
+        d->downstreamV3[k][j][i] = 0;
+    }
 
 
     //initTurbulence(d, grid, 0.1);

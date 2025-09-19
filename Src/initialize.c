@@ -478,12 +478,36 @@ void Initialize(Data *data, Runtime *runtime, Grid *grid, cmdLine *cmd_line)
   data->velocityJump = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
   data->upstreamDensity = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
   data->downstreamDensity = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  data->downstreamx1 = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  data->downstreamx2 = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  data->downstreamx3 = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  data->upstreamx1 = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  data->upstreamx2 = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  data->upstreamx3 = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  data->downstreamV1 = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  data->downstreamV2 = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  data->downstreamV3 = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  data->upstreamV1 = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  data->upstreamV2 = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  data->upstreamV3 = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
 
   TOT_LOOP(k,j,i){
       data->shockWidth[k][j][i] = 0.0;
       data->velocityJump[k][j][i] = 0.0;
       data->upstreamDensity[k][j][i] = 0.0;
       data->downstreamDensity[k][j][i] = 0.0;
+      data->upstreamx1[k][j][i] = grid->x[0][i];
+      data->upstreamx2[k][j][i] = grid->x[1][j];
+      data->upstreamx3[k][j][i] = grid->x[2][k];
+      data->downstreamx1[k][j][i] = grid->x[0][i];
+      data->downstreamx2[k][j][i] = grid->x[1][j];
+      data->downstreamx3[k][j][i] = grid->x[2][k];
+      data->upstreamV1[k][j][i] = 0;
+      data->upstreamV2[k][j][i] = 0;
+      data->upstreamV3[k][j][i] = 0;
+      data->downstreamV1[k][j][i] = 0;
+      data->downstreamV2[k][j][i] = 0;
+      data->downstreamV3[k][j][i] = 0;
   }
 
 #if PARTICLES == PARTICLES_KIN

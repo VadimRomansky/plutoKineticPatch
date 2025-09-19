@@ -567,6 +567,18 @@ typedef struct Data_{
 
     double*** shockWidth;
     double*** velocityJump;
+    double*** upstreamx1;
+    double*** upstreamx2;
+    double*** upstreamx3;
+    double*** downstreamx1;
+    double*** downstreamx2;
+    double*** downstreamx3;
+    double*** upstreamV1;
+    double*** upstreamV2;
+    double*** upstreamV3;
+    double*** downstreamV1;
+    double*** downstreamV2;
+    double*** downstreamV3;
     double*** downstreamDensity;
     double*** upstreamDensity;
 

@@ -151,17 +151,17 @@ CellTracerNode* putArrayToTracerList(int* inbuf, double* inbufd, int Nin){
 	return list;
 }
 
-void updateShockFront(Data* d, Grid* grid){
-    int i,j,k;
-    FlagShock(d, grid);
-    TOT_LOOP(k,j,i){
-        d->shockWidth[k][j][i] = grid->dx[0][i];
-        d->velocityJump[k][j][i] = 0.0;
-        d->upstreamDensity[k][j][i] = d->Vc[RHO][k][j][i];
-        d->downstreamDensity[k][j][i] = d->Vc[RHO][k][j][i];
+void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, double*** x3, double*** v1, double*** v2, double*** v3, double*** rho){
+    if((direction != 1) && (direction != -1)){
+        printf("direction for tracing must be 1 or -1\n");
+        printLog("direction for tracing must be 1 or -1\n");
+        QUIT_PLUTO(0);
     }
 
+    int i, j, k;
+
 #ifdef PARALLEL
+
     register int nd;
     int myrank, nprocs;
     int globrank;
@@ -357,7 +357,7 @@ void updateShockFront(Data* d, Grid* grid){
 #if INCLUDE_KDIR
                 pgradz = grid->dx_dl[KDIR][j][i]*(d->Vc[PRS][k+1][j][i] - d->Vc[PRS][k-1][j][i])/(grid->x[2][k+1] - grid->x[2][k-1]);
 #endif
-                traceNextCell(grid, &x, &y, &z, -pgradx, -pgrady, -pgradz, &upstreami, &upstreamj, &upstreamk);
+                traceNextCell(grid, &x, &y, &z, direction*pgradx, direction*pgrady, direction*pgradz, &upstreami, &upstreamj, &upstreamk);
 
                 tracers->i = upstreami;
                 tracers->j = upstreamj;
@@ -383,9 +383,14 @@ void updateShockFront(Data* d, Grid* grid){
         }
         NactiveTracers[0] = 0;
 
-#if INCLUDE_IDIR
         int Nout[1];
         int Nin[1];
+        int* outbuf;
+        double* outbufd;
+        int* inbuf;
+        double* inbufd;
+
+#if INCLUDE_IDIR
         Nout[0] = NtoLeft;
 
         nleft = s->left[0];
@@ -395,11 +400,9 @@ void updateShockFront(Data* d, Grid* grid){
         MPI_Sendrecv(Nout, 1, MPI_INT, nleft, tag1,
                      Nin, 1, MPI_INT, nright, tag1,
                      comm, &status);
-                     
+
         NactiveTracers[0] = NactiveTracers[0] + Nin[0];
 
-        int* outbuf;
-        double* outbufd;
         if(Nout[0] != 0){
             outbuf = (int*) malloc(7*Nout[0]*sizeof(int));
             outbufd = (double*) malloc(7*Nout[0]*sizeof(double));
@@ -407,44 +410,42 @@ void updateShockFront(Data* d, Grid* grid){
             tracersToLeft = NULL;
             NtoLeft = 0;
         }
-        int* inbuf;
-        double* inbufd;
         if(Nin[0] != 0){
-        	inbuf = (int*) malloc(7*Nin[0]*sizeof(int));
-        	inbufd = (double*) malloc(7*Nin[0]*sizeof(double));
-        	CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
-        	while(tracersFrom != NULL){
-        		tracersFrom->i = IEND;
-        		tracersFrom->x1 = grid->xr[0][IEND];
-        		CellTracerNode* temp = tracersFrom;
-        		tracersFrom = tracersFrom->next;
-        		if(tracersFrom != NULL){
-        			tracersFrom->prev = NULL;
-				}
-				temp->next = tracers;
-				if(tracers != NULL){
-					tracers->prev = temp;
-				}
-				temp->prev = NULL;
-				tracers = temp;
-			}
+            inbuf = (int*) malloc(7*Nin[0]*sizeof(int));
+            inbufd = (double*) malloc(7*Nin[0]*sizeof(double));
+            CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
+            while(tracersFrom != NULL){
+                tracersFrom->i = IEND;
+                tracersFrom->x1 = grid->xr[0][IEND];
+                CellTracerNode* temp = tracersFrom;
+                tracersFrom = tracersFrom->next;
+                if(tracersFrom != NULL){
+                    tracersFrom->prev = NULL;
+                }
+                temp->next = tracers;
+                if(tracers != NULL){
+                    tracers->prev = temp;
+                }
+                temp->prev = NULL;
+                tracers = temp;
+            }
         }
-        
+
         if(Nout[0] > 0){
-        	free(outbuf);
-        	free(outbufd);
-		}
-		if(Nin[0] > 0){
-			free(inbuf);
-			free(inbufd);
-		}
-		
-		Nout[0] = NtoRight;
+            free(outbuf);
+            free(outbufd);
+        }
+        if(Nin[0] > 0){
+            free(inbuf);
+            free(inbufd);
+        }
+
+        Nout[0] = NtoRight;
 
         MPI_Sendrecv(Nout, 1, MPI_INT, nright, tag1,
                      Nin, 1, MPI_INT, nleft, tag1,
                      comm, &status);
-                     
+
         NactiveTracers[0] = NactiveTracers[0] + Nin[0];
 
         if(Nout[0] != 0){
@@ -456,34 +457,34 @@ void updateShockFront(Data* d, Grid* grid){
         }
 
         if(Nin[0] != 0){
-        	inbuf = (int*) malloc(7*Nin[0]*sizeof(int));
-        	inbufd = (double*) malloc(7*Nin[0]*sizeof(double));
-        	CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
-        	while(tracersFrom != NULL){
-        		tracersFrom->i = IBEG;
-        		tracersFrom->x1 = grid->xl[0][IBEG];
-        		CellTracerNode* temp = tracersFrom;
-        		tracersFrom = tracersFrom->next;
-        		if(tracersFrom != NULL){
-        			tracersFrom->prev = NULL;
-				}
-				temp->next = tracers;
-				if(tracers != NULL){
-					tracers->prev = temp;
-				}
-				temp->prev = NULL;
-				tracers = temp;
-			}
+            inbuf = (int*) malloc(7*Nin[0]*sizeof(int));
+            inbufd = (double*) malloc(7*Nin[0]*sizeof(double));
+            CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
+            while(tracersFrom != NULL){
+                tracersFrom->i = IBEG;
+                tracersFrom->x1 = grid->xl[0][IBEG];
+                CellTracerNode* temp = tracersFrom;
+                tracersFrom = tracersFrom->next;
+                if(tracersFrom != NULL){
+                    tracersFrom->prev = NULL;
+                }
+                temp->next = tracers;
+                if(tracers != NULL){
+                    tracers->prev = temp;
+                }
+                temp->prev = NULL;
+                tracers = temp;
+            }
         }
-        
+
         if(Nout[0] > 0){
-        	free(outbuf);
-        	free(outbufd);
-		}
-		if(Nin[0] > 0){
-			free(inbuf);
-			free(inbufd);
-		}
+            free(outbuf);
+            free(outbufd);
+        }
+        if(Nin[0] > 0){
+            free(inbuf);
+            free(inbufd);
+        }
 #endif
 #if INCLUDE_JDIR
         Nout[0] = NtoDown;
@@ -495,11 +496,9 @@ void updateShockFront(Data* d, Grid* grid){
         MPI_Sendrecv(Nout, 1, MPI_INT, nleft, tag1,
                      Nin, 1, MPI_INT, nright, tag1,
                      comm, &status);
-                     
+
         NactiveTracers[0] = NactiveTracers[0] + Nin[0];
 
-        int* outbuf;
-        double* outbufd;
         if(Nout[0] != 0){
             outbuf = (int*) malloc(7*Nout[0]*sizeof(int));
             outbufd = (double*) malloc(7*Nout[0]*sizeof(double));
@@ -507,44 +506,43 @@ void updateShockFront(Data* d, Grid* grid){
             tracersToDown = NULL;
             NtoLeft = 0;
         }
-        int* inbuf;
-        double* inbufd;
+
         if(Nin[0] != 0){
-        	inbuf = (int*) malloc(7*Nin[0]*sizeof(int));
-        	inbufd = (double*) malloc(7*Nin[0]*sizeof(double));
-        	CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
-        	while(tracersFrom != NULL){
-        		tracersFrom->j = JEND;
-        		tracersFrom->x2 = grid->xr[1][JEND];
-        		CellTracerNode* temp = tracersFrom;
-        		tracersFrom = tracersFrom->next;
-        		if(tracersFrom != NULL){
-        			tracersFrom->prev = NULL;
-				}
-				temp->next = tracers;
-				if(tracers != NULL){
-					tracers->prev = temp;
-				}
-				temp->prev = NULL;
-				tracers = temp;
-			}
+            inbuf = (int*) malloc(7*Nin[0]*sizeof(int));
+            inbufd = (double*) malloc(7*Nin[0]*sizeof(double));
+            CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
+            while(tracersFrom != NULL){
+                tracersFrom->j = JEND;
+                tracersFrom->x2 = grid->xr[1][JEND];
+                CellTracerNode* temp = tracersFrom;
+                tracersFrom = tracersFrom->next;
+                if(tracersFrom != NULL){
+                    tracersFrom->prev = NULL;
+                }
+                temp->next = tracers;
+                if(tracers != NULL){
+                    tracers->prev = temp;
+                }
+                temp->prev = NULL;
+                tracers = temp;
+            }
         }
-        
+
         if(Nout[0] > 0){
-        	free(outbuf);
-        	free(outbufd);
-		}
-		if(Nin[0] > 0){
-			free(inbuf);
-			free(inbufd);
-		}
-		
-		Nout[0] = NtoUp;
+            free(outbuf);
+            free(outbufd);
+        }
+        if(Nin[0] > 0){
+            free(inbuf);
+            free(inbufd);
+        }
+
+        Nout[0] = NtoUp;
 
         MPI_Sendrecv(Nout, 1, MPI_INT, nright, tag1,
                      Nin, 1, MPI_INT, nleft, tag1,
                      comm, &status);
-                     
+
         NactiveTracers[0] = NactiveTracers[0] + Nin[0];
 
         if(Nout[0] != 0){
@@ -556,34 +554,34 @@ void updateShockFront(Data* d, Grid* grid){
         }
 
         if(Nin[0] != 0){
-        	inbuf = (int*) malloc(7*Nin[0]*sizeof(int));
-        	inbufd = (double*) malloc(7*Nin[0]*sizeof(double));
-        	CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
-        	while(tracersFrom != NULL){
-        		tracersFrom->j = JBEG;
-        		tracersFrom->x2 = grid->xl[1][JBEG];
-        		CellTracerNode* temp = tracersFrom;
-        		tracersFrom = tracersFrom->next;
-        		if(tracersFrom != NULL){
-        			tracersFrom->prev = NULL;
-				}
-				temp->next = tracers;
-				if(tracers != NULL){
-					tracers->prev = temp;
-				}
-				temp->prev = NULL;
-				tracers = temp;
-			}
+            inbuf = (int*) malloc(7*Nin[0]*sizeof(int));
+            inbufd = (double*) malloc(7*Nin[0]*sizeof(double));
+            CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
+            while(tracersFrom != NULL){
+                tracersFrom->j = JBEG;
+                tracersFrom->x2 = grid->xl[1][JBEG];
+                CellTracerNode* temp = tracersFrom;
+                tracersFrom = tracersFrom->next;
+                if(tracersFrom != NULL){
+                    tracersFrom->prev = NULL;
+                }
+                temp->next = tracers;
+                if(tracers != NULL){
+                    tracers->prev = temp;
+                }
+                temp->prev = NULL;
+                tracers = temp;
+            }
         }
-        
+
         if(Nout[0] > 0){
-        	free(outbuf);
-        	free(outbufd);
-		}
-		if(Nin[0] > 0){
-			free(inbuf);
-			free(inbufd);
-		}
+            free(outbuf);
+            free(outbufd);
+        }
+        if(Nin[0] > 0){
+            free(inbuf);
+            free(inbufd);
+        }
 #endif
 #if INCLUDE_KDIR
         Nout[0] = NtoBack;
@@ -595,11 +593,9 @@ void updateShockFront(Data* d, Grid* grid){
         MPI_Sendrecv(Nout, 1, MPI_INT, nleft, tag1,
                      Nin, 1, MPI_INT, nright, tag1,
                      comm, &status);
-                     
+
         NactiveTracers[0] = NactiveTracers[0] + Nin[0];
 
-        int* outbuf;
-        double* outbufd;
         if(Nout[0] != 0){
             outbuf = (int*) malloc(7*Nout[0]*sizeof(int));
             outbufd = (double*) malloc(7*Nout[0]*sizeof(double));
@@ -607,44 +603,43 @@ void updateShockFront(Data* d, Grid* grid){
             tracersToBack = NULL;
             NtoLeft = 0;
         }
-        int* inbuf;
-        double* inbufd;
+
         if(Nin[0] != 0){
-        	inbuf = (int*) malloc(7*Nin[0]*sizeof(int));
-        	inbufd = (double*) malloc(7*Nin[0]*sizeof(double));
-        	CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
-        	while(tracersFrom != NULL){
-        		tracersFrom-k = KEND;
-        		tracersFrom->x3 = grid->xr[2][KEND];
-        		CellTracerNode* temp = tracersFrom;
-        		tracersFrom = tracersFrom->next;
-        		if(tracersFrom != NULL){
-        			tracersFrom->prev = NULL;
-				}
-				temp->next = tracers;
-				if(tracers != NULL){
-					tracers->prev = temp;
-				}
-				temp->prev = NULL;
-				tracers = temp;
-			}
+            inbuf = (int*) malloc(7*Nin[0]*sizeof(int));
+            inbufd = (double*) malloc(7*Nin[0]*sizeof(double));
+            CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
+            while(tracersFrom != NULL){
+                tracersFrom-k = KEND;
+                tracersFrom->x3 = grid->xr[2][KEND];
+                CellTracerNode* temp = tracersFrom;
+                tracersFrom = tracersFrom->next;
+                if(tracersFrom != NULL){
+                    tracersFrom->prev = NULL;
+                }
+                temp->next = tracers;
+                if(tracers != NULL){
+                    tracers->prev = temp;
+                }
+                temp->prev = NULL;
+                tracers = temp;
+            }
         }
-        
+
         if(Nout[0] > 0){
-        	free(outbuf);
-        	free(outbufd);
-		}
-		if(Nin[0] > 0){
-			free(inbuf);
-			free(inbufd);
-		}
-		
-		Nout[0] = NtoFront;
+            free(outbuf);
+            free(outbufd);
+        }
+        if(Nin[0] > 0){
+            free(inbuf);
+            free(inbufd);
+        }
+
+        Nout[0] = NtoFront;
 
         MPI_Sendrecv(Nout, 1, MPI_INT, nright, tag1,
                      Nin, 1, MPI_INT, nleft, tag1,
                      comm, &status);
-                     
+
         NactiveTracers[0] = NactiveTracers[0] + Nin[0];
 
         if(Nout[0] != 0){
@@ -656,38 +651,183 @@ void updateShockFront(Data* d, Grid* grid){
         }
 
         if(Nin[0] != 0){
-        	inbuf = (int*) malloc(7*Nin[0]*sizeof(int));
-        	inbufd = (double*) malloc(7*Nin[0]*sizeof(double));
-        	CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
-        	while(tracersFrom != NULL){
-        		tracersFrom->k = KBEG;
-        		tracersFrom->x3 = grid->xl[2][KBEG];
-        		CellTracerNode* temp = tracersFrom;
-        		tracersFrom = tracersFrom->next;
-        		if(tracersFrom != NULL){
-        			tracersFrom->prev = NULL;
-				}
-				temp->next = tracers;
-				if(tracers != NULL){
-					tracers->prev = temp;
-				}
-				temp->prev = NULL;
-				tracers = temp;
-			}
+            inbuf = (int*) malloc(7*Nin[0]*sizeof(int));
+            inbufd = (double*) malloc(7*Nin[0]*sizeof(double));
+            CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
+            while(tracersFrom != NULL){
+                tracersFrom->k = KBEG;
+                tracersFrom->x3 = grid->xl[2][KBEG];
+                CellTracerNode* temp = tracersFrom;
+                tracersFrom = tracersFrom->next;
+                if(tracersFrom != NULL){
+                    tracersFrom->prev = NULL;
+                }
+                temp->next = tracers;
+                if(tracers != NULL){
+                    tracers->prev = temp;
+                }
+                temp->prev = NULL;
+                tracers = temp;
+            }
         }
-        
+
         if(Nout[0] > 0){
-        	free(outbuf);
-        	free(outbufd);
-		}
-		if(Nin[0] > 0){
-			free(inbuf);
-			free(inbufd);
-		}
+            free(outbuf);
+            free(outbufd);
+        }
+        if(Nin[0] > 0){
+            free(inbuf);
+            free(inbufd);
+        }
 #endif
     }
-#else
 
+    nprocs = s->size;
+
+    int* sendcounts = (int*) malloc(nprocs*sizeof(int));
+    int* sendcountsd = (int*) malloc(nprocs*sizeof(int));
+    int* sdispls = (int*) malloc(nprocs*sizeof(int));
+    int* sdisplsd = (int*) malloc(nprocs*sizeof(int));
+    int* srelposition = (int*) malloc(nprocs*sizeof(int));
+    int* recvcounts = (int*) malloc(nprocs*sizeof(int));
+    int* recvcountsd = (int*) malloc(nprocs*sizeof(int));
+    int* rdispls = (int*) malloc(nprocs*sizeof(int));
+    int* rdisplsd = (int*) malloc(nprocs*sizeof(int));
+
+    int intDataN = 3;
+    int doubleDataN = 7;
+
+    CellTracerNode* tempTracer = stoppedTracers;
+
+    for(int i = 0; i < nprocs; ++i){
+        sendcounts[i] = 0;
+        sendcountsd[i] = 0;
+        sdispls[i] = 0;
+        sdisplsd[i] = 0;
+        recvcounts[i] = 0;
+        recvcountsd[i] = 0;
+        rdispls[i] = 0;
+        rdisplsd[i] = 0;
+    }
+
+    while(tempTracer != NULL){
+        int trank = tempTracer->rank0;
+        sendcounts[trank] = sendcounts[trank] + intDataN;
+        sendcountsd[trank] = sendcountsd[trank] + doubleDataN;
+        tempTracer = tempTracer->next;
+    }
+
+    MPI_Alltoall(sendcounts, 1, MPI_INT, recvcounts, 1, MPI_INT, comm);
+
+    for(int i = 1; i < nprocs; ++i){
+        sdispls[i] = sdispls[i-1] + sendcounts[i];
+        sdisplsd[i] = sdisplsd[i-1] + sendcounts[i];
+        rdispls[i] = rdispls[i-1] + recvcounts[i];
+        rdisplsd[i] = rdisplsd[i-1] + recvcounts[i];
+    }
+
+    int totalSend = 0;
+    int totalRecv = 0;
+    for(int i = 0; i < nprocs; ++i){
+        //todo division
+        totalSend = totalSend + sendcounts[i]/intDataN;
+        totalRecv = totalRecv + recvcounts[i]/intDataN;
+    }
+
+    int* outbuf;
+    double* outbufd;
+    int* inbuf;
+    double* inbufd;
+
+    if(totalSend > 0){
+        outbuf = (int*) malloc(intDataN*totalSend*sizeof(int));
+        outbufd = (double*) malloc(doubleDataN*totalSend*sizeof(double));
+    }
+    if(totalRecv > 0){
+        inbuf = (int*) malloc(intDataN*totalRecv*sizeof(int));
+        inbufd = (double*) malloc(doubleDataN*totalRecv*sizeof(int));
+    }
+
+    tempTracer = stoppedTracers;
+
+    while(tempTracer != NULL){
+        int rankt = tempTracer->rank0;
+
+        outbuf[sdispls[rankt] + 3*srelposition[rankt]] = tempTracer->i0;
+        outbuf[sdispls[rankt] + 3*srelposition[rankt]+1] = tempTracer->j0;
+        outbuf[sdispls[rankt] + 3*srelposition[rankt]+2] = tempTracer->k0;
+
+        outbufd[sdisplsd[rankt] + 7*srelposition[rankt]] = tempTracer->x1;
+        outbufd[sdisplsd[rankt] + 7*srelposition[rankt]+1] = tempTracer->x2;
+        outbufd[sdisplsd[rankt] + 7*srelposition[rankt]+2] = tempTracer->x3;
+        outbufd[sdisplsd[rankt] + 7*srelposition[rankt]+3] = tempTracer->v1;
+        outbufd[sdisplsd[rankt] + 7*srelposition[rankt]+4] = tempTracer->v2;
+        outbufd[sdisplsd[rankt] + 7*srelposition[rankt]+5] = tempTracer->v3;
+        outbufd[sdisplsd[rankt] + 7*srelposition[rankt]+6] = tempTracer->rho;
+
+        srelposition[rankt] = srelposition[rankt] + 1;
+
+        tempTracer = tempTracer->next;
+    }
+
+    MPI_Alltoallv(outbuf, sendcounts, sdispls, MPI_INT, inbuf, recvcounts, rdispls, MPI_INT, comm);
+    MPI_Alltoallv(outbufd, sendcountsd, sdisplsd, MPI_DOUBLE, inbufd, recvcountsd, rdisplsd, MPI_DOUBLE, comm);
+
+    if(totalSend > 0){
+        free(outbuf);
+        free(outbufd);
+    }
+    if(totalRecv > 0){
+        free(inbuf);
+        free(inbufd);
+    }
+
+    int count = 0;
+    int countd = 0;
+    if(totalRecv > 0){
+        for(int l = 0; l < totalRecv; ++l){
+            int i = inbuf[count];
+            count++;
+            int j = inbuf[count];
+            count++;
+            int k = inbuf[count];
+            count++;
+
+            x1[k][j][i] = inbufd[countd];
+            countd++;
+            x2[k][j][i] = inbufd[countd];
+            countd++;
+            x3[k][j][i] = inbufd[countd];
+            countd++;
+            v1[k][j][i] = inbufd[countd];
+            countd++;
+            v2[k][j][i]= inbufd[countd];
+            countd++;
+            v3[k][j][i] = inbufd[countd];
+            countd++;
+            rho[k][j][i] = inbufd[countd];
+            countd++;
+        }
+    }
+
+    while(stoppedTracers != NULL){
+        CellTracerNode* tempTracer = stoppedTracers->next;
+        free(stoppedTracers);
+        stoppedTracers = tempTracer;
+    }
+
+
+    free(sendcounts);
+    free(sendcountsd);
+    free(sdispls);
+    free(sdisplsd);
+    free(srelposition);
+    free(recvcounts);
+    free(recvcountsd);
+    free(rdispls);
+    free(rdisplsd);
+#else
+#endif
     DOM_LOOP(k,j,i){
         if(!(d->flag[k][j][i] & FLAG_ENTROPY)){
 
@@ -713,104 +853,94 @@ void updateShockFront(Data* d, Grid* grid){
 #if INCLUDE_KDIR
                 pgradz = grid->dx_dl[KDIR][j][i]*(d->Vc[PRS][k+1][j][i] - d->Vc[PRS][k-1][j][i])/(grid->x[2][k+1] - grid->x[2][k-1]);
 #endif
-                traceNextCell(grid, &x, &y, &z, -pgradx, -pgrady, -pgradz, &upstreami, &upstreamj, &upstreamk);
+                traceNextCell(grid, &x, &y, &z, direction*pgradx, direction*pgrady, direction*pgradz, &upstreami, &upstreamj, &upstreamk);
             }
 
-            int downstreami = i;
-            int downstreamj = j;
-            int downstreamk = k;
+            x1 = grid->x[0][upstreami];
+            x2 = grid->x[1][upstreamj];
+            x3 = grid->x[2][upstreamk];
 
-            x = grid->x[0][i];
-            y = grid->x[1][j];
-            z = grid->x[2][k];
+            v1 = d->Vc[VX1][upstreamk][upstreamj][upstreami];
+            v2 = d->Vc[VX2][upstreamk][upstreamj][upstreami];
+            v3 = d->Vc[VX3][upstreamk][upstreamj][upstreami];
 
-            while(!(d->flag[downstreamk][downstreamj][downstreami] & FLAG_ENTROPY)){
-                double pgradx = 0;
-                double pgrady = 0;
-                double pgradz = 0;
+            rho = d->Vc[RHO][upstreamk][upstreamj][upstreami];
+        }
+    }
+}
 
-#if INCLUDE_IDIR
-                pgradx = grid->dx_dl[IDIR][j][i]*(d->Vc[PRS][k][j][i+1] - d->Vc[PRS][k][j][i-1])/(grid->x[0][i+1] - grid->x[0][i-1]);
-#endif
-#if INCLUDE_JDIR
-                pgrady = grid->dx_dl[JDIR][j][i]*(d->Vc[PRS][k][j+1][i] - d->Vc[PRS][k][j-1][i])/(grid->x[1][j+1] - grid->x[1][j-1]);
-#endif
-#if INCLUDE_KDIR
-                pgradz = grid->dx_dl[KDIR][j][i]*(d->Vc[PRS][k+1][j][i] - d->Vc[PRS][k-1][j][i])/(grid->x[2][k+1] - grid->x[2][k-1]);
-#endif
-                traceNextCell(grid, &x, &y, &z, pgradx, pgrady, pgradz, &downstreami, &downstreamj, &downstreamk);
-            }
+void updateShockFront(Data* d, Grid* grid){
+    int i,j,k;
+    printf("evaluating shock\n");
+    FlagShock(d, grid);
+    TOT_LOOP(k,j,i){
+        d->shockWidth[k][j][i] = grid->dx[0][i];
+        d->velocityJump[k][j][i] = 0.0;
+        d->upstreamDensity[k][j][i] = d->Vc[RHO][k][j][i];
+        d->downstreamDensity[k][j][i] = d->Vc[RHO][k][j][i];
+    }
 
-            double Vd1 = d->Vc[VX1][downstreamk][downstreamj][downstreami];
-            double Vd2 = d->Vc[VX2][downstreamk][downstreamj][downstreami];
-            double Vd3 = d->Vc[VX3][downstreamk][downstreamj][downstreami];
 
-            double Vu1 = d->Vc[VX1][upstreamk][upstreamj][upstreami];
-            double Vu2 = d->Vc[VX2][upstreamk][upstreamj][upstreami];
-            double Vu3 = d->Vc[VX3][upstreamk][upstreamj][upstreami];
+    traceShock(d, grid, -1, d->upstreamx1, d->upstreamx2, d->upstreamx3, d->upstreamV1, d->upstreamV2, d->upstreamV3, d->upstreamDensity);
+    traceShock(d, grid, 1, d->downstreamx1, d->downstreamx2, d->downstreamx3, d->downstreamV1, d->downstreamV2, d->downstreamV3, d->downstreamDensity);
 
-            double rhod = d->Vc[RHO][downstreamk][downstreamj][downstreami];
-            double rhou = d->Vc[RHO][upstreamk][upstreamj][upstreami];
-
+    DOM_LOOP(k,j,i){
+        if(!(d->flag[k][j][i] & FLAG_ENTROPY)){
             double xd, yd, zd;
             double xu, yu, zu;
-            double Vdx, Vdy, Vdz;
             double Vux, Vuy, Vuz;
-
-            double width = 1E100;
+            double Vdx, Vdy, Vdz;
 
 #if GEOMETRY == CARTESIAN
-            xd = grid->x[0][downstreami];
-            yd = grid->x[1][downstreamj];
-            zd = grid->x[2][downstreamk];
+            xd = d->downstreamx1[k][j][i];
+            yd = d->downstreamx2[k][j][i];
+            zd = d->downstreamx3[k][j][i];
 
-            xu = grid->x[0][upstreami];
-            yu = grid->x[1][upstreamj];
-            zu = grid->x[2][upstreamk];
+            xu = d->upstreamx1[k][j][i];
+            yu = d->upstreamx2[k][j][i];
+            zu = d->upstreamx3[k][j][i];
 
-            Vdx = Vd1;
-            Vdy = Vd2;
-            Vdz = Vd3;
+            Vdx = d->downstreamV1[k][j][i];
+            Vdy = d->downstreamV2[k][j][i];
+            Vdz = d->downstreamV3[k][j][i];
 
-            Vux = Vu1;
-            Vuy = Vu2;
-            Vuz = Vu3;
+            Vux = d->upstreamV1[k][j][i];
+            Vuy = d->upstreamV2[k][j][i];
+            Vuz = d->upstreamV3[k][j][i];
+            //todo other velocity
 #elif GEOMETRY == CYLINDRICAL
-            xd = grid->x[0][downstreami]*cos(grid->x[2][downstreamk]);
-            yd = grid->x[0][downstreami]*sin(grid->x[2][downstreamk]);
-            zd = grid->x[1][downstreamj];
+            xd = d->downstreamx1[k][j][i]*cos(d->downstreamx3[k][j][i]);
+            yd = d->downstreamx1[k][j][i]*sin(d->downstreamx3[k][j][i]);
+            zd = d->downstreamx2[k][j][i];
 
-            xu = grid->x[0][upstreami]*cos(grid->x[2][upstreamk]);
-            yu = grid->x[0][upstreami]*sin(grid->x[2][upstreamk]);
-            zu = grid->x[1][upstreamj];
+            xu = d->upstreamx1[k][j][i]*cos(d->upstreamx3[k][j][i]);
+            yu = d->upstreamx1[k][j][i]*sin(d->upstreamx3[k][j][i]);
+            zu = d->upstreamx2[k][j][i];
 #elif GEOMETRY == POLAR
-            xd = grid->x[0][downstreami]*cos(grid->x[1][downstreamj]);
-            yd = grid->x[0][downstreami]*sin(grid->x[1][downstreamj]);
-            zd = grid->x[2][downstreamk];
+            xd = d->downstreamx1[k][j][i]*cos(d->downstreamx2[k][j][i]);
+            yd = d->downstreamx1[k][j][i]*sin(d->downstreamx2[k][j][i]);
+            zd = d->downstreamx3[k][j][i];
 
-            xu = grid->x[0][upstreami]*cos(grid->x[1][upstreamj]);
-            yu = grid->x[0][upstreami]*sin(grid->x[1][upstreamj]);
-            zu = grid->x[2][upstreamk];
+            xu = d->upstreamx1[k][j][i]*cos(d->upstreamx2[k][j][i]);
+            yu = d->upstreamx1[k][j][i]*sin(d->upstreamx2[k][j][i]);
+            zu = d->upstreamx3[k][j][i];
 #elif GEOMETRY == SPHERICAL
-            xd = grid->x[0][downstreami]*sin(grid->x[1][downstreamj])*cos(grid->x[2][downstreamk]);
-            yd = grid->x[0][downstreami]*sin(grid->x[1][downstreamj])*sin(grid->x[2][downstreamk]);
-            zd = grid->x[0][downstreami]*cos(grid->x[1][downstreamj]);
+            xd = d->downstreamx1[k][j][i]*sin(d->downstreamx2[k][j][i])*cos(d->downstreamx3[k][j][i]);
+            yd = d->downstreamx1[k][j][i]*sin(d->downstreamx2[k][j][i])*sin(d->downstreamx3[k][j][i]);
+            zd = d->downstreamx1[k][j][i]*cos(d->downstreamx2[k][j][i]);
 
-            xu = grid->x[0][upstreami]*sin(grid->x[1][upstreamj])*cos(grid->x[2][upstreamk]);
-            yu = grid->x[0][upstreami]*sin(grid->x[1][upstreamj])*sin(grid->x[2][upstreamk]);
-            zu = grid->x[0][upstreami]*cos(grid->x[1][upstreamj]);
+            xu = d->upstreamx1[k][j][i]*sin(grid->x[1][upstreamj])*cos(d->upstreamx3[k][j][i]);
+            yu = d->upstreamx1[k][j][i]*sin(d->upstreamx2[k][j][i])*sin(d->upstreamx3[k][j][i]);
+            zu = d->upstreamx1[k][j][i]*cos(d->upstreamx2[k][j][i]);
 #else
 #endif
-            width = sqrt((xd-xu)*(xd-xu) + (yd-yu)*(yd-yu) + (zd-zu)*(zd-zu));
+            double width = sqrt((xd-xu)*(xd-xu) + (yd-yu)*(yd-yu) + (zd-zu)*(zd-zu));
             double V = sqrt((Vdx - Vux)*(Vdx - Vux) + (Vdy - Vuy)*(Vdy - Vuy) + (Vdz - Vuz)*(Vdz - Vuz));
 
             d->shockWidth[k][j][i] = width;
             d->velocityJump[k][j][i] = V;
-            d->upstreamDensity[k][j][i] = rhou;
-            d->downstreamDensity[k][j][i] = rhod;
         }
     }
-#endif
 }
 
 void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double vx, double vy, double vz, int* i, int* j, int* k){
