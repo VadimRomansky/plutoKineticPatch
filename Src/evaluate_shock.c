@@ -418,9 +418,20 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
             tracersToLeft = NULL;
             NtoLeft = 0;
         }
+
         if(Nin[0] != 0){
             inbuf = (int*) malloc(7*Nin[0]*sizeof(int));
             inbufd = (double*) malloc(7*Nin[0]*sizeof(double));
+        }
+
+        MPI_Sendrecv(outbuf, 7*Nout[0], MPI_INT, nleft, tag1,
+                     inbuf, 7*Nin[0], MPI_INT, nright, tag1,
+                     comm, &status);
+        MPI_Sendrecv(outbufd, 7*Nout[0], MPI_DOUBLE, nleft, tag1,
+                     inbufd, 7*Nin[0], MPI_DOUBLE, nright, tag1,
+                     comm, &status);
+
+        if(Nin[0] != 0){
             CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
             while(tracersFrom != NULL){
                 tracersFrom->i = IEND;
@@ -468,6 +479,16 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
         if(Nin[0] != 0){
             inbuf = (int*) malloc(7*Nin[0]*sizeof(int));
             inbufd = (double*) malloc(7*Nin[0]*sizeof(double));
+        }
+
+        MPI_Sendrecv(outbuf, 7*Nout[0], MPI_INT, nright, tag1,
+                     inbuf, 7*Nin[0], MPI_INT, nleft, tag1,
+                     comm, &status);
+        MPI_Sendrecv(outbufd, 7*Nout[0], MPI_DOUBLE, nright, tag1,
+                     inbufd, 7*Nin[0], MPI_DOUBLE, nleft, tag1,
+                     comm, &status);
+
+        if(Nin[0] != 0){
             CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
             while(tracersFrom != NULL){
                 tracersFrom->i = IBEG;
@@ -514,12 +535,22 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
             outbufd = (double*) malloc(7*Nout[0]*sizeof(double));
             putTracerListToArray(tracersToDown, outbuf, outbufd);
             tracersToDown = NULL;
-            NtoLeft = 0;
+            NtoDown = 0;
         }
 
         if(Nin[0] != 0){
             inbuf = (int*) malloc(7*Nin[0]*sizeof(int));
             inbufd = (double*) malloc(7*Nin[0]*sizeof(double));
+        }
+
+        MPI_Sendrecv(outbuf, 7*Nout[0], MPI_INT, nleft, tag1,
+                     inbuf, 7*Nin[0], MPI_INT, nright, tag1,
+                     comm, &status);
+        MPI_Sendrecv(outbufd, 7*Nout[0], MPI_DOUBLE, nleft, tag1,
+                     inbufd, 7*Nin[0], MPI_DOUBLE, nright, tag1,
+                     comm, &status);
+
+        if(Nin[0] != 0){
             CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
             while(tracersFrom != NULL){
                 tracersFrom->j = JEND;
@@ -561,12 +592,22 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
             outbufd = (double*) malloc(7*Nout[0]*sizeof(double));
             putTracerListToArray(tracersToUp, outbuf, outbufd);
             tracersToUp = NULL;
-            NtoRight = 0;
+            NtoUp = 0;
         }
 
         if(Nin[0] != 0){
             inbuf = (int*) malloc(7*Nin[0]*sizeof(int));
             inbufd = (double*) malloc(7*Nin[0]*sizeof(double));
+        }
+
+        MPI_Sendrecv(outbuf, 7*Nout[0], MPI_INT, nright, tag1,
+                     inbuf, 7*Nin[0], MPI_INT, nleft, tag1,
+                     comm, &status);
+        MPI_Sendrecv(outbufd, 7*Nout[0], MPI_DOUBLE, nright, tag1,
+                     inbufd, 7*Nin[0], MPI_DOUBLE, nleft, tag1,
+                     comm, &status);
+
+        if(Nin[0] != 0){
             CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
             while(tracersFrom != NULL){
                 tracersFrom->j = JBEG;
@@ -613,12 +654,22 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
             outbufd = (double*) malloc(7*Nout[0]*sizeof(double));
             putTracerListToArray(tracersToBack, outbuf, outbufd);
             tracersToBack = NULL;
-            NtoLeft = 0;
+            NtoBack = 0;
         }
 
         if(Nin[0] != 0){
             inbuf = (int*) malloc(7*Nin[0]*sizeof(int));
             inbufd = (double*) malloc(7*Nin[0]*sizeof(double));
+        }
+
+        MPI_Sendrecv(outbuf, 7*Nout[0], MPI_INT, nleft, tag1,
+                     inbuf, 7*Nin[0], MPI_INT, nright, tag1,
+                     comm, &status);
+        MPI_Sendrecv(outbufd, 7*Nout[0], MPI_DOUBLE, nleft, tag1,
+                     inbufd, 7*Nin[0], MPI_DOUBLE, nright, tag1,
+                     comm, &status);
+
+        if(Nin[0] != 0){
             CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
             while(tracersFrom != NULL){
                 tracersFrom-k = KEND;
@@ -660,12 +711,22 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
             outbufd = (double*) malloc(7*Nout[0]*sizeof(double));
             putTracerListToArray(tracersToFront, outbuf, outbufd);
             tracersToFront = NULL;
-            NtoRight = 0;
+            NtoFront = 0;
         }
 
         if(Nin[0] != 0){
             inbuf = (int*) malloc(7*Nin[0]*sizeof(int));
             inbufd = (double*) malloc(7*Nin[0]*sizeof(double));
+        }
+
+        MPI_Sendrecv(outbuf, 7*Nout[0], MPI_INT, nright tag1,
+                     inbuf, 7*Nin[0], MPI_INT, nleft, tag1,
+                     comm, &status);
+        MPI_Sendrecv(outbufd, 7*Nout[0], MPI_DOUBLE, nright, tag1,
+                     inbufd, 7*Nin[0], MPI_DOUBLE, nleft, tag1,
+                     comm, &status);
+
+        if(Nin[0] != 0){
             CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
             while(tracersFrom != NULL){
                 tracersFrom->k = KBEG;
@@ -732,6 +793,7 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
     }
 
     MPI_Alltoall(sendcounts, 1, MPI_INT, recvcounts, 1, MPI_INT, comm);
+    MPI_Alltoall(sendcountsd, 1, MPI_INT, recvcountsd, 1, MPI_INT, comm);
 
     for(int i = 1; i < nprocs; ++i){
         sdispls[i] = sdispls[i-1] + sendcounts[i];
@@ -759,7 +821,7 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
     }
     if(totalRecv > 0){
         inbuf = (int*) malloc(intDataN*totalRecv*sizeof(int));
-        inbufd = (double*) malloc(doubleDataN*totalRecv*sizeof(int));
+        inbufd = (double*) malloc(doubleDataN*totalRecv*sizeof(double));
     }
 
     tempTracer = stoppedTracers;
@@ -786,15 +848,6 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
 
     MPI_Alltoallv(outbuf, sendcounts, sdispls, MPI_INT, inbuf, recvcounts, rdispls, MPI_INT, comm);
     MPI_Alltoallv(outbufd, sendcountsd, sdisplsd, MPI_DOUBLE, inbufd, recvcountsd, rdisplsd, MPI_DOUBLE, comm);
-
-    if(totalSend > 0){
-        free(outbuf);
-        free(outbufd);
-    }
-    if(totalRecv > 0){
-        free(inbuf);
-        free(inbufd);
-    }
 
     int count = 0;
     int countd = 0;
@@ -828,6 +881,15 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
         CellTracerNode* tempTracer = stoppedTracers->next;
         free(stoppedTracers);
         stoppedTracers = tempTracer;
+    }
+
+    if(totalSend > 0){
+        free(outbuf);
+        free(outbufd);
+    }
+    if(totalRecv > 0){
+        free(inbuf);
+        free(inbufd);
     }
 
 

@@ -96,10 +96,16 @@ void InitDomain (Data *d, Grid *grid)
 
     int i,j,k;
 
-    double xc = (grid->xend_glob[0] + grid->xbeg_glob[0])/2.0;
-    double yc = (grid->xend_glob[1] + grid->xbeg_glob[1])/2.0;
+    double xc = 0.4*grid->xend_glob[0] + 0.6*grid->xbeg_glob[0];
+    double yc = 0.45*grid->xend_glob[1] + 0.55*grid->xbeg_glob[1];
 
     double rmax = 50.0;
+
+    printf("prs = %d\n", PRS);
+
+    for(int i = 0; i < 5000000; ++i){
+        printf("%d\n",i);
+    }
 
     TOT_LOOP(k,j,i){
         //if(grid->x[0][i] < (grid->xend_glob[0] + grid->xbeg_glob[0])/2.0){
