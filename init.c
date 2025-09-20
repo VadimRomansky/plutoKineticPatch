@@ -103,9 +103,9 @@ void InitDomain (Data *d, Grid *grid)
 
     printf("prs = %d\n", PRS);
 
-    for(int i = 0; i < 5000000; ++i){
+    /*for(int i = 0; i < 5000000; ++i){
         printf("%d\n",i);
-    }
+    }*/
 
     TOT_LOOP(k,j,i){
         //if(grid->x[0][i] < (grid->xend_glob[0] + grid->xbeg_glob[0])/2.0){

@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+#include "definitions.h"
+
 #ifdef PARALLEL
 #include "al_hidden.h"
 #endif
@@ -223,7 +225,7 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
     }
     int a[1];
     a[0] = NactiveTracers[0];
-    MPI_Allreduce(a, NactiveTracers, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(a, NactiveTracers, 1, MPI_INT, MPI_SUM, comm);
 
     while(NactiveTracers[0] > 0){
 #if INCLUDE_IDIR
@@ -239,18 +241,18 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
         NtoFront = 0;
 #endif
         while(tracers != NULL){
-            int upstreami = tracers->i;
-            int upstreamj = tracers->j;
-            int upstreamk = tracers->k;
+            int currenti = tracers->i;
+            int currentj = tracers->j;
+            int currentk = tracers->k;
             double x = tracers->x1;
             double y = tracers->x2;
             double z = tracers->x3;
 
             bool stopped = true;
 
-            while(!(d->flag[upstreamk][upstreamj][upstreami] & FLAG_ENTROPY)){
+            while(!(d->flag[currentk][currentj][currenti] & FLAG_ENTROPY)){
 #if INCLUDE_IDIR
-                if(upstreami < IBEG){
+                if(currenti < IBEG){
                     CellTracerNode* temp = tracersToLeft;
                     tracersToLeft = tracers;
                     tracers = tracers->next;
@@ -266,7 +268,7 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
                     stopped = false;
                     break;
                 }
-                if(upstreami > IEND){
+                if(currenti > IEND){
                     CellTracerNode* temp = tracersToRight;
                     tracersToRight = tracers;
                     tracers = tracers->next;
@@ -284,7 +286,7 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
                 }
 #endif
 #if INCLUDE_JDIR
-                if(upstreamj < JBEG){
+                if(currentj < JBEG){
                     CellTracerNode* temp = tracersToDown;
                     tracersToDown = tracers;
                     tracers = tracers->next;
@@ -300,7 +302,7 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
                     stopped = false;
                     break;
                 }
-                if(upstreamj > JEND){
+                if(currentj > JEND){
                     CellTracerNode* temp = tracersToUp;
                     tracersToUp = tracers;
                     tracers = tracers->next;
@@ -356,26 +358,26 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
                 double pgradz = 0;
 
 #if INCLUDE_IDIR
-                pgradx = grid->dx_dl[IDIR][upstreamj][upstreami]*(d->Vc[PRS][upstreamk][upstreamj][upstreami+1] - d->Vc[PRS][upstreamk][upstreamj][upstreami-1])/(grid->x[0][upstreami+1] - grid->x[0][upstreami-1]);
+                pgradx = grid->dx_dl[IDIR][currentj][currenti]*(d->Vc[PRS][currentk][currentj][currenti+1] - d->Vc[PRS][currentk][currentj][currenti-1])/(grid->x[0][currenti+1] - grid->x[0][currenti-1]);
 #endif
 #if INCLUDE_JDIR
-                pgrady = grid->dx_dl[JDIR][upstreamj][upstreami]*(d->Vc[PRS][upstreamk][upstreamj+1][upstreami] - d->Vc[PRS][upstreamk][upstreamj-1][upstreami])/(grid->x[1][upstreamj+1] - grid->x[1][upstreamj-1]);
+                pgrady = grid->dx_dl[JDIR][currentj][currenti]*(d->Vc[PRS][currentk][currentj+1][currenti] - d->Vc[PRS][currentk][currentj-1][currenti])/(grid->x[1][currentj+1] - grid->x[1][currentj-1]);
 #endif
 #if INCLUDE_KDIR
                 pgradz = grid->dx_dl[KDIR][upstreamj][upstreami]*(d->Vc[PRS][upstreamk+1][upstreamj][upstreami] - d->Vc[PRS][upstreamk-1][upstreamj][upstreami])/(grid->x[2][upstreamk+1] - grid->x[2][upstreamk-1]);
 #endif
-                traceNextCell(grid, &x, &y, &z, direction*pgradx, direction*pgrady, direction*pgradz, &upstreami, &upstreamj, &upstreamk);
+                traceNextCell(grid, &x, &y, &z, direction*pgradx, direction*pgrady, direction*pgradz, &currenti, &currentj, &currentk);
 
-                tracers->i = upstreami;
-                tracers->j = upstreamj;
-                tracers->k = upstreamk;
+                tracers->i = currenti;
+                tracers->j = currentj;
+                tracers->k = currentk;
                 tracers->x1 = x;
                 tracers->x2 = y;
                 tracers->x3 = z;
-                tracers->v1 = d->Vc[VX1][k][j][i];
-                tracers->v2 = d->Vc[VX2][k][j][i];
-                tracers->v3 = d->Vc[VX3][k][j][i];
-                tracers->rho = d->Vc[RHO][k][j][i];
+                tracers->v1 = d->Vc[VX1][currentk][currentj][currenti];
+                tracers->v2 = d->Vc[VX2][currentk][currentj][currenti];
+                tracers->v3 = d->Vc[VX3][currentk][currentj][currenti];
+                tracers->rho = d->Vc[RHO][currentk][currentj][currenti];
             }
             if(stopped){
                 CellTracerNode* temp = stoppedTracers;
@@ -754,6 +756,9 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
             free(inbufd);
         }
 #endif
+
+        a[0] = NactiveTracers[0];
+        MPI_Allreduce(a, NactiveTracers, 1, MPI_INT, MPI_SUM, comm);
     }
 
     nprocs = s->size;
@@ -796,10 +801,10 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
     MPI_Alltoall(sendcountsd, 1, MPI_INT, recvcountsd, 1, MPI_INT, comm);
 
     for(int i = 1; i < nprocs; ++i){
-        sdispls[i] = sdispls[i-1] + sendcounts[i];
-        sdisplsd[i] = sdisplsd[i-1] + sendcounts[i];
-        rdispls[i] = rdispls[i-1] + recvcounts[i];
-        rdisplsd[i] = rdisplsd[i-1] + recvcounts[i];
+        sdispls[i] = sdispls[i-1] + sendcounts[i-1];
+        sdisplsd[i] = sdisplsd[i-1] + sendcountsd[i-1];
+        rdispls[i] = rdispls[i-1] + recvcounts[i-1];
+        rdisplsd[i] = rdisplsd[i-1] + recvcountsd[i-1];
     }
 
     int totalSend = 0;
@@ -829,17 +834,17 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
     while(tempTracer != NULL){
         int rankt = tempTracer->rank0;
 
-        outbuf[sdispls[rankt] + 3*srelposition[rankt]] = tempTracer->i0;
-        outbuf[sdispls[rankt] + 3*srelposition[rankt]+1] = tempTracer->j0;
-        outbuf[sdispls[rankt] + 3*srelposition[rankt]+2] = tempTracer->k0;
+        outbuf[sdispls[rankt] + intDataN*srelposition[rankt]] = tempTracer->i0;
+        outbuf[sdispls[rankt] + intDataN*srelposition[rankt]+1] = tempTracer->j0;
+        outbuf[sdispls[rankt] + intDataN*srelposition[rankt]+2] = tempTracer->k0;
 
-        outbufd[sdisplsd[rankt] + 7*srelposition[rankt]] = tempTracer->x1;
-        outbufd[sdisplsd[rankt] + 7*srelposition[rankt]+1] = tempTracer->x2;
-        outbufd[sdisplsd[rankt] + 7*srelposition[rankt]+2] = tempTracer->x3;
-        outbufd[sdisplsd[rankt] + 7*srelposition[rankt]+3] = tempTracer->v1;
-        outbufd[sdisplsd[rankt] + 7*srelposition[rankt]+4] = tempTracer->v2;
-        outbufd[sdisplsd[rankt] + 7*srelposition[rankt]+5] = tempTracer->v3;
-        outbufd[sdisplsd[rankt] + 7*srelposition[rankt]+6] = tempTracer->rho;
+        outbufd[sdisplsd[rankt] + doubleDataN*srelposition[rankt]] = tempTracer->x1;
+        outbufd[sdisplsd[rankt] + doubleDataN*srelposition[rankt]+1] = tempTracer->x2;
+        outbufd[sdisplsd[rankt] + doubleDataN*srelposition[rankt]+2] = tempTracer->x3;
+        outbufd[sdisplsd[rankt] + doubleDataN*srelposition[rankt]+3] = tempTracer->v1;
+        outbufd[sdisplsd[rankt] + doubleDataN*srelposition[rankt]+4] = tempTracer->v2;
+        outbufd[sdisplsd[rankt] + doubleDataN*srelposition[rankt]+5] = tempTracer->v3;
+        outbufd[sdisplsd[rankt] + doubleDataN*srelposition[rankt]+6] = tempTracer->rho;
 
         srelposition[rankt] = srelposition[rankt] + 1;
 
@@ -903,7 +908,6 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
     free(rdispls);
     free(rdisplsd);
 #else
-#endif
     DOM_LOOP(k,j,i){
         if(!(d->flag[k][j][i] & FLAG_ENTROPY)){
 
@@ -943,17 +947,24 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
             rho[k][j][i] = d->Vc[RHO][upstreamk][upstreamj][upstreami];
         }
     }
+#endif
 }
 
 void updateShockFront(Data* d, Grid* grid){
     int i,j,k;
-    printf("evaluating shock\n");
+    //printf("evaluating shock\n");
     FlagShock(d, grid);
     TOT_LOOP(k,j,i){
         d->shockWidth[k][j][i] = grid->dx[0][i];
         d->velocityJump[k][j][i] = 0.0;
         d->upstreamDensity[k][j][i] = d->Vc[RHO][k][j][i];
         d->downstreamDensity[k][j][i] = d->Vc[RHO][k][j][i];
+        d->downstreamV1[k][j][i] = 0.0;
+        d->downstreamV2[k][j][i] = 0.0;
+        d->downstreamV3[k][j][i] = 0.0;
+        d->upstreamV1[k][j][i] = 0.0;
+        d->upstreamV2[k][j][i] = 0.0;
+        d->upstreamV3[k][j][i] = 0.0;
     }
 
 
