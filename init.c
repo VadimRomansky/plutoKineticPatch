@@ -96,8 +96,24 @@ void InitDomain (Data *d, Grid *grid)
 
     int i,j,k;
 
-    double xc = 0.4*grid->xend_glob[0] + 0.6*grid->xbeg_glob[0];
-    double yc = 0.45*grid->xend_glob[1] + 0.55*grid->xbeg_glob[1];
+    int Nstar = 2;
+
+    double xc[5];
+    double yc[5];
+    xc[0] = 0.4*grid->xend_glob[0] + 0.6*grid->xbeg_glob[0];
+    yc[0] = 0.45*grid->xend_glob[1] + 0.55*grid->xbeg_glob[1];
+
+    xc[1] = 0.55*grid->xend_glob[0] + 0.45*grid->xbeg_glob[0];
+    yc[1] = 0.4*grid->xend_glob[1] + 0.5*grid->xbeg_glob[1];
+
+    xc[2] = 0.2*grid->xend_glob[0] + 0.8*grid->xbeg_glob[0];
+    yc[2] = 0.7*grid->xend_glob[1] + 0.3*grid->xbeg_glob[1];
+
+    xc[3] = 0.7*grid->xend_glob[0] + 0.3*grid->xbeg_glob[0];
+    yc[3] = 0.55*grid->xend_glob[1] + 0.45*grid->xbeg_glob[1];
+
+    xc[4] = 0.35*grid->xend_glob[0] + 0.65*grid->xbeg_glob[0];
+    yc[4] = 0.2*grid->xend_glob[1] + 0.8*grid->xbeg_glob[1];
 
     double rmax = 50.0;
 
@@ -123,10 +139,12 @@ void InitDomain (Data *d, Grid *grid)
             d->Vc[BX2][k][j][i] = 0;
             d->Vc[BX3][k][j][i] = B_amb;
 
-            double r = sqrt((grid->x[0][i] - xc)*(grid->x[0][i] - xc) + (grid->x[1][j] - yc)*(grid->x[1][j] - yc));
+            for(int l = 0; l < Nstar; ++l){
+            double r = sqrt((grid->x[0][i] - xc[l])*(grid->x[0][i] - xc[l]) + (grid->x[1][j] - yc[l])*(grid->x[1][j] - yc[l]));
             if(r < rmax){
                 d->Vc[PRS][k][j][i] = p*T1/T;
                 //d->Vc[VX1][k][j][i] = 0.1;
+            }
             }
 
     }
