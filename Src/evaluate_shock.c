@@ -29,11 +29,14 @@ typedef struct CellTracerNode_{
     double v2;
     double v3;
     double rho;
+    double prevgradx;
+    double prevgrady;
+    double prevgradz;
     struct CellTracerNode_* next;
     struct CellTracerNode_* prev;
 } CellTracerNode;
 
-CellTracerNode* createTracer(int vrank0, int vi0, int vj0, int vk0, double x1v, double x2v, double x3v, int vi, int vj, int vk, double vv1, double vv2, double vv3, double vrho){
+CellTracerNode* createTracer(int vrank0, int vi0, int vj0, int vk0, double x1v, double x2v, double x3v, int vi, int vj, int vk, double vv1, double vv2, double vv3, double vrho, double gradx, double grady, double gradz){
     CellTracerNode* tempNode = (CellTracerNode*) malloc(sizeof(CellTracerNode));
     CheckNanOrInfinity(x1v, "x1 = NaN\n");
     CheckNanOrInfinity(x2v, "x2 = NaN\n");
@@ -56,13 +59,16 @@ CellTracerNode* createTracer(int vrank0, int vi0, int vj0, int vk0, double x1v, 
     tempNode->v2 = vv2;
     tempNode->v3 = vv3;
     tempNode->rho = vrho;
+    tempNode->prevgradx = gradx;
+    tempNode->prevgrady = grady;
+    tempNode->prevgradz = gradz;
     tempNode->next = NULL;
     tempNode->prev = NULL;
     return tempNode;
 }
 
-CellTracerNode* addElementAfter(CellTracerNode* curNode, int vrank0, int vi0, int vj0, int vk0, double x1v, double x2v, double x3v, int vi, int vj, int vk, double vv1, double vv2, double vv3, double vrho){
-    CellTracerNode* tempNode = createTracer(vrank0, vi0, vj0, vk0, x1v, x2v, x3v, vi, vj, vk, vv1, vv2, vv3, vrho);
+CellTracerNode* addElementAfter(CellTracerNode* curNode, int vrank0, int vi0, int vj0, int vk0, double x1v, double x2v, double x3v, int vi, int vj, int vk, double vv1, double vv2, double vv3, double vrho, double gradx, double grady, double gradz){
+    CellTracerNode* tempNode = createTracer(vrank0, vi0, vj0, vk0, x1v, x2v, x3v, vi, vj, vk, vv1, vv2, vv3, vrho, gradx, grady, gradz);
     tempNode->next = curNode->next;
     if(curNode->next != NULL){
         curNode->prev = tempNode;
@@ -104,6 +110,12 @@ void putTracerListToArray(CellTracerNode* tracersList, int* outbuf, double* outb
         outbufd[countd] = tracersList->v3;
         countd++;
         outbufd[countd] = tracersList->rho;
+        countd++;
+        outbufd[countd] = tracersList->prevgradx;
+        countd++;
+        outbufd[countd] = tracersList->prevgrady;
+        countd++;
+        outbufd[countd] = tracersList->prevgradz;
         countd++;
 
         CellTracerNode* temp = tracersList;
@@ -148,8 +160,14 @@ CellTracerNode* putArrayToTracerList(int* inbuf, double* inbufd, int Nin){
 		countd++;
 		double rho = inbufd[countd];
 		countd++;
+        double gradx = inbufd[countd];
+        countd++;
+        double grady = inbuf[countd];
+        countd++;
+        double gradz = inbufd[countd];
+        countd++;
 		
-		CellTracerNode* temp = createTracer(rank0, i0, j0, k0, x, y, z, i, j, k, vx, vy, vz, rho);
+        CellTracerNode* temp = createTracer(rank0, i0, j0, k0, x, y, z, i, j, k, vx, vy, vz, rho, gradx, grady, gradz);
 		
 		temp->next = list;
 		if(list != NULL){
@@ -212,7 +230,7 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
     NactiveTracers[0] = 0;
     DOM_LOOP(k,j,i){
         if(!(d->flag[k][j][i] & FLAG_ENTROPY)){
-            CellTracerNode* tempTracer = createTracer(globrank, i,j,k, grid->x[0][i], grid->x[1][j], grid->x[2][k], i,j,k, 0.0, 0.0, 0.0, d->Vc[RHO][k][j][i]);
+            CellTracerNode* tempTracer = createTracer(globrank, i,j,k, grid->x[0][i], grid->x[1][j], grid->x[2][k], i,j,k, 0.0, 0.0, 0.0, d->Vc[RHO][k][j][i], 0, 0, 0);
             if(tracers == NULL){
                 tracers = tempTracer;
             } else {
@@ -250,7 +268,11 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
 
             bool stopped = true;
 
+            int countn = 0;
+
             while(!(d->flag[currentk][currentj][currenti] & FLAG_ENTROPY)){
+                countn++;
+                //printf("n traced cells = %d\n", countn);
 #if INCLUDE_IDIR
                 if(currenti < IBEG){
                     CellTracerNode* temp = tracersToLeft;
@@ -366,6 +388,13 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
 #if INCLUDE_KDIR
                 pgradz = grid->dx_dl[KDIR][upstreamj][upstreami]*(d->Vc[PRS][upstreamk+1][upstreamj][upstreami] - d->Vc[PRS][upstreamk-1][upstreamj][upstreami])/(grid->x[2][upstreamk+1] - grid->x[2][upstreamk-1]);
 #endif
+                double scalarmult = (tracers->prevgradx*pgradx + tracers->prevgrady*pgrady + tracers->prevgradz*pgradz);
+                if(scalarmult < 0){
+                    break;
+                }
+                tracers->prevgradx = pgradx;
+                tracers->prevgrady = pgrady;
+                tracers->prevgradz = pgradz;
                 traceNextCell(grid, &x, &y, &z, direction*pgradx, direction*pgrady, direction*pgradz, &currenti, &currentj, &currentk);
 
                 tracers->i = currenti;
@@ -399,6 +428,9 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
         int* inbuf;
         double* inbufd;
 
+        int intBufCount = 7;
+        int doubleBufCount = 10;
+
 #if INCLUDE_IDIR
         Nout[0] = NtoLeft;
         Nin[0] = 0;
@@ -414,23 +446,23 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
         NactiveTracers[0] = NactiveTracers[0] + Nin[0];
 
         if(Nout[0] != 0){
-            outbuf = (int*) malloc(7*Nout[0]*sizeof(int));
-            outbufd = (double*) malloc(7*Nout[0]*sizeof(double));
+            outbuf = (int*) malloc(intBufCount*Nout[0]*sizeof(int));
+            outbufd = (double*) malloc(doubleBufCount*Nout[0]*sizeof(double));
             putTracerListToArray(tracersToLeft, outbuf, outbufd);
             tracersToLeft = NULL;
             NtoLeft = 0;
         }
 
         if(Nin[0] != 0){
-            inbuf = (int*) malloc(7*Nin[0]*sizeof(int));
-            inbufd = (double*) malloc(7*Nin[0]*sizeof(double));
+            inbuf = (int*) malloc(intBufCount*Nin[0]*sizeof(int));
+            inbufd = (double*) malloc(doubleBufCount*Nin[0]*sizeof(double));
         }
 
-        MPI_Sendrecv(outbuf, 7*Nout[0], MPI_INT, nleft, tag1,
-                     inbuf, 7*Nin[0], MPI_INT, nright, tag1,
+        MPI_Sendrecv(outbuf, intBufCount*Nout[0], MPI_INT, nleft, tag1,
+                     inbuf, intBufCount*Nin[0], MPI_INT, nright, tag1,
                      comm, &status);
-        MPI_Sendrecv(outbufd, 7*Nout[0], MPI_DOUBLE, nleft, tag1,
-                     inbufd, 7*Nin[0], MPI_DOUBLE, nright, tag1,
+        MPI_Sendrecv(outbufd, doubleBufCount*Nout[0], MPI_DOUBLE, nleft, tag1,
+                     inbufd, doubleBufCount*Nin[0], MPI_DOUBLE, nright, tag1,
                      comm, &status);
 
         if(Nin[0] != 0){
@@ -471,23 +503,23 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
         NactiveTracers[0] = NactiveTracers[0] + Nin[0];
 
         if(Nout[0] != 0){
-            outbuf = (int*) malloc(7*Nout[0]*sizeof(int));
-            outbufd = (double*) malloc(7*Nout[0]*sizeof(double));
+            outbuf = (int*) malloc(intBufCount*Nout[0]*sizeof(int));
+            outbufd = (double*) malloc(doubleBufCount*Nout[0]*sizeof(double));
             putTracerListToArray(tracersToRight, outbuf, outbufd);
             tracersToRight = NULL;
             NtoRight = 0;
         }
 
         if(Nin[0] != 0){
-            inbuf = (int*) malloc(7*Nin[0]*sizeof(int));
-            inbufd = (double*) malloc(7*Nin[0]*sizeof(double));
+            inbuf = (int*) malloc(intBufCount*Nin[0]*sizeof(int));
+            inbufd = (double*) malloc(doubleBufCount*Nin[0]*sizeof(double));
         }
 
-        MPI_Sendrecv(outbuf, 7*Nout[0], MPI_INT, nright, tag1,
-                     inbuf, 7*Nin[0], MPI_INT, nleft, tag1,
+        MPI_Sendrecv(outbuf, intBufCount*Nout[0], MPI_INT, nright, tag1,
+                     inbuf, intBufCount*Nin[0], MPI_INT, nleft, tag1,
                      comm, &status);
-        MPI_Sendrecv(outbufd, 7*Nout[0], MPI_DOUBLE, nright, tag1,
-                     inbufd, 7*Nin[0], MPI_DOUBLE, nleft, tag1,
+        MPI_Sendrecv(outbufd, doubleBufCount*Nout[0], MPI_DOUBLE, nright, tag1,
+                     inbufd, doubleBufCount*Nin[0], MPI_DOUBLE, nleft, tag1,
                      comm, &status);
 
         if(Nin[0] != 0){
@@ -533,23 +565,23 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
         NactiveTracers[0] = NactiveTracers[0] + Nin[0];
 
         if(Nout[0] != 0){
-            outbuf = (int*) malloc(7*Nout[0]*sizeof(int));
-            outbufd = (double*) malloc(7*Nout[0]*sizeof(double));
+            outbuf = (int*) malloc(intBufCount*Nout[0]*sizeof(int));
+            outbufd = (double*) malloc(doubleBufCount*Nout[0]*sizeof(double));
             putTracerListToArray(tracersToDown, outbuf, outbufd);
             tracersToDown = NULL;
             NtoDown = 0;
         }
 
         if(Nin[0] != 0){
-            inbuf = (int*) malloc(7*Nin[0]*sizeof(int));
-            inbufd = (double*) malloc(7*Nin[0]*sizeof(double));
+            inbuf = (int*) malloc(intBufCount*Nin[0]*sizeof(int));
+            inbufd = (double*) malloc(doubleBufCount*Nin[0]*sizeof(double));
         }
 
-        MPI_Sendrecv(outbuf, 7*Nout[0], MPI_INT, nleft, tag1,
-                     inbuf, 7*Nin[0], MPI_INT, nright, tag1,
+        MPI_Sendrecv(outbuf, intBufCount*Nout[0], MPI_INT, nleft, tag1,
+                     inbuf, intBufCount*Nin[0], MPI_INT, nright, tag1,
                      comm, &status);
-        MPI_Sendrecv(outbufd, 7*Nout[0], MPI_DOUBLE, nleft, tag1,
-                     inbufd, 7*Nin[0], MPI_DOUBLE, nright, tag1,
+        MPI_Sendrecv(outbufd, doubleBufCount*Nout[0], MPI_DOUBLE, nleft, tag1,
+                     inbufd, doubleBufCount*Nin[0], MPI_DOUBLE, nright, tag1,
                      comm, &status);
 
         if(Nin[0] != 0){
@@ -590,23 +622,23 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
         NactiveTracers[0] = NactiveTracers[0] + Nin[0];
 
         if(Nout[0] != 0){
-            outbuf = (int*) malloc(7*Nout[0]*sizeof(int));
-            outbufd = (double*) malloc(7*Nout[0]*sizeof(double));
+            outbuf = (int*) malloc(intBufCount*Nout[0]*sizeof(int));
+            outbufd = (double*) malloc(doubleBufCount*Nout[0]*sizeof(double));
             putTracerListToArray(tracersToUp, outbuf, outbufd);
             tracersToUp = NULL;
             NtoUp = 0;
         }
 
         if(Nin[0] != 0){
-            inbuf = (int*) malloc(7*Nin[0]*sizeof(int));
-            inbufd = (double*) malloc(7*Nin[0]*sizeof(double));
+            inbuf = (int*) malloc(intBufCount*Nin[0]*sizeof(int));
+            inbufd = (double*) malloc(doubleBufCount*Nin[0]*sizeof(double));
         }
 
-        MPI_Sendrecv(outbuf, 7*Nout[0], MPI_INT, nright, tag1,
-                     inbuf, 7*Nin[0], MPI_INT, nleft, tag1,
+        MPI_Sendrecv(outbuf, intBufCount*Nout[0], MPI_INT, nright, tag1,
+                     inbuf, intBufCount*Nin[0], MPI_INT, nleft, tag1,
                      comm, &status);
-        MPI_Sendrecv(outbufd, 7*Nout[0], MPI_DOUBLE, nright, tag1,
-                     inbufd, 7*Nin[0], MPI_DOUBLE, nleft, tag1,
+        MPI_Sendrecv(outbufd, doubleBufCount*Nout[0], MPI_DOUBLE, nright, tag1,
+                     inbufd, doubleBufCount*Nin[0], MPI_DOUBLE, nleft, tag1,
                      comm, &status);
 
         if(Nin[0] != 0){
@@ -652,23 +684,23 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
         NactiveTracers[0] = NactiveTracers[0] + Nin[0];
 
         if(Nout[0] != 0){
-            outbuf = (int*) malloc(7*Nout[0]*sizeof(int));
-            outbufd = (double*) malloc(7*Nout[0]*sizeof(double));
+            outbuf = (int*) malloc(intBufCount*Nout[0]*sizeof(int));
+            outbufd = (double*) malloc(doubleBufCount*Nout[0]*sizeof(double));
             putTracerListToArray(tracersToBack, outbuf, outbufd);
             tracersToBack = NULL;
             NtoBack = 0;
         }
 
         if(Nin[0] != 0){
-            inbuf = (int*) malloc(7*Nin[0]*sizeof(int));
-            inbufd = (double*) malloc(7*Nin[0]*sizeof(double));
+            inbuf = (int*) malloc(intBufCount*Nin[0]*sizeof(int));
+            inbufd = (double*) malloc(doubleBufCount*Nin[0]*sizeof(double));
         }
 
-        MPI_Sendrecv(outbuf, 7*Nout[0], MPI_INT, nleft, tag1,
-                     inbuf, 7*Nin[0], MPI_INT, nright, tag1,
+        MPI_Sendrecv(outbuf, intBufCount*Nout[0], MPI_INT, nleft, tag1,
+                     inbuf, intBufCount*Nin[0], MPI_INT, nright, tag1,
                      comm, &status);
-        MPI_Sendrecv(outbufd, 7*Nout[0], MPI_DOUBLE, nleft, tag1,
-                     inbufd, 7*Nin[0], MPI_DOUBLE, nright, tag1,
+        MPI_Sendrecv(outbufd, doubleBufCount*Nout[0], MPI_DOUBLE, nleft, tag1,
+                     inbufd, doubleBufCount*Nin[0], MPI_DOUBLE, nright, tag1,
                      comm, &status);
 
         if(Nin[0] != 0){
@@ -709,23 +741,23 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
         NactiveTracers[0] = NactiveTracers[0] + Nin[0];
 
         if(Nout[0] != 0){
-            outbuf = (int*) malloc(7*Nout[0]*sizeof(int));
-            outbufd = (double*) malloc(7*Nout[0]*sizeof(double));
+            outbuf = (int*) malloc(intBufCount*Nout[0]*sizeof(int));
+            outbufd = (double*) malloc(doubleBufCount*Nout[0]*sizeof(double));
             putTracerListToArray(tracersToFront, outbuf, outbufd);
             tracersToFront = NULL;
             NtoFront = 0;
         }
 
         if(Nin[0] != 0){
-            inbuf = (int*) malloc(7*Nin[0]*sizeof(int));
-            inbufd = (double*) malloc(7*Nin[0]*sizeof(double));
+            inbuf = (int*) malloc(intBufCount*Nin[0]*sizeof(int));
+            inbufd = (double*) malloc(doubleBufCount*Nin[0]*sizeof(double));
         }
 
-        MPI_Sendrecv(outbuf, 7*Nout[0], MPI_INT, nright tag1,
-                     inbuf, 7*Nin[0], MPI_INT, nleft, tag1,
+        MPI_Sendrecv(outbuf, intBufCount*Nout[0], MPI_INT, nright tag1,
+                     inbuf, intBufCount*Nin[0], MPI_INT, nleft, tag1,
                      comm, &status);
-        MPI_Sendrecv(outbufd, 7*Nout[0], MPI_DOUBLE, nright, tag1,
-                     inbufd, 7*Nin[0], MPI_DOUBLE, nleft, tag1,
+        MPI_Sendrecv(outbufd, doubleBufCount*Nout[0], MPI_DOUBLE, nright, tag1,
+                     inbufd, doubleBufCount*Nin[0], MPI_DOUBLE, nleft, tag1,
                      comm, &status);
 
         if(Nin[0] != 0){
@@ -919,7 +951,15 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
             double y = grid->x[1][j];
             double z = grid->x[2][k];
 
+            double prevgradx = 0;
+            double prevgrady = 0;
+            double prevgradz = 0;
+
+            int count = 0;
+
             while(!(d->flag[upstreamk][upstreamj][upstreami] & FLAG_ENTROPY)){
+                count++;
+                //printf("n traced cell = %d\n", count);
                 double pgradx = 0;
                 double pgrady = 0;
                 double pgradz = 0;
@@ -933,6 +973,13 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
 #if INCLUDE_KDIR
                 pgradz = grid->dx_dl[KDIR][upstreamj][upstreami]*(d->Vc[PRS][upstreamk+1][upstreamj][upstreami] - d->Vc[PRS][upstreamk-1][upstreamj][upstreami])/(grid->x[2][upstreamk+1] - grid->x[2][upstreamk-1]);
 #endif
+                double scalarmult = (prevgradx*pgradx + prevgrady*pgrady + prevgradz*pgradz);
+                if(scalarmult < 0){
+                    break;
+                }
+                prevgradx = pgradx;
+                prevgrady = pgrady;
+                prevgradz = pgradz;
                 traceNextCell(grid, &x, &y, &z, direction*pgradx, direction*pgrady, direction*pgradz, &upstreami, &upstreamj, &upstreamk);
             }
 
@@ -1128,13 +1175,33 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double vx, do
     double dy;
     if(vx > 0){
         dx = (rx - *x1)/grid->dx_dl[IDIR][*j][*i];
+        if(dx == 0){
+            *i = *i + 1;
+            traceNextCell(grid, x1, x2, x3, vx, vy, vz, i, j, k);
+            return;
+        }
     } else {
         dx = (*x1 - lx)/grid->dx_dl[IDIR][*j][*i];
+        if(dx == 0){
+            *i = *i - 1;
+            traceNextCell(grid, x1, x2, x3, vx, vy, vz, i, j, k);
+            return;
+        }
     }
     if(vy > 0){
         dy = (ry - *x2)/grid->dx_dl[JDIR][*j][*i];
+        if(dy == 0){
+            *j = *j + 1;
+            traceNextCell(grid, x1, x2, x3, vx, vy, vz, i, j, k);
+            return;
+        }
     } else {
         dy = (*x2 - ly)/grid->dx_dl[JDIR][*j][*i];
+        if(dy == 0){
+            *j = *j + 1;
+            traceNextCell(grid, x1, x2, x3, vx, vy, vz, i, j, k);
+            return;
+        }
     }
 
     if(fabs(dx*vy) > fabs(dy*vx)){

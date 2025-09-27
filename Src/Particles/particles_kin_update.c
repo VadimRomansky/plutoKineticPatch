@@ -146,6 +146,8 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
     double Dr_uD = 1.e-18;
     Dts->Dr_uD = Dr_uD;
 
+    //return;
+
     //printf("particles kin update\n");
 #ifdef PARLLEL
     MPI_Barrier(MPI_COMM_WORLD);

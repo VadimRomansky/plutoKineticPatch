@@ -23,6 +23,7 @@ void ComputeUserVar (const Data *d, Grid *grid)
   double ***rho;
   double ***prs;
   double ***Vjump;
+  double ***Comp;
   //double ***Vdx;
   //double ***Vux;
   //double ***Vdy;
@@ -43,6 +44,7 @@ void ComputeUserVar (const Data *d, Grid *grid)
   Pkin = GetUserVar("Pkin");
 #endif
   Vjump = GetUserVar("Vjump");
+  Comp = GetUserVar("Comp");
   //Vdx = GetUserVar("Vdx");
   //Vux = GetUserVar("Vux");
   //Vdy = GetUserVar("Vdy");
@@ -67,6 +69,7 @@ void ComputeUserVar (const Data *d, Grid *grid)
           Shock[k][j][i] = 1.0;
       }
       Vjump[k][j][i] = d->velocityJump[k][j][i];
+      Comp[k][j][i] = d->downstreamDensity[k][j][i]/d->upstreamDensity[k][j][i];
       //Vdx[k][j][i] = d->downstreamV1[k][j][i];
       //Vux[k][j][i] = d->upstreamV1[k][j][i];
       //Vdy[k][j][i] = d->downstreamV2[k][j][i];

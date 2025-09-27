@@ -96,7 +96,7 @@ void InitDomain (Data *d, Grid *grid)
 
     int i,j,k;
 
-    int Nstar = 2;
+    int Nstar = 5;
 
     double xc[5];
     double yc[5];
