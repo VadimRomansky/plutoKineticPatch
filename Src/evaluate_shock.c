@@ -32,11 +32,12 @@ typedef struct CellTracerNode_{
     double prevgradx;
     double prevgrady;
     double prevgradz;
+    int N;
     struct CellTracerNode_* next;
     struct CellTracerNode_* prev;
 } CellTracerNode;
 
-CellTracerNode* createTracer(int vrank0, int vi0, int vj0, int vk0, double x1v, double x2v, double x3v, int vi, int vj, int vk, double vv1, double vv2, double vv3, double vrho, double gradx, double grady, double gradz){
+CellTracerNode* createTracer(int vrank0, int vi0, int vj0, int vk0, double x1v, double x2v, double x3v, int vi, int vj, int vk, double vv1, double vv2, double vv3, double vrho, double gradx, double grady, double gradz, int vN){
     CellTracerNode* tempNode = (CellTracerNode*) malloc(sizeof(CellTracerNode));
     CheckNanOrInfinity(x1v, "x1 = NaN\n");
     CheckNanOrInfinity(x2v, "x2 = NaN\n");
@@ -62,13 +63,14 @@ CellTracerNode* createTracer(int vrank0, int vi0, int vj0, int vk0, double x1v, 
     tempNode->prevgradx = gradx;
     tempNode->prevgrady = grady;
     tempNode->prevgradz = gradz;
+    tempNode->N = vN;
     tempNode->next = NULL;
     tempNode->prev = NULL;
     return tempNode;
 }
 
-CellTracerNode* addElementAfter(CellTracerNode* curNode, int vrank0, int vi0, int vj0, int vk0, double x1v, double x2v, double x3v, int vi, int vj, int vk, double vv1, double vv2, double vv3, double vrho, double gradx, double grady, double gradz){
-    CellTracerNode* tempNode = createTracer(vrank0, vi0, vj0, vk0, x1v, x2v, x3v, vi, vj, vk, vv1, vv2, vv3, vrho, gradx, grady, gradz);
+CellTracerNode* addElementAfter(CellTracerNode* curNode, int vrank0, int vi0, int vj0, int vk0, double x1v, double x2v, double x3v, int vi, int vj, int vk, double vv1, double vv2, double vv3, double vrho, double gradx, double grady, double gradz, int N){
+    CellTracerNode* tempNode = createTracer(vrank0, vi0, vj0, vk0, x1v, x2v, x3v, vi, vj, vk, vv1, vv2, vv3, vrho, gradx, grady, gradz, N);
     tempNode->next = curNode->next;
     if(curNode->next != NULL){
         curNode->prev = tempNode;
@@ -95,6 +97,8 @@ void putTracerListToArray(CellTracerNode* tracersList, int* outbuf, double* outb
         outbuf[count] = tracersList->j;
         count++;
         outbuf[count] = tracersList->k;
+        count++;
+        outbuf[count] = tracersList->N;
         count++;
 
         outbufd[countd] = tracersList->x1;
@@ -146,6 +150,8 @@ CellTracerNode* putArrayToTracerList(int* inbuf, double* inbufd, int Nin){
 		count++;
 		int k = inbuf[count];
 		count++;
+        int N = inbuf[count];
+        count++;
 		double x = inbufd[countd];
 		countd++;
 		double y = inbufd[countd];
@@ -167,7 +173,7 @@ CellTracerNode* putArrayToTracerList(int* inbuf, double* inbufd, int Nin){
         double gradz = inbufd[countd];
         countd++;
 		
-        CellTracerNode* temp = createTracer(rank0, i0, j0, k0, x, y, z, i, j, k, vx, vy, vz, rho, gradx, grady, gradz);
+        CellTracerNode* temp = createTracer(rank0, i0, j0, k0, x, y, z, i, j, k, vx, vy, vz, rho, gradx, grady, gradz, N);
 		
 		temp->next = list;
 		if(list != NULL){
@@ -178,18 +184,9 @@ CellTracerNode* putArrayToTracerList(int* inbuf, double* inbufd, int Nin){
 	return list;
 }
 
-void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, double*** x3, double*** v1, double*** v2, double*** v3, double*** rho){
-    if((direction != 1) && (direction != -1)){
-        printf("direction for tracing must be 1 or -1\n");
-        printLog("direction for tracing must be 1 or -1\n");
-        QUIT_PLUTO(0);
-    }
-
-    int i, j, k;
-
-#ifdef PARALLEL
-
+void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double*** x2, double*** x3, double*** v1, double*** v2, double*** v3, double*** rho){
     register int nd;
+    int i, j, k;
     int myrank, nprocs;
     int globrank;
     int ndim, gp, nleft, nright, tag1, tag2;
@@ -230,7 +227,7 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
     NactiveTracers[0] = 0;
     DOM_LOOP(k,j,i){
         if(!(d->flag[k][j][i] & FLAG_ENTROPY)){
-            CellTracerNode* tempTracer = createTracer(globrank, i,j,k, grid->x[0][i], grid->x[1][j], grid->x[2][k], i,j,k, 0.0, 0.0, 0.0, d->Vc[RHO][k][j][i], 0, 0, 0);
+            CellTracerNode* tempTracer = createTracer(globrank, i,j,k, grid->x[0][i], grid->x[1][j], grid->x[2][k], i,j,k, 0.0, 0.0, 0.0, d->Vc[RHO][k][j][i], 0, 0, 0, 0);
             if(tracers == NULL){
                 tracers = tempTracer;
             } else {
@@ -272,7 +269,10 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
 
             while(!(d->flag[currentk][currentj][currenti] & FLAG_ENTROPY)){
                 countn++;
-                //printf("n traced cells = %d\n", countn);
+                if(tracers->N > 10){
+                    printf("n traced cells = %d, x = %g, y = %g, z = %g, prevgradx = %g, prevgrady = %g, prevgradz = %g\n", tracers->N, tracers->x1, tracers->x2, tracers->x3, tracers->prevgradx, tracers->prevgrady, tracers->prevgradz);
+                }
+                tracers->N = tracers->N + 1;
 #if INCLUDE_IDIR
                 if(currenti < IBEG){
                     CellTracerNode* temp = tracersToLeft;
@@ -428,7 +428,7 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
         int* inbuf;
         double* inbufd;
 
-        int intBufCount = 7;
+        int intBufCount = 8;
         int doubleBufCount = 10;
 
 #if INCLUDE_IDIR
@@ -939,6 +939,19 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
     free(recvcountsd);
     free(rdispls);
     free(rdisplsd);
+}
+
+void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, double*** x3, double*** v1, double*** v2, double*** v3, double*** rho){
+    if((direction != 1) && (direction != -1)){
+        printf("direction for tracing must be 1 or -1\n");
+        printLog("direction for tracing must be 1 or -1\n");
+        QUIT_PLUTO(0);
+    }
+
+    int i, j, k;
+
+#ifdef PARALLEL
+    traceShockParallel(d, grid, direction, x1, x2, x3, v1, v2, v3, rho);
 #else
     DOM_LOOP(k,j,i){
         if(!(d->flag[k][j][i] & FLAG_ENTROPY)){
