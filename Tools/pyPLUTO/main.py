@@ -28,6 +28,8 @@ from plot_Pkin import plot_Pkin
 from plot_Pkin_1d import plot_Pkin_1d
 from plot_Pkin_animated import plot_Pkin_animated
 from plot_Pkin_animated_1d import plot_Pkin_animated_1d
+from plot_compression import plot_compression
+from plot_compression_animated import plot_compression_animated
 
 from plot_density import plot_density
 from plot_density_animated import plot_density_animated
@@ -95,6 +97,10 @@ from plot_temperature_window import plot_temperature_window
 
 from plot_shock import plot_shock
 from plot_shock_animated import plot_shock_animated
+from plot_vdx import plot_vdx
+from plot_vdx_animated import plot_vdx_animated
+from plot_vdy import plot_vdy
+from plot_vdy_animated import plot_vdy_animated
 
 from plot_velocity import plot_velocity
 from plot_velocity_1d import plot_velocity_1d
@@ -128,6 +134,10 @@ from plot_profile_animated_window import plot_profile_animated_window
 from plot_profile_window import plot_profile_window
 from plot_vjump import plot_vjump
 from plot_vjump_animated import plot_vjump_animated
+from plot_vux import plot_vux
+from plot_vux_animated import plot_vux_animated
+from plot_vuy import plot_vuy
+from plot_vuy_animated import plot_vuy_animated
 from write_B_to_file import write_B_to_file
 from write_density_to_file import write_density_to_file
 #from write_temperature_to_file import write_temperature_to_file
@@ -192,9 +202,9 @@ plot_density_animated(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, dat
 
 ######## pressure
 
-plot_pressure(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, transponse = True, out_dir = out_dir)
+plot_pressure(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, out_dir = out_dir)
 #plot_pressure_window(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, 0.0, 1E19, 0.0, 6E19, datatype, transponse = True, out_dir = out_dir)
-plot_pressure_animated(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, transponse = True, out_dir = out_dir)
+plot_pressure_animated(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, out_dir = out_dir)
 #plot_pressure_animated_window(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, 0.1E19, 0.7E19, -0.3E19, 0.3E19, datatype, out_dir = out_dir)
 
 #plot_pressure_1d(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, axis = 2, point1 = 0.0, out_dir = out_dir)
@@ -227,8 +237,8 @@ plot_pressure_animated(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, da
 #plot_entropy_window(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, 0.0, 1E19, 0.0, 6E19, datatype, transponse = True, out_dir = out_dir)
 
 ########### shock
-#plot_shock(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, transponse = True, out_dir = out_dir)
-#plot_shock_animated(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, transponse = True, out_dir = out_dir)
+plot_shock(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, transponse = True, out_dir = out_dir)
+plot_shock_animated(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, transponse = True, out_dir = out_dir)
 
 ########### gamma
 
@@ -290,6 +300,21 @@ plot_velocity_animated(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, da
 
 plot_vjump(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, transponse = True, out_dir = w_dir)
 plot_vjump_animated(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, transponse = True, out_dir = w_dir)
+
+plot_compression(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, transponse = True, out_dir = w_dir)
+plot_compression_animated(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, transponse = True, out_dir = w_dir)
+
+#plot_vdx(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, transponse = True, out_dir = w_dir)
+#plot_vdx_animated(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, transponse = True, out_dir = w_dir)
+
+#plot_vux(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, transponse = True, out_dir = w_dir)
+#plot_vux_animated(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, transponse = True, out_dir = w_dir)
+
+#plot_vdy(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, transponse = True, out_dir = w_dir)
+#plot_vdy_animated(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, transponse = True, out_dir = w_dir)
+
+#plot_vuy(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, transponse = True, out_dir = w_dir)
+#plot_vuy_animated(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, transponse = True, out_dir = w_dir)
 
 ######### profile
 
