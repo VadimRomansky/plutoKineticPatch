@@ -29,7 +29,9 @@ from plot_Pkin_1d import plot_Pkin_1d
 from plot_Pkin_animated import plot_Pkin_animated
 from plot_Pkin_animated_1d import plot_Pkin_animated_1d
 from plot_compression import plot_compression
+from plot_compression_1d import plot_compression_1d
 from plot_compression_animated import plot_compression_animated
+from plot_compression_animated_1d import plot_compression_animated_1d
 
 from plot_density import plot_density
 from plot_density_animated import plot_density_animated
@@ -97,10 +99,10 @@ from plot_temperature_window import plot_temperature_window
 
 from plot_shock import plot_shock
 from plot_shock_animated import plot_shock_animated
-from plot_vdx import plot_vdx
-from plot_vdx_animated import plot_vdx_animated
-from plot_vdy import plot_vdy
-from plot_vdy_animated import plot_vdy_animated
+#from plot_vdx import plot_vdx
+#from plot_vdx_animated import plot_vdx_animated
+#from plot_vdy import plot_vdy
+#from plot_vdy_animated import plot_vdy_animated
 
 from plot_velocity import plot_velocity
 from plot_velocity_1d import plot_velocity_1d
@@ -134,10 +136,10 @@ from plot_profile_animated_window import plot_profile_animated_window
 from plot_profile_window import plot_profile_window
 from plot_vjump import plot_vjump
 from plot_vjump_animated import plot_vjump_animated
-from plot_vux import plot_vux
-from plot_vux_animated import plot_vux_animated
-from plot_vuy import plot_vuy
-from plot_vuy_animated import plot_vuy_animated
+#from plot_vux import plot_vux
+#from plot_vux_animated import plot_vux_animated
+#from plot_vuy import plot_vuy
+#from plot_vuy_animated import plot_vuy_animated
 from write_B_to_file import write_B_to_file
 from write_density_to_file import write_density_to_file
 #from write_temperature_to_file import write_temperature_to_file
@@ -152,7 +154,7 @@ UNIT_DENSITY=1.672E-24;
 UNIT_LENGTH=3.086E17;
 UNIT_VELOCITY=2.998E10;
 datatype = 'dbl'
-ntot = 3
+ntot = 8
 
 out_dir = w_dir
 
@@ -303,6 +305,8 @@ plot_vjump_animated(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datat
 
 plot_compression(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, transponse = True, out_dir = w_dir)
 plot_compression_animated(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, transponse = True, out_dir = w_dir)
+plot_compression_1d(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, out_dir = out_dir)
+plot_compression_animated_1d(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, out_dir = out_dir)
 
 #plot_vdx(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, transponse = True, out_dir = w_dir)
 #plot_vdx_animated(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, transponse = True, out_dir = w_dir)

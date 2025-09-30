@@ -30,7 +30,7 @@ def plot_compression_animated(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOC
         print("cant plot 2d image of 1d setup\n")
         return
 
-    Rho = getScalarArray(D.Comp, UNIT_VELOCITY/c, excl_axis, point)
+    Rho = getScalarArray(D.Comp, 1.0, excl_axis, point)
 
     minRho = np.amin(Rho)
     maxRho = np.amax(Rho)
@@ -38,7 +38,7 @@ def plot_compression_animated(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOC
 
     for i in range(ntot + 1):
         D = pp.pload(i, varNames = ['Comp'], w_dir = w_dir, datatype=datatype)  # Load fluid data.
-        Rho = getScalarArray(D.Comp, UNIT_VELOCITY/c, excl_axis, point)
+        Rho = getScalarArray(D.Comp, 1.0, excl_axis, point)
         if(np.amin(Rho) < minRho):
             minRho = np.amin(Rho)
         if(np.amax(Rho) > maxRho):
@@ -76,7 +76,7 @@ def plot_compression_animated(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOC
         ax = f1.add_subplot(111)
 
         D = pp.pload(frame_number, varNames = ['Comp'], w_dir = w_dir, datatype=datatype)  # Load fluid data.
-        Rho = getScalarArray(D.Comp, UNIT_VELOCITY/c, excl_axis, point)
+        Rho = getScalarArray(D.Comp, 1.0, excl_axis, point)
 
         np.flip(Rho, 0)
 
