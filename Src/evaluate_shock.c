@@ -469,7 +469,7 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
             CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
             while(tracersFrom != NULL){
                 tracersFrom->i = IEND;
-                tracersFrom->x1 = grid->xr[0][IEND];
+                //tracersFrom->x1 = grid->xr[0][IEND];
                 CellTracerNode* temp = tracersFrom;
                 tracersFrom = tracersFrom->next;
                 if(tracersFrom != NULL){
@@ -526,7 +526,7 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
             CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
             while(tracersFrom != NULL){
                 tracersFrom->i = IBEG;
-                tracersFrom->x1 = grid->xl[0][IBEG];
+                //tracersFrom->x1 = grid->xl[0][IBEG];
                 CellTracerNode* temp = tracersFrom;
                 tracersFrom = tracersFrom->next;
                 if(tracersFrom != NULL){
@@ -588,7 +588,7 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
             CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
             while(tracersFrom != NULL){
                 tracersFrom->j = JEND;
-                tracersFrom->x2 = grid->xr[1][JEND];
+                //tracersFrom->x2 = grid->xr[1][JEND];
                 CellTracerNode* temp = tracersFrom;
                 tracersFrom = tracersFrom->next;
                 if(tracersFrom != NULL){
@@ -645,7 +645,7 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
             CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
             while(tracersFrom != NULL){
                 tracersFrom->j = JBEG;
-                tracersFrom->x2 = grid->xl[1][JBEG];
+                //tracersFrom->x2 = grid->xl[1][JBEG];
                 CellTracerNode* temp = tracersFrom;
                 tracersFrom = tracersFrom->next;
                 if(tracersFrom != NULL){
@@ -707,7 +707,7 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
             CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
             while(tracersFrom != NULL){
                 tracersFrom-k = KEND;
-                tracersFrom->x3 = grid->xr[2][KEND];
+                //tracersFrom->x3 = grid->xr[2][KEND];
                 CellTracerNode* temp = tracersFrom;
                 tracersFrom = tracersFrom->next;
                 if(tracersFrom != NULL){
@@ -764,7 +764,7 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
             CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
             while(tracersFrom != NULL){
                 tracersFrom->k = KBEG;
-                tracersFrom->x3 = grid->xl[2][KBEG];
+                //tracersFrom->x3 = grid->xl[2][KBEG];
                 CellTracerNode* temp = tracersFrom;
                 tracersFrom = tracersFrom->next;
                 if(tracersFrom != NULL){
