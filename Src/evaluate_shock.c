@@ -1090,15 +1090,16 @@ void updateShockFront(Data* d, Grid* grid){
     }
 }
 
-void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double vx, double vy, double vz, int* i, int* j, int* k){
+void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double v1, double v2, double v3, int* i, int* j, int* k){
     //todo proper stright lines for other geometries
-    double v2 = vx*vx + vy*vy + vz*vz;
-    if(v2 <= 0){
+    double vsqr = v1*v1 + v2*v2 + v3*v3;
+    if(vsqr <= 0){
         printf("v = 0 in traceNextCell\n");
         printLog("v = 0 in traceNextCell\n");
         QUIT_PLUTO(1);
     }
 #if INCLUDE_KDIR
+#if GEOMETRY == CARTESIAN
     double lx = grid->xl[0][*i];
     double rx = grid->xr[0][*i];
     double ly = grid->xl[1][*j];
@@ -1177,7 +1178,13 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double vx, do
     CheckNanOrInfinity(*x1, "x1 = NaN\n");
     CheckNanOrInfinity(*x2, "x2 = NaN\n");
     CheckNanOrInfinity(*x3, "x3 = NaN\n");
+#elif GEOMETRY == CYLINDRICAL
+#elif GEOMETRY == POLAR
+#elif GEOMETRY == SPHERICAL
+#else
+#endif
 #elif INCLUDE_JDIR
+#if ((GEOMETRY == CARTESIAN) || (GEOMETRY == CYLINDRICAL))
     int a = *i;
     double lx = grid->xl[0][*i];
     double rx = grid->xr[0][*i];
@@ -1186,41 +1193,41 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double vx, do
 
     double dx;
     double dy;
-    if(vx > 0){
+    if(v1 > 0){
         dx = (rx - *x1)/grid->dx_dl[IDIR][*j][*i];
         if(dx == 0){
             *i = *i + 1;
-            traceNextCell(grid, x1, x2, x3, vx, vy, vz, i, j, k);
+            traceNextCell(grid, x1, x2, x3, v1, v2, v3, i, j, k);
             return;
         }
     } else {
         dx = (*x1 - lx)/grid->dx_dl[IDIR][*j][*i];
         if(dx == 0){
             *i = *i - 1;
-            traceNextCell(grid, x1, x2, x3, vx, vy, vz, i, j, k);
+            traceNextCell(grid, x1, x2, x3, v1, v2, v3, i, j, k);
             return;
         }
     }
-    if(vy > 0){
+    if(v2 > 0){
         dy = (ry - *x2)/grid->dx_dl[JDIR][*j][*i];
         if(dy == 0){
             *j = *j + 1;
-            traceNextCell(grid, x1, x2, x3, vx, vy, vz, i, j, k);
+            traceNextCell(grid, x1, x2, x3, v1, v2, v3, i, j, k);
             return;
         }
     } else {
         dy = (*x2 - ly)/grid->dx_dl[JDIR][*j][*i];
         if(dy == 0){
             *j = *j + 1;
-            traceNextCell(grid, x1, x2, x3, vx, vy, vz, i, j, k);
+            traceNextCell(grid, x1, x2, x3, v1, v2, v3, i, j, k);
             return;
         }
     }
 
-    if(fabs(dx*vy) > fabs(dy*vx)){
-        double dt = fabs(dy/vy);
-        *x1 = *x1 + dt*vx;
-        if(vy > 0){
+    if(fabs(dx*v2) > fabs(dy*v1)){
+        double dt = fabs(dy/v2);
+        *x1 = *x1 + dt*v1;
+        if(v2 > 0){
             *x2 = ry;
             *j = (*j)+1;
         } else {
@@ -1228,9 +1235,9 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double vx, do
             *j = (*j)-1;
         }
     } else {
-        double dt = fabs(dx/vx);
-        *x2 = *x2 + dt*vy;
-        if(vx > 0){
+        double dt = fabs(dx/v1);
+        *x2 = *x2 + dt*v2;
+        if(v1 > 0){
             *x1 = rx;
             *i = (*i)+1;
         } else {
@@ -1240,6 +1247,10 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double vx, do
     }
     CheckNanOrInfinity(*x1, "x1 = NaN\n");
     CheckNanOrInfinity(*x2, "x2 = NaN\n");
+#elif GEOMETRY == POLAR
+#elif GEOMETRY == SPHERICAL
+#else
+#endif
 #else
     if(v1 > 0){
         *x1 = grid->xr[0][*i];
