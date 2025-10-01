@@ -168,7 +168,7 @@ CellTracerNode* putArrayToTracerList(int* inbuf, double* inbufd, int Nin){
 		countd++;
         double gradx = inbufd[countd];
         countd++;
-        double grady = inbuf[countd];
+        double grady = inbufd[countd];
         countd++;
         double gradz = inbufd[countd];
         countd++;
