@@ -350,7 +350,7 @@ void Particles_Inject(Data *data, Grid *grid)
         }
     }
 #else
-    updateShockFront(data, grid);
+    //updateShockFront(data, grid);
     FlagShock(data, grid);
     int i,j,k;
     DOM_LOOP(k,j,i){
