@@ -270,13 +270,14 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
             while(!(d->flag[currentk][currentj][currenti] & FLAG_ENTROPY)){
                 countn++;
                 if(tracers->N > 10){
-                    printf("n traced cells = %d, x = %g, y = %g, z = %g, prevgradx = %g, prevgrady = %g, prevgradz = %g\n", tracers->N, tracers->x1, tracers->x2, tracers->x3, tracers->prevgradx, tracers->prevgrady, tracers->prevgradz);
+                    printf("n traced cells = %d, x = %g, y = %g, z = %g, current i = %d, current j = %d, current k = %d, rank = %d, prevgradx = %g, prevgrady = %g, prevgradz = %g\n", tracers->N, tracers->x1, tracers->x2, tracers->x3, tracers->i, tracers->j, tracers->k, globrank, tracers->prevgradx, tracers->prevgrady, tracers->prevgradz);
                 }
                 tracers->N = tracers->N + 1;
 #if INCLUDE_IDIR
                 if(currenti < IBEG){
                     CellTracerNode* temp = tracersToLeft;
                     tracersToLeft = tracers;
+                    tracers->i = currenti - IBEG + 1;
                     tracers = tracers->next;
                     if(tracers != NULL){
                         tracers->prev = NULL;
@@ -293,6 +294,7 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
                 if(currenti > IEND){
                     CellTracerNode* temp = tracersToRight;
                     tracersToRight = tracers;
+                    tracers->i = currenti - IEND - 1;
                     tracers = tracers->next;
                     if(tracers != NULL){
                         tracers->prev = NULL;
@@ -311,6 +313,7 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
                 if(currentj < JBEG){
                     CellTracerNode* temp = tracersToDown;
                     tracersToDown = tracers;
+                    tracers->j = currentj - JBEG + 1;
                     tracers = tracers->next;
                     if(tracers != NULL){
                         tracers->prev = NULL;
@@ -327,6 +330,7 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
                 if(currentj > JEND){
                     CellTracerNode* temp = tracersToUp;
                     tracersToUp = tracers;
+                    tracers->j = currentj - JEND - 1;
                     tracers = tracers->next;
                     if(tracers != NULL){
                         tracers->prev = NULL;
@@ -345,6 +349,7 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
                 if(upstreamk < KBEG){
                     CellTracerNode* temp = tracersToBack;
                     tracersToBack = tracers;
+                    tracers->k = currentk - KBEG + 1;
                     tracers = tracers->next;
                     if(tracers != NULL){
                         tracers->prev = NULL;
@@ -361,6 +366,7 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
                 if(upstreamk > KEND){
                     CellTracerNode* temp = tracersToFront;
                     tracersToFront = tracers;
+                    tracers->k = currentk - KEND - 1;
                     tracers = tracers->next;
                     if(tracers != NULL){
                         tracers->prev = NULL;
@@ -386,8 +392,9 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
                 pgrady = grid->dx_dl[JDIR][currentj][currenti]*(d->Vc[PRS][currentk][currentj+1][currenti] - d->Vc[PRS][currentk][currentj-1][currenti])/(grid->x[1][currentj+1] - grid->x[1][currentj-1]);
 #endif
 #if INCLUDE_KDIR
-                pgradz = grid->dx_dl[KDIR][upstreamj][upstreami]*(d->Vc[PRS][upstreamk+1][upstreamj][upstreami] - d->Vc[PRS][upstreamk-1][upstreamj][upstreami])/(grid->x[2][upstreamk+1] - grid->x[2][upstreamk-1]);
+                pgradz = grid->dx_dl[KDIR][currentj][currenti]*(d->Vc[PRS][currentk+1][currentj][currenti] - d->Vc[PRS][currentk-1][currentj][currenti])/(grid->x[2][currentk+1] - grid->x[2][currentk-1]);
 #endif
+                double gradnorm = sqrt(pgradx*pgradx + pgrady*pgrady + pgradz*pgradz);
                 double scalarmult = (tracers->prevgradx*pgradx + tracers->prevgrady*pgrady + tracers->prevgradz*pgradz);
                 if(scalarmult < 0){
                     break;
@@ -395,7 +402,7 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
                 tracers->prevgradx = pgradx;
                 tracers->prevgrady = pgrady;
                 tracers->prevgradz = pgradz;
-                traceNextCell(grid, &x, &y, &z, direction*pgradx, direction*pgrady, direction*pgradz, &currenti, &currentj, &currentk);
+                traceNextCell(grid, &x, &y, &z, direction*pgradx/gradnorm, direction*pgrady/gradnorm, direction*pgradz/gradnorm, &currenti, &currentj, &currentk);
 
                 tracers->i = currenti;
                 tracers->j = currentj;
@@ -468,7 +475,7 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
         if(Nin[0] != 0){
             CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
             while(tracersFrom != NULL){
-                tracersFrom->i = IEND;
+                tracersFrom->i = tracersFrom->i + IEND;
                 //tracersFrom->x1 = grid->xr[0][IEND];
                 CellTracerNode* temp = tracersFrom;
                 tracersFrom = tracersFrom->next;
@@ -525,7 +532,7 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
         if(Nin[0] != 0){
             CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
             while(tracersFrom != NULL){
-                tracersFrom->i = IBEG;
+                tracersFrom->i = tracersFrom->i + IBEG;
                 //tracersFrom->x1 = grid->xl[0][IBEG];
                 CellTracerNode* temp = tracersFrom;
                 tracersFrom = tracersFrom->next;
@@ -587,7 +594,7 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
         if(Nin[0] != 0){
             CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
             while(tracersFrom != NULL){
-                tracersFrom->j = JEND;
+                tracersFrom->j = tracersFrom->j + JEND;
                 //tracersFrom->x2 = grid->xr[1][JEND];
                 CellTracerNode* temp = tracersFrom;
                 tracersFrom = tracersFrom->next;
@@ -644,7 +651,7 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
         if(Nin[0] != 0){
             CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
             while(tracersFrom != NULL){
-                tracersFrom->j = JBEG;
+                tracersFrom->j = tracersFrom->j + JBEG;
                 //tracersFrom->x2 = grid->xl[1][JBEG];
                 CellTracerNode* temp = tracersFrom;
                 tracersFrom = tracersFrom->next;
@@ -706,7 +713,7 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
         if(Nin[0] != 0){
             CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
             while(tracersFrom != NULL){
-                tracersFrom-k = KEND;
+                tracersFrom->k = tracersFrom->k + KEND;
                 //tracersFrom->x3 = grid->xr[2][KEND];
                 CellTracerNode* temp = tracersFrom;
                 tracersFrom = tracersFrom->next;
@@ -763,7 +770,7 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
         if(Nin[0] != 0){
             CellTracerNode* tracersFrom = putArrayToTracerList(inbuf, inbufd, Nin[0]);
             while(tracersFrom != NULL){
-                tracersFrom->k = KBEG;
+                tracersFrom->k = tracersFrom->k + KBEG;
                 //tracersFrom->x3 = grid->xl[2][KBEG];
                 CellTracerNode* temp = tracersFrom;
                 tracersFrom = tracersFrom->next;
@@ -956,9 +963,9 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
     DOM_LOOP(k,j,i){
         if(!(d->flag[k][j][i] & FLAG_ENTROPY)){
 
-            int upstreami = i;
-            int upstreamj = j;
-            int upstreamk = k;
+            int currenti = i;
+            int currentj = j;
+            int currentk = k;
 
             double x = grid->x[0][i];
             double y = grid->x[1][j];
@@ -970,7 +977,31 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
 
             int count = 0;
 
-            while(!(d->flag[upstreamk][upstreamj][upstreami] & FLAG_ENTROPY)){
+            while(!(d->flag[currentk][currentj][currenti] & FLAG_ENTROPY)){
+#if INCLUDE_IDIR
+                if(currenti < IBEG){
+                    break;
+                }
+                if(currenti > IEND){
+                    break;
+                }
+#endif
+#if INCLUDE_JDIR
+                if(currentj < JBEG){
+                    break;
+                }
+                if(currentj > JEND){
+                    break;
+                }
+#endif
+#if INCLUDE_KDIR
+                if(upstreamk < KBEG){
+                    break;
+                }
+                if(upstreamk > KEND){
+                    break;
+                }
+#endif
                 count++;
                 //printf("n traced cell = %d\n", count);
                 double pgradx = 0;
@@ -978,14 +1009,15 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
                 double pgradz = 0;
 
 #if INCLUDE_IDIR
-                pgradx = grid->dx_dl[IDIR][upstreamj][upstreami]*(d->Vc[PRS][upstreamk][upstreamj][upstreami+1] - d->Vc[PRS][upstreamk][upstreamj][upstreami-1])/(grid->x[0][upstreami+1] - grid->x[0][upstreami-1]);
+                pgradx = grid->dx_dl[IDIR][currentj][currenti]*(d->Vc[PRS][currentk][currentj][currenti+1] - d->Vc[PRS][currentk][currentj][currenti-1])/(grid->x[0][currenti+1] - grid->x[0][currenti-1]);
 #endif
 #if INCLUDE_JDIR
-                pgrady = grid->dx_dl[JDIR][upstreamj][upstreami]*(d->Vc[PRS][upstreamk][upstreamj+1][upstreami] - d->Vc[PRS][upstreamk][upstreamj-1][upstreami])/(grid->x[1][upstreamj+1] - grid->x[1][upstreamj-1]);
+                pgrady = grid->dx_dl[JDIR][currentj][currenti]*(d->Vc[PRS][currentk][currentj+1][currenti] - d->Vc[PRS][currentk][currentj-1][currenti])/(grid->x[1][currentj+1] - grid->x[1][currentj-1]);
 #endif
 #if INCLUDE_KDIR
                 pgradz = grid->dx_dl[KDIR][upstreamj][upstreami]*(d->Vc[PRS][upstreamk+1][upstreamj][upstreami] - d->Vc[PRS][upstreamk-1][upstreamj][upstreami])/(grid->x[2][upstreamk+1] - grid->x[2][upstreamk-1]);
 #endif
+                double gradnorm = sqrt(pgradx*pgradx+ pgrady*pgrady + pgradz*pgradz);
                 double scalarmult = (prevgradx*pgradx + prevgrady*pgrady + prevgradz*pgradz);
                 if(scalarmult < 0){
                     break;
@@ -993,18 +1025,18 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
                 prevgradx = pgradx;
                 prevgrady = pgrady;
                 prevgradz = pgradz;
-                traceNextCell(grid, &x, &y, &z, direction*pgradx, direction*pgrady, direction*pgradz, &upstreami, &upstreamj, &upstreamk);
+                traceNextCell(grid, &x, &y, &z, direction*pgradx/gradnorm, direction*pgrady/gradnorm, direction*pgradz/gradnorm, &currenti, &currentj, &currentk);
             }
 
-            x1[k][j][i] = grid->x[0][upstreami];
-            x2[k][j][i] = grid->x[1][upstreamj];
-            x3[k][j][i] = grid->x[2][upstreamk];
+            x1[k][j][i] = grid->x[0][currenti];
+            x2[k][j][i] = grid->x[1][currentj];
+            x3[k][j][i] = grid->x[2][currentk];
 
-            v1[k][j][i] = d->Vc[VX1][upstreamk][upstreamj][upstreami];
-            v2[k][j][i] = d->Vc[VX2][upstreamk][upstreamj][upstreami];
-            v3[k][j][i] = d->Vc[VX3][upstreamk][upstreamj][upstreami];
+            v1[k][j][i] = d->Vc[VX1][currentk][currentj][currenti];
+            v2[k][j][i] = d->Vc[VX2][currentk][currentj][currenti];
+            v3[k][j][i] = d->Vc[VX3][currentk][currentj][currenti];
 
-            rho[k][j][i] = d->Vc[RHO][upstreamk][upstreamj][upstreami];
+            rho[k][j][i] = d->Vc[RHO][currentk][currentj][currenti];
         }
     }
 #endif
