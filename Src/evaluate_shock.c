@@ -272,6 +272,10 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
                 if(tracers->N > 10){
                     printf("n traced cells = %d, x = %g, y = %g, z = %g, current i = %d, current j = %d, current k = %d, rank = %d, prevgradx = %g, prevgrady = %g, prevgradz = %g\n", tracers->N, tracers->x1, tracers->x2, tracers->x3, tracers->i, tracers->j, tracers->k, globrank, tracers->prevgradx, tracers->prevgrady, tracers->prevgradz);
                 }
+                if(tracers->N > 1000){
+                    printf("n traced cells > 1000\n");
+                    QUIT_PLUTO(0);
+                }
                 tracers->N = tracers->N + 1;
 #if INCLUDE_IDIR
                 if(currenti < IBEG){
@@ -1004,6 +1008,10 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
 #endif
                 count++;
                 //printf("n traced cell = %d\n", count);
+                if(count > 1000){
+                    printf("n traced cells > 1000\n");
+                    QUIT_PLUTO(0);
+                }
                 double pgradx = 0;
                 double pgrady = 0;
                 double pgradz = 0;
@@ -1144,18 +1152,48 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double v1, do
     double dz;
     if(vx > 0){
         dx = (rx - *x1)/grid->dx_dl[IDIR][*j][*i];
+        if(dx == 0){
+            (*i) = (*i) + 1;
+            traceNextCell(grid, x1, x2, x3, v1, v2, v3, i, j, k);
+            return;
+        }
     } else {
         dx = (*x1 - lx)/grid->dx_dl[IDIR][*j][*i];
+        if(dx == 0){
+            (*i) = (*i) - 1;
+            traceNextCell(grid, x1, x2, x3, v1, v2, v3, i, j, k);
+            return;
+        }
     }
     if(vy > 0){
         dy = (ry - *x2)/grid->dx_dl[JDIR][*j][*i];
+        if(dy == 0){
+            (*j) = (*j) + 1;
+            traceNextCell(grid, x1, x2, x3, v1, v2, v3, i, j, k);
+            return;
+        }
     } else {
         dy = (*x2 - ly)/grid->dx_dl[JDIR][*j][*i];
+        if(dy == 0){
+            (*j) = (*j) - 1;
+            traceNextCell(grid, x1, x2, x3, v1, v2, v3, i, j, k);
+            return;
+        }
     }
     if(vz > 0){
         dz = (rz - *x3)/grid->dx_dl[KDIR][*j][*i];
+        if(dz == 0){
+            (*k) = (*k) + 1;
+            traceNextCell(grid, x1, x2, x3, v1, v2, v3, i, j, k);
+            return;
+        }
     } else {
         dz = (*x3 - lz)/grid->dx_dl[KDIR][*j][*i];
+        if(dz == 0){
+            (*k) = (*k) - 1;
+            traceNextCell(grid, x1, x2, x3, v1, v2, v3, i, j, k);
+            return;
+        }
     }
 
     if(fabs(dx*vy) > fabs(dy*vx)){
@@ -1226,31 +1264,31 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double v1, do
     double dx;
     double dy;
     if(v1 > 0){
-        dx = (rx - *x1)/grid->dx_dl[IDIR][*j][*i];
+        dx = (rx - (*x1))/grid->dx_dl[IDIR][*j][*i];
         if(dx == 0){
-            *i = *i + 1;
+            (*i) = (*i) + 1;
             traceNextCell(grid, x1, x2, x3, v1, v2, v3, i, j, k);
             return;
         }
     } else {
-        dx = (*x1 - lx)/grid->dx_dl[IDIR][*j][*i];
+        dx = ((*x1) - lx)/grid->dx_dl[IDIR][*j][*i];
         if(dx == 0){
-            *i = *i - 1;
+            (*i) = (*i) - 1;
             traceNextCell(grid, x1, x2, x3, v1, v2, v3, i, j, k);
             return;
         }
     }
     if(v2 > 0){
-        dy = (ry - *x2)/grid->dx_dl[JDIR][*j][*i];
+        dy = (ry - (*x2))/grid->dx_dl[JDIR][*j][*i];
         if(dy == 0){
-            *j = *j + 1;
+            (*j) = (*j) + 1;
             traceNextCell(grid, x1, x2, x3, v1, v2, v3, i, j, k);
             return;
         }
     } else {
-        dy = (*x2 - ly)/grid->dx_dl[JDIR][*j][*i];
+        dy = ((*x2) - ly)/grid->dx_dl[JDIR][*j][*i];
         if(dy == 0){
-            *j = *j + 1;
+            (*j) = (*j) - 1;
             traceNextCell(grid, x1, x2, x3, v1, v2, v3, i, j, k);
             return;
         }
@@ -1258,23 +1296,23 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double v1, do
 
     if(fabs(dx*v2) > fabs(dy*v1)){
         double dt = fabs(dy/v2);
-        *x1 = *x1 + dt*v1;
+        (*x1) = (*x1) + dt*v1;
         if(v2 > 0){
-            *x2 = ry;
-            *j = (*j)+1;
+            (*x2) = ry;
+            (*j) = (*j)+1;
         } else {
-            *x2 = ly;
-            *j = (*j)-1;
+            (*x2) = ly;
+            (*j) = (*j)-1;
         }
     } else {
         double dt = fabs(dx/v1);
-        *x2 = *x2 + dt*v2;
+        (*x2) = (*x2) + dt*v2;
         if(v1 > 0){
-            *x1 = rx;
-            *i = (*i)+1;
+            (*x1) = rx;
+            (*i) = (*i)+1;
         } else {
-            *x1 = lx;
-            *i = (*i)-1;
+            (*x1 )= lx;
+            (*i) = (*i)-1;
         }
     }
     CheckNanOrInfinity(*x1, "x1 = NaN\n");
