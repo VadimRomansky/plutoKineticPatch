@@ -274,6 +274,7 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
                 }
                 if(tracers->N > 1000){
                     printf("n traced cells > 1000\n");
+                    printLog("n traced cells > 1000\n");
                     QUIT_PLUTO(0);
                 }
                 tracers->N = tracers->N + 1;
@@ -1038,32 +1039,69 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
             while(!(d->flag[currentk][currentj][currenti] & FLAG_ENTROPY)){
 #if INCLUDE_IDIR
                 if(currenti < IBEG){
-                    break;
+                    if(grid->lbound[0] == PERIODIC){
+                        double L = (grid->xend_glob[0] - grid->xbeg_glob[0]);
+                        x = x + L;
+                        currenti = IEND + currenti - IBEG + 1;
+                    } else {
+                        break;
+                    }
                 }
                 if(currenti > IEND){
-                    break;
+                    if(grid->rbound[0] == PERIODIC){
+                        double L = (grid->xend_glob[0] - grid->xbeg_glob[0]);
+                        x = x - L;
+                        currenti = IBEG + currenti - IEND - 1;
+                    } else {
+                        break;
+                    }
                 }
 #endif
 #if INCLUDE_JDIR
                 if(currentj < JBEG){
-                    break;
+                    if(grid->lbound[1] == PERIODIC){
+                        double L = (grid->xend_glob[1] - grid->xbeg_glob[1]);
+                        y = y + L;
+                        currentj = JEND + currentj - JBEG + 1;
+                    } else {
+                        break;
+                    }
                 }
                 if(currentj > JEND){
-                    break;
+                    if(grid->rbound[1] == PERIODIC){
+                        double L = (grid->xend_glob[1] - grid->xbeg_glob[1]);
+                        y = y - L;
+                        currentj = JBEG + currentj - JEND - 1;
+                    } else {
+                        break;
+                    }
                 }
 #endif
 #if INCLUDE_KDIR
                 if(upstreamk < KBEG){
-                    break;
+                    if(grid->lbound[2] == PERIODIC){
+                        double L = (grid->xend_glob[2] - grid->xbeg_glob[2]);
+                        z = z + L;
+                        currentk = KEND + currentk - KBEG + 1;
+                    } else {
+                        break;
+                    }
                 }
                 if(upstreamk > KEND){
-                    break;
+                    if(grid->rbound[2] == PERIODIC){
+                        double L = (grid->xend_glob[2] - grid->xbeg_glob[2]);
+                        z = z - L;
+                        currentk = KBEG + currentk - KEND - 1;
+                    } else {
+                        break;
+                    }
                 }
 #endif
                 count++;
                 //printf("n traced cell = %d\n", count);
                 if(count > 1000){
                     printf("n traced cells > 1000\n");
+                    printLog("n traced cells > 1000\n");
                     QUIT_PLUTO(0);
                 }
                 double pgradx = 0;
@@ -1193,7 +1231,6 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double v1, do
         QUIT_PLUTO(1);
     }
 #if INCLUDE_KDIR
-#if GEOMETRY == CARTESIAN
     double lx = grid->xl[0][*i];
     double rx = grid->xr[0][*i];
     double ly = grid->xl[1][*j];
@@ -1249,12 +1286,13 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double v1, do
             return;
         }
     }
+#if GEOMETRY == CARTESIAN
 
     if(fabs(dx*vy) > fabs(dy*vx)){
         if(fabs(dz*vy) > fabs(dy*vz)){
             double dt = fabs(dy/vy);
-            *x1 = *x1 + dt*vx;
-            *x3 = *x3 + dt*vz;
+            *x1 = *x1 + dt*v1;
+            *x3 = *x3 + dt*v3;
             if(vy > 0){
                 *x2 = ry;
                 *j = (*j)+1;
@@ -1264,8 +1302,8 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double v1, do
             }
         } else {
             double dt = fabs(dz/vz);
-            *x1 = *x1 + dt*vx;
-            *x2 = *x2 + dt*vy;
+            *x1 = *x1 + dt*v1;
+            *x2 = *x2 + dt*v2;
             if(vz > 0){
                 *x3 = rz;
                 *k = (*k)+1;
@@ -1277,8 +1315,8 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double v1, do
     } else {
         if(fabs(dz*vx) > fabs(dx*vz)){
             double dt = fabs(dx/vx);
-            *x2 = *x2 + dt*vy;
-            *x3 = *x3 + dt*vz;
+            *x2 = *x2 + dt*v2;
+            *x3 = *x3 + dt*v3;
             if(vx > 0){
                 *x1 = rx;
                 *i = (*i)+1;
@@ -1288,8 +1326,8 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double v1, do
             }
         } else {
             double dt = fabs(dz/vz);
-            *x1 = *x1 + dt*vx;
-            *x2 = *x2 + dt*vy;
+            *x1 = *x1 + dt*v1;
+            *x2 = *x2 + dt*v2;
             if(vz > 0){
                 *x3 = rz;
                 *k = (*k)+1;
@@ -1303,13 +1341,198 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double v1, do
     CheckNanOrInfinity(*x2, "x2 = NaN\n");
     CheckNanOrInfinity(*x3, "x3 = NaN\n");
 #elif GEOMETRY == CYLINDRICAL
+    double invdtz = fabs(v2/dy);
+    double invdtr = 0;
+    double invdtphi = 0;
+
+    double vx = v1*cos(grid->x[2][k]) - v3*sin(grid->x[2][k]);
+    double vy = v1*sin(grid->x[2][k]) + v3*cos(grid->x[2][k]);
+
+    double x0 = x1*cos(x3);
+    double y0 = x1*sin(x3);
+
+    double vxy2 = vx*vx + vy*vy;
+
+
+    if(v1 > 0){
+        double D = vxy2*xr*xr - sqr(vx*y0 + vy*x0);
+        invdtr = vxy2/(sqrt(D) - vx*x0 - vy*y0);
+        if(invdtr < 0){
+            printf("invdtr < 0\n");
+            QUIT_PLUTO(0);
+        }
+    } else {
+        double D = vxy2*xl*xl - sqr(vx*y0 + vy*x0);
+        if(D >= 0){
+            invdtr = vxy2/(-sqrt(D) - vx*x0 - vy*y0);
+            if(invdtr < 0){
+                printf("invdtr < 0\n");
+                QUIT_PLUTO(0);
+            }
+        }
+    }
+
+    if(v3 > 0){
+        invdtphi = (vy - tan(rz)*vx)/(tan(rz)*x0 - y0);
+    } else {
+        invdtphi = (vy - tan(lz)*vx)/(tan(lz)*x0 - y0);
+    }
+    if(invdtphi < 0){
+        printf("invdtphi < 0\n");
+        QUIT_PLUTO(0);
+    }
+
+    if(invdtz > invdtr){
+        if(invdtz > invdtphi){
+            double dt = 1.0/invdtz;
+            (*x1) = sqrt(sqr(x0 + vx*dt) + sqr(y0 + vy*dt));
+            (*x3) = atan2(y0 + vy*dt, x0 + vx*dt);
+            if(v2 > 0){
+                (*x2) = ry;
+                (*j) = (*j) + 1;
+            } else {
+                (*x2) = ly;
+                (*j) = (*j) - 1;
+            }
+        } else {
+            double dt = 1.0/invdtphi;
+            (*x1) = sqrt(sqr(x0 + vx*dt) + sqr(y0 + vy*dt));
+            (*x2) = (*x2) + v2*dt;
+            if(v3 > 0){
+                (*x3) = rz;
+                (*k) = (*k) + 1;
+            } else {
+                (*x3) = lz;
+                (*k) = (*k) - 1;
+            }
+        }
+    } else {
+        if(invdtr > invdtphi){
+            double dt = 1.0/invdtr;
+            (*x2) = (*x2) + v2*dt;
+            (*x3) = atan2(y0 + vy*dt, x0 + vx*dt);
+            if(v1 > 0){
+                (*x1) = rx;
+                (*i) = (*i) + 1;
+            } else {
+                (*x1) = lx;
+                (*i) = (*i) - 1;
+            }
+        } else {
+            double dt = 1.0/invdtphi;
+            (*x1) = sqrt(sqr(x0 + vx*dt) + sqr(y0 + vy*dt));
+            (*x2) = (*x2) + v2*dt;
+            if(v3 > 0){
+                (*x3) = rz;
+                (*k) = (*k) + 1;
+            } else {
+                (*x3) = lz;
+                (*k) = (*k) - 1;
+            }
+        }
+    }
+    CheckNanOrInfinity(*x1, "x1 = NaN\n");
+    CheckNanOrInfinity(*x2, "x2 = NaN\n");
+    CheckNanOrInfinity(*x3, "x3 = NaN\n");
+
 #elif GEOMETRY == POLAR
+    double invdtz = fabs(v3/dz);
+    double invdtr = 0;
+    double invdtphi = 0;
+
+    double vx = v1*cos(grid->x[1][j]) - v2*sin(grid->x[1][j]);
+    double vy = v1*sin(grid->x[1][j]) + v2*cos(grid->x[1][j]);
+
+    double x0 = x1*cos(x2);
+    double y0 = x1*sin(x2);
+
+    double vxy2 = vx*vx + vy*vy;
+
+
+    if(v1 > 0){
+        double D = vxy2*xr*xr - sqr(vx*y0 + vy*x0);
+        invdtr = vxy2/(sqrt(D) - vx*x0 - vy*y0);
+        if(invdtr < 0){
+            printf("invdtr < 0\n");
+            QUIT_PLUTO(0);
+        }
+    } else {
+        double D = vxy2*xl*xl - sqr(vx*y0 + vy*x0);
+        if(D >= 0){
+            invdtr = vxy2/(-sqrt(D) - vx*x0 - vy*y0);
+            if(invdtr < 0){
+                printf("invdtr < 0\n");
+                QUIT_PLUTO(0);
+            }
+        }
+    }
+
+    if(v2 > 0){
+        invdtphi = (vy - tan(ry)*vx)/(tan(ry)*x0 - y0);
+    } else {
+        invdtphi = (vy - tan(ly)*vx)/(tan(ly)*x0 - y0);
+    }
+    if(invdtphi < 0){
+        printf("invdtphi < 0\n");
+        QUIT_PLUTO(0);
+    }
+
+    if(invdtz > invdtr){
+        if(invdtz > invdtphi){
+            double dt = 1.0/invdtz;
+            (*x1) = sqrt(sqr(x0 + vx*dt) + sqr(y0 + vy*dt));
+            (*x2) = atan2(y0 + vy*dt, x0 + vx*dt);
+            if(v2 > 0){
+                (*x3) = rz;
+                (*k) = (*k) + 1;
+            } else {
+                (*x3) = lz;
+                (*k) = (*k) - 1;
+            }
+        } else {
+            double dt = 1.0/invdtphi;
+            (*x1) = sqrt(sqr(x0 + vx*dt) + sqr(y0 + vy*dt));
+            (*x3) = (*x3) + v3*dt;
+            if(v2 > 0){
+                (*x2) = ry;
+                (*j) = (*j) + 1;
+            } else {
+                (*x2) = ly;
+                (*j) = (*j) - 1;
+            }
+        }
+    } else {
+        if(invdtr > invdtphi){
+            double dt = 1.0/invdtr;
+            (*x3) = (*x3) + v3*dt;
+            (*x2) = atan2(y0 + vy*dt, x0 + vx*dt);
+            if(v1 > 0){
+                (*x1) = rx;
+                (*i) = (*i) + 1;
+            } else {
+                (*x1) = lx;
+                (*i) = (*i) - 1;
+            }
+        } else {
+            double dt = 1.0/invdtphi;
+            (*x1) = sqrt(sqr(x0 + vx*dt) + sqr(y0 + vy*dt));
+            (*x3) = (*x3) + v3*dt;
+            if(v2 > 0){
+                (*x2) = ry;
+                (*j) = (*j) + 1;
+            } else {
+                (*x2) = ly;
+                (*j) = (*j) - 1;
+            }
+        }
+    }
+    CheckNanOrInfinity(*x1, "x1 = NaN\n");
+    CheckNanOrInfinity(*x2, "x2 = NaN\n");
+    CheckNanOrInfinity(*x3, "x3 = NaN\n");
 #elif GEOMETRY == SPHERICAL
 #else
 #endif
 #elif INCLUDE_JDIR
-#if ((GEOMETRY == CARTESIAN) || (GEOMETRY == CYLINDRICAL))
-    int a = *i;
     double lx = grid->xl[0][*i];
     double rx = grid->xr[0][*i];
     double ly = grid->xl[1][*j];
@@ -1347,6 +1570,8 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double v1, do
             return;
         }
     }
+#if ((GEOMETRY == CARTESIAN) || (GEOMETRY == CYLINDRICAL))
+    int a = *i;
 
     if(fabs(dx*v2) > fabs(dy*v1)){
         double dt = fabs(dy/v2);
@@ -1372,6 +1597,69 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double v1, do
     CheckNanOrInfinity(*x1, "x1 = NaN\n");
     CheckNanOrInfinity(*x2, "x2 = NaN\n");
 #elif GEOMETRY == POLAR
+    double invdtr = 0;
+    double invdtphi = 0;
+
+    double vx = v1*cos(grid->x[1][j]) - v2*sin(grid->x[1][j]);
+    double vy = v1*sin(grid->x[1][j]) + v2*cos(grid->x[1][j]);
+
+    double x0 = x1*cos(x2);
+    double y0 = x1*sin(x2);
+
+    double vxy2 = vx*vx + vy*vy;
+
+
+    if(v1 > 0){
+        double D = vxy2*xr*xr - sqr(vx*y0 + vy*x0);
+        invdtr = vxy2/(sqrt(D) - vx*x0 - vy*y0);
+        if(invdtr < 0){
+            printf("invdtr < 0\n");
+            QUIT_PLUTO(0);
+        }
+    } else {
+        double D = vxy2*xl*xl - sqr(vx*y0 + vy*x0);
+        if(D >= 0){
+            invdtr = vxy2/(-sqrt(D) - vx*x0 - vy*y0);
+            if(invdtr < 0){
+                printf("invdtr < 0\n");
+                QUIT_PLUTO(0);
+            }
+        }
+    }
+
+    if(v2 > 0){
+        invdtphi = (vy - tan(ry)*vx)/(tan(ry)*x0 - y0);
+    } else {
+        invdtphi = (vy - tan(ly)*vx)/(tan(ly)*x0 - y0);
+    }
+    if(invdtphi < 0){
+        printf("invdtphi < 0\n");
+        QUIT_PLUTO(0);
+    }
+
+    if(invdtr > invdtphi){
+        double dt = 1.0/invdtr;
+        (*x2) = atan2(y0 + vy*dt, x0 + vx*dt);
+        if(v1 > 0){
+            (*x1) = rx;
+            (*i) = (*i) + 1;
+        } else {
+            (*x1) = lx;
+            (*i) = (*i) - 1;
+        }
+    } else {
+        double dt = 1.0/invdtphi;
+        (*x1) = sqrt(sqr(x0 + vx*dt) + sqr(y0 + vy*dt));
+        if(v2 > 0){
+            (*x2) = ry;
+            (*j) = (*j) + 1;
+        } else {
+            (*x2) = ly;
+            (*j) = (*j) - 1;
+        }
+    }
+    CheckNanOrInfinity(*x1, "x1 = NaN\n");
+    CheckNanOrInfinity(*x2, "x2 = NaN\n");
 #elif GEOMETRY == SPHERICAL
 #else
 #endif
