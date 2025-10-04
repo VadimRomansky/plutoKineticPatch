@@ -293,6 +293,15 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
                     }
                     NtoLeft = NtoLeft + 1;
                     stopped = false;
+                    if(s->lrank[0] == 0){
+                        if((s->isperiodic[0] == AL_TRUE)){
+                            double L = (grid->xend_glob[0] - grid->xbeg_glob[0]);
+                            tracersToLeft->x1 = tracersToLeft->x1 + L;
+                        } else {
+                            stopped = true;
+                            NtoLeft = NtoLeft - 1;
+                        }
+                    }
                     break;
                 }
                 if(currenti > IEND){
@@ -310,6 +319,15 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
                     }
                     NtoRight = NtoRight + 1;
                     stopped = false;
+                    if(s->lrank[0] == s->lsize[0] - 1){
+                        if((s->isperiodic[0] == AL_TRUE)){
+                            double L = (grid->xend_glob[0] - grid->xbeg_glob[0]);
+                            tracersToRight->x1 = tracersToRight->x1 - L;
+                        } else {
+                            stopped = true;
+                            NtoRight = NtoRight - 1;
+                        }
+                    }
                     break;
                 }
 #endif
@@ -329,6 +347,15 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
                     }
                     NtoDown = NtoDown + 1;
                     stopped = false;
+                    if(s->lrank[1] == 0){
+                        if((s->isperiodic[1] == AL_TRUE)){
+                            double L = (grid->xend_glob[1] - grid->xbeg_glob[1]);
+                            tracersToDown->x2 = tracersToDown->x2 + L;
+                        } else {
+                            stopped = true;
+                            NtoDown = NtoDown - 1;
+                        }
+                    }
                     break;
                 }
                 if(currentj > JEND){
@@ -346,6 +373,15 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
                     }
                     NtoUp = NtoUp + 1;
                     stopped = false;
+                    if(s->lrank[1] == s->lsize[1] - 1){
+                        if((s->isperiodic[1] == AL_TRUE)){
+                            double L = (grid->xend_glob[1] - grid->xbeg_glob[1]);
+                            tracersToUp->x2 = tracersToUp->x2 - L;
+                        } else {
+                            stopped = true;
+                            NtoUp = NtoUp - 1;
+                        }
+                    }
                     break;
                 }
 #endif
@@ -365,6 +401,15 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
                     }
                     NtoBack = NtoBack + 1;
                     stopped = false;
+                    if(s->lrank[2] == 0){
+                        if((s->isperiodic[2] == AL_TRUE)){
+                            double L = (grid->xend_glob[2] - grid->xbeg_glob[2]);
+                            tracersToBack->x3 = tracersToBack->x3 + L;
+                        } else {
+                            stopped = true;
+                            NtoBack = NtoBack - 1;
+                        }
+                    }
                     break;
                 }
                 if(upstreamk > KEND){
@@ -382,6 +427,15 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
                     }
                     NtoFront = NtoFront + 1;
                     stopped = false;
+                    if(s->lrank[2] == s->lsize[2] - 1){
+                        if((s->isperiodic[2] == AL_TRUE)){
+                            double L = (grid->xend_glob[2] - grid->xbeg_glob[2]);
+                            tracersToFront->x3 = tracersToFront->x3 - L;
+                        } else {
+                            stopped = true;
+                            NtoFront = NtoFront - 1;
+                        }
+                    }
                     break;
                 }
 #endif
