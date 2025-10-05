@@ -461,6 +461,14 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
                 tracers->prevgradx = pgradx;
                 tracers->prevgrady = pgrady;
                 tracers->prevgradz = pgradz;
+
+                tracers->v1 = d->Vc[VX1][currentk][currentj][currenti];
+                tracers->v2 = d->Vc[VX2][currentk][currentj][currenti];
+                tracers->v3 = d->Vc[VX3][currentk][currentj][currenti];
+                tracers->rho = d->Vc[RHO][currentk][currentj][currenti];
+
+
+
                 traceNextCell(grid, &x, &y, &z, direction*pgradx/gradnorm, direction*pgrady/gradnorm, direction*pgradz/gradnorm, &currenti, &currentj, &currentk);
 
                 tracers->i = currenti;
@@ -469,10 +477,10 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
                 tracers->x1 = x;
                 tracers->x2 = y;
                 tracers->x3 = z;
-                tracers->v1 = d->Vc[VX1][currentk][currentj][currenti];
+                /*tracers->v1 = d->Vc[VX1][currentk][currentj][currenti];
                 tracers->v2 = d->Vc[VX2][currentk][currentj][currenti];
                 tracers->v3 = d->Vc[VX3][currentk][currentj][currenti];
-                tracers->rho = d->Vc[RHO][currentk][currentj][currenti];
+                tracers->rho = d->Vc[RHO][currentk][currentj][currenti];*/
             }
             if(stopped){
                 CellTracerNode* temp = stoppedTracers;
@@ -1125,6 +1133,12 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
                 prevgradx = pgradx;
                 prevgrady = pgrady;
                 prevgradz = pgradz;
+                v1[k][j][i] = d->Vc[VX1][currentk][currentj][currenti];
+                v2[k][j][i] = d->Vc[VX2][currentk][currentj][currenti];
+                v3[k][j][i] = d->Vc[VX3][currentk][currentj][currenti];
+
+                rho[k][j][i] = d->Vc[RHO][currentk][currentj][currenti];
+
                 traceNextCell(grid, &x, &y, &z, direction*pgradx/gradnorm, direction*pgrady/gradnorm, direction*pgradz/gradnorm, &currenti, &currentj, &currentk);
             }
 
@@ -1132,11 +1146,11 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
             x2[k][j][i] = grid->x[1][currentj];
             x3[k][j][i] = grid->x[2][currentk];
 
-            v1[k][j][i] = d->Vc[VX1][currentk][currentj][currenti];
+            /*v1[k][j][i] = d->Vc[VX1][currentk][currentj][currenti];
             v2[k][j][i] = d->Vc[VX2][currentk][currentj][currenti];
             v3[k][j][i] = d->Vc[VX3][currentk][currentj][currenti];
 
-            rho[k][j][i] = d->Vc[RHO][currentk][currentj][currenti];
+            rho[k][j][i] = d->Vc[RHO][currentk][currentj][currenti];*/
         }
     }
 #endif
