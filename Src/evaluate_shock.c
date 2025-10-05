@@ -1195,6 +1195,14 @@ void updateShockFront(Data* d, Grid* grid){
             xu = d->upstreamx1[k][j][i]*cos(d->upstreamx3[k][j][i]);
             yu = d->upstreamx1[k][j][i]*sin(d->upstreamx3[k][j][i]);
             zu = d->upstreamx2[k][j][i];
+
+            Vdx = d->downstreamV1[k][j][i]*cos(d->downstreamx3[k][j][i]) - d->downstreamV3[k][j][i]*sin(d->downstreamx3[k][j][i]);
+            Vdy = d->downstreamV1[k][j][i]*sin(d->downstreamx3[k][j][i]) + d->downstreamV3[k][j][i]*cos(d->downstreamx3[k][j][i]);
+            Vdz = d->downstreamV2[k][j][i];
+
+            Vux = d->upstreamV1[k][j][i]*cos(d->upstreamx3[k][j][i]) - d->upstreamV3[k][j][i]*sin(d->upstreamx3[k][j][i]);
+            Vuy = d->upstreamV1[k][j][i]*sin(d->upstreamx3[k][j][i]) + d->upstreamV3[k][j][i]*cos(d->upstreamx3[k][j][i]);
+            Vuz = d->upstreamV2[k][j][i];
 #elif GEOMETRY == POLAR
             xd = d->downstreamx1[k][j][i]*cos(d->downstreamx2[k][j][i]);
             yd = d->downstreamx1[k][j][i]*sin(d->downstreamx2[k][j][i]);
@@ -1203,6 +1211,14 @@ void updateShockFront(Data* d, Grid* grid){
             xu = d->upstreamx1[k][j][i]*cos(d->upstreamx2[k][j][i]);
             yu = d->upstreamx1[k][j][i]*sin(d->upstreamx2[k][j][i]);
             zu = d->upstreamx3[k][j][i];
+
+            Vdx = d->downstreamV1[k][j][i]*cos(d->downstreamx2[k][j][i]) - d->downstreamV2[k][j][i]*sin(d->downstreamx2[k][j][i]);
+            Vdy = d->downstreamV1[k][j][i]*sin(d->downstreamx2[k][j][i]) + d->downstreamV2[k][j][i]*cos(d->downstreamx2[k][j][i]);
+            Vdz = d->downstreamV3[k][j][i];
+
+            Vux = d->upstreamV1[k][j][i]*cos(d->upstreamx2[k][j][i]) - d->upstreamV2[k][j][i]*sin(d->upstreamx2[k][j][i]);
+            Vuy = d->upstreamV1[k][j][i]*sin(d->upstreamx2[k][j][i]) + d->upstreamV2[k][j][i]*cos(d->upstreamx2[k][j][i]);
+            Vuz = d->upstreamV3[k][j][i];
 #elif GEOMETRY == SPHERICAL
             xd = d->downstreamx1[k][j][i]*sin(d->downstreamx2[k][j][i])*cos(d->downstreamx3[k][j][i]);
             yd = d->downstreamx1[k][j][i]*sin(d->downstreamx2[k][j][i])*sin(d->downstreamx3[k][j][i]);
@@ -1211,10 +1227,19 @@ void updateShockFront(Data* d, Grid* grid){
             xu = d->upstreamx1[k][j][i]*sin(grid->x[1][upstreamj])*cos(d->upstreamx3[k][j][i]);
             yu = d->upstreamx1[k][j][i]*sin(d->upstreamx2[k][j][i])*sin(d->upstreamx3[k][j][i]);
             zu = d->upstreamx1[k][j][i]*cos(d->upstreamx2[k][j][i]);
+
+            Vdx = d->downstreamV1[k][j][i]*sin(d->downstreamx2[k][j][i])*cos(d->downstreamx3[k][j][i]) + d->downstreamV2[k][j][i]*cos(d->downstreamx2[k][j][i])*cos(d->downstreamx3[k][j][i]) - d->downstreamV3[k][j][i]*sin(d->downstreamx3[k][j][i]);
+            Vdy = d->downstreamV1[k][j][i]*sin(d->downstreamx2[k][j][i])*sin(d->downstreamx3[k][j][i]) + d->downstreamV2[k][j][i]*cos(d->downstreamx2[k][j][i])*sin(d->downstreamx3[k][j][i]) + d->downstreamV3[k][j][i]*cos(d->downstreamx3[k][j][i]);
+            Vdz = d->downstreamV1[k][j][i]*cos(d->downstreamx2[k][j][i]) - d->downstreamV2[k][j][i]*cos(d->downstreamx2[k][j][i]);
+
+            Vux = d->upstreamV1[k][j][i]*sin(d->upstreamx2[k][j][i])*cos(d->upstreamx3[k][j][i]) + d->upstreamV2[k][j][i]*cos(d->upstreamx2[k][j][i])*cos(d->upstreamx3[k][j][i]) - d->upstreamV3[k][j][i]*sin(d->upstreamx3[k][j][i]);
+            Vuy = d->upstreamV1[k][j][i]*sin(d->upstreamx2[k][j][i])*sin(d->upstreamx3[k][j][i]) + d->upstreamV2[k][j][i]*cos(d->upstreamx2[k][j][i])*sin(d->upstreamx3[k][j][i]) + d->upstreamV3[k][j][i]*cos(d->upstreamx3[k][j][i]);
+            Vuz = d->upstreamV1[k][j][i]*cos(d->upstreamx2[k][j][i]) - d->upstreamV2[k][j][i]*cos(d->upstreamx2[k][j][i]);
 #else
 #endif
             double width = sqrt((xd-xu)*(xd-xu) + (yd-yu)*(yd-yu) + (zd-zu)*(zd-zu));
-            double V = sqrt((Vdx - Vux)*(Vdx - Vux) + (Vdy - Vuy)*(Vdy - Vuy) + (Vdz - Vuz)*(Vdz - Vuz));
+            //double V = sqrt((Vdx - Vux)*(Vdx - Vux) + (Vdy - Vuy)*(Vdy - Vuy) + (Vdz - Vuz)*(Vdz - Vuz));
+            double V = fabs((Vdx - Vux)*(xd - xu) + (Vdy - Vuy)*(yd - yu) + (Vdz - Vuz)*(zd - zu))/width;
 
             d->shockWidth[k][j][i] = width;
             d->velocityJump[k][j][i] = V;
@@ -1530,6 +1555,127 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double v1, do
     CheckNanOrInfinity(*x2, "x2 = NaN\n");
     CheckNanOrInfinity(*x3, "x3 = NaN\n");
 #elif GEOMETRY == SPHERICAL
+    double invdttheta = 0;
+    double invdtr = 0;
+    double invdtphi = 0;
+
+    double vx = v1*sin(grid->x[1][j])*cos(grid->x[2][k]) + v2*cos(grid->x[1][j])*cos(grid->x[2][k]) - v3*sin(grid->x[2][k]);
+    double vy = v1*sin(grid->x[1][j])*sin(grid->x[2][k]) + v2*cos(grid->x[1][j])*sin(grid->x[2][k]) + v3*cos(grid->x[2][k]);
+    double vz = v1*cos(grid->x[1][j]) - v2*sin(grid->x[1][j]);
+
+    double x0 = x1*sin(x2)*cos(x3);
+    double y0 = x1*sin(x2)*sin(x3);
+    double z0 = x1*cos(x2);
+
+
+    if(v1 > 0){
+        double D = sqr(x0*vx + y0*vy + z0*vz) - vsqr*(x1*x1 - rx*rx);
+        invdtr = vsqr/(sqrt(D) - vx*x0 - vy*y0 - vz*z0);
+        if(invdtr < 0){
+            printf("invdtr < 0\n");
+            QUIT_PLUTO(0);
+        }
+    } else {
+        double D = sqr(x0*vx + y0*vy + z0*vz) - vsqr*(x1*x1 - lx*lx);
+        if(D >= 0){
+            invdtr = vsqr/(-sqrt(D) - vx*x0 - vy*y0);
+            if(invdtr < 0){
+                printf("invdtr < 0\n");
+                QUIT_PLUTO(0);
+            }
+        }
+    }
+
+    if(v2 > 0){
+        double cosry = cos(ry);
+        double a = vz*vz - vsqr*cosry*cosry;
+        double b = z0*vz - cosry*cosry*(vx*x0 + vy*y0 + vz*z0);
+        double c = z0*z0 - x1*x1*cosry*cosry;
+        double D = b*b - a*c;
+        if(D > 0){
+            invdttheta = a/(-b + sqrt(D));
+            if(invdttheta < 0){
+                printf("invdttheta < 0\n");
+                QUIT_PLUTO(0);
+            }
+        }
+    } else {
+        double cosly = cos(ly);
+        double a = vz*vz - vsqr*cosly*cosly;
+        double b = z0*vz - cosly*cosly*(vx*x0 + vy*y0 + vz*z0);
+        double c = z0*z0 - x1*x1*cosly*cosly;
+        double D = b*b - a*c;
+        if(D > 0){
+            invdttheta = a/(-b + sqrt(D));
+            if(invdttheta < 0){
+                printf("invdttheta < 0\n");
+                QUIT_PLUTO(0);
+            }
+        }
+    }
+
+    if(v3 > 0){
+        invdtphi = (vy - tan(rz)*vx)/(tan(rz)*x0 - y0);
+    } else {
+        invdtphi = (vy - tan(lz)*vx)/(tan(lz)*x0 - y0);
+    }
+    if(invdtphi < 0){
+        printf("invdtphi < 0\n");
+        QUIT_PLUTO(0);
+    }
+
+    if(invdtphi > invdtr){
+        if(invdtphi > invdttheta){
+            double dt = 1.0/invdtphi;
+            (*x1) = sqrt(sqr(x0 + vx*dt) + sqr(y0 + vy*dt) + sqr(z0 + vz*dt));
+            (*x2) = acos(z0 + vz*dt, (*x1));
+            if(v3 > 0){
+                (*x3) = rz;
+                (*k) = (*k) + 1;
+            } else {
+                (*x3) = lz;
+                (*k) = (*k) - 1;
+            }
+        } else {
+            double dt = 1.0/invdttheta;
+            (*x1) = sqrt(sqr(x0 + vx*dt) + sqr(y0 + vy*dt) + sqr(z0 + vz*dt));
+            (*x3) = atan2(y0 + vy*dt, x0 + vx*dt);
+            if(v2 > 0){
+                (*x2) = ry;
+                (*j) = (*j) + 1;
+            } else {
+                (*x2) = ly;
+                (*j) = (*j) - 1;
+            }
+        }
+    } else {
+        if(invdtr > invdttheta){
+            double dt = 1.0/invdtr;
+            if(v1 > 0){
+                (*x1) = rx;
+                (*i) = (*i) + 1;
+            } else {
+                (*x1) = lx;
+                (*i) = (*i) - 1;
+            }
+            (*x2) = acos(z0 + vz*dt, (*x1));
+            (*x3) = atan2(y0 + vy*dt, x0 + vx*dt);
+        } else {
+            double dt = 1.0/invdttheta;
+            (*x1) = sqrt(sqr(x0 + vx*dt) + sqr(y0 + vy*dt) + sqr(z0 + vz*dt));
+            (*x3) = atan2(y0 + vy*dt, x0 + vx*dt);
+            if(v2 > 0){
+                (*x2) = ry;
+                (*j) = (*j) + 1;
+            } else {
+                (*x2) = ly;
+                (*j) = (*j) - 1;
+            }
+        }
+    }
+    CheckNanOrInfinity(*x1, "x1 = NaN\n");
+    CheckNanOrInfinity(*x2, "x2 = NaN\n");
+    CheckNanOrInfinity(*x3, "x3 = NaN\n");
 #else
 #endif
 #elif INCLUDE_JDIR
@@ -1661,6 +1807,89 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double v1, do
     CheckNanOrInfinity(*x1, "x1 = NaN\n");
     CheckNanOrInfinity(*x2, "x2 = NaN\n");
 #elif GEOMETRY == SPHERICAL
+    double invdttheta = 0;
+    double invdtr = 0;
+
+    double vx = v1*sin(grid->x[1][j])*cos(grid->x[2][k]) + v2*cos(grid->x[1][j])*cos(grid->x[2][k]) - v3*sin(grid->x[2][k]);
+    double vy = v1*sin(grid->x[1][j])*sin(grid->x[2][k]) + v2*cos(grid->x[1][j])*sin(grid->x[2][k]) + v3*cos(grid->x[2][k]);
+    double vz = v1*cos(grid->x[1][j]) - v2*sin(grid->x[1][j]);
+
+    double x0 = x1*sin(x2)*cos(x3);
+    double y0 = x1*sin(x2)*sin(x3);
+    double z0 = x1*cos(x2);
+
+
+    if(v1 > 0){
+        double D = sqr(x0*vx + y0*vy + z0*vz) - vsqr*(x1*x1 - rx*rx);
+        invdtr = vsqr/(sqrt(D) - vx*x0 - vy*y0 - vz*z0);
+        if(invdtr < 0){
+            printf("invdtr < 0\n");
+            QUIT_PLUTO(0);
+        }
+    } else {
+        double D = sqr(x0*vx + y0*vy + z0*vz) - vsqr*(x1*x1 - lx*lx);
+        if(D >= 0){
+            invdtr = vsqr/(-sqrt(D) - vx*x0 - vy*y0);
+            if(invdtr < 0){
+                printf("invdtr < 0\n");
+                QUIT_PLUTO(0);
+            }
+        }
+    }
+
+    if(v2 > 0){
+        double cosry = cos(ry);
+        double a = vz*vz - vsqr*cosry*cosry;
+        double b = z0*vz - cosry*cosry*(vx*x0 + vy*y0 + vz*z0);
+        double c = z0*z0 - x1*x1*cosry*cosry;
+        double D = b*b - a*c;
+        if(D > 0){
+            invdttheta = a/(-b + sqrt(D));
+            if(invdttheta < 0){
+                printf("invdttheta < 0\n");
+                QUIT_PLUTO(0);
+            }
+        }
+    } else {
+        double cosly = cos(ly);
+        double a = vz*vz - vsqr*cosly*cosly;
+        double b = z0*vz - cosly*cosly*(vx*x0 + vy*y0 + vz*z0);
+        double c = z0*z0 - x1*x1*cosly*cosly;
+        double D = b*b - a*c;
+        if(D > 0){
+            invdttheta = a/(-b + sqrt(D));
+            if(invdttheta < 0){
+                printf("invdttheta < 0\n");
+                QUIT_PLUTO(0);
+            }
+        }
+    }
+
+
+    if(invdtr > invdttheta){
+        double dt = 1.0/invdtr;
+        if(v1 > 0){
+            (*x1) = rx;
+            (*i) = (*i) + 1;
+        } else {
+            (*x1) = lx;
+            (*i) = (*i) - 1;
+        }
+        (*x2) = acos(z0 + vz*dt, (*x1));
+    } else {
+       double dt = 1.0/invdttheta;
+       (*x1) = sqrt(sqr(x0 + vx*dt) + sqr(y0 + vy*dt) + sqr(z0 + vz*dt));
+       if(v2 > 0){
+            (*x2) = ry;
+            (*j) = (*j) + 1;
+       } else {
+            (*x2) = ly;
+            (*j) = (*j) - 1;
+        }
+    }
+
+    CheckNanOrInfinity(*x1, "x1 = NaN\n");
+    CheckNanOrInfinity(*x2, "x2 = NaN\n");
 #else
 #endif
 #else
