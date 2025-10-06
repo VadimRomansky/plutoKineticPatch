@@ -576,6 +576,7 @@ void Initialize(Data *data, Runtime *runtime, Grid *grid, cmdLine *cmd_line)
 
 #if TURBULENT_FIELD == YES
   data->Wt = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NTURB, double);
+  data->growthRate = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NTURB, double);
   data->turbulent_rightPart = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NTURB, double);
   data->k_turb = ARRAY_1D(NTURB, double);
 

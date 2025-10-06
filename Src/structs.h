@@ -593,6 +593,7 @@ typedef struct Data_{
 
 #if TURBULENT_FIELD == YES
   double ****Wt; /**< The main four-index data array used for turbulent magnetic field*/
+  double ****growthRate;
   double ****turbulent_rightPart;
   double *k_turb; /**< Array of turbulent k grid */
   struct MatrixElementNode***** turbulent_matrix;

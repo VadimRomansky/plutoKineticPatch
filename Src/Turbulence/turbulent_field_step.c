@@ -5,6 +5,166 @@
 #include "specialmath.h"
 
 #if TURBULENT_FIELD == YES
+
+void complexsqrt(double a, double b, double* c, double* d){
+    double rho = sqrt(a*a + b*b);
+    double phi = atan2(b, a);
+    if(phi < 0){
+        phi = phi + 2*CONST_PI;
+    }
+    rho = sqrt(rho);
+    phi = phi/2;
+    (*c) = rho*cos(phi);
+    (*d) = rho*sin(phi);
+}
+
+void evaluateGrowthRate(Data *d, Grid *grid){
+    int i, j, k;
+    TOT_LOOP(k,j,i){
+        for(int l = 0; l < NTURB; ++l){
+            d->growthRate[k][j][i][l] = 0;
+        }
+    }
+
+    DOM_LOOP(k,j,i){
+        double B1 = d->Vc[BX1][k][j][i];
+        double B2 = d->Vc[BX2][k][j][i];
+        double B3 = d->Vc[BX3][k][j][i];
+        double Bls = sqrt(B1*B1 + B2*B2 + B3*B3);
+
+        double J1 = 0;
+        double J2 = 0;
+        double J3 = 0;
+
+        J1 = J1 + d->Jkin1[k][j][i][0]*(d->k_turb[1] - d->k_turb[0]);
+        J2 = J2 + d->Jkin2[k][j][i][0]*(d->k_turb[1] - d->k_turb[0]);
+        J3 = J3 + d->Jkin3[k][j][i][0]*(d->k_turb[1] - d->k_turb[0]);
+        for(int m = 1; m < NMOMENTUM; ++m){
+            J1 = J1 + d->Jkin1[k][j][i][m]*(d->k_turb[m] - d->k_turb[m-1]);
+            J2 = J2 + d->Jkin2[k][j][i][m]*(d->k_turb[m] - d->k_turb[m-1]);
+            J3 = J3 + d->Jkin3[k][j][i][m]*(d->k_turb[m] - d->k_turb[m-1]);
+        }
+
+        double J = sqrt(J1*J1 + J2*J2 + J3*J3)*(PARTICLES_KIN_E_MC*PARTICLES_KIN_MASS*PARTICLES_KIN_C);
+
+        for(int l = 1; l < NTURB; ++l){
+            Bls = sqrt(4*CONST_PI*d->Wt[k][j][i][l]*(d->k_turb[l]-d->k_turb[l-1]) + Bls*Bls);
+            CheckNanOrInfinity(Bls, "Bls = NaN");
+            //todo check!
+            double kc = fabs(4*CONST_PI*J/((CONST_c/UNIT_VELOCITY)*Bls));
+            double Va = Bls/sqrt(4*CONST_PI*d->Vc[RHO][k][j][i]);
+
+            double A1re = 0;
+            double A1im = 0;
+            double A2re = 0;
+            double A2im = 0;
+            for(int m = 0; m < NMOMENTUM; ++m){
+                double z = d->k_turb[l]*d->p_grid[m]/(PARTICLES_KIN_E_MC*Bls);
+                CheckNanOrInfinity(z, "z = NaN");
+                double sigma1re = 0;
+                double sigma1im = 0;
+                double sigma2re = 0;
+                double sigma2im = 0;
+                if( fabs(z - 1.0) < 0.00001){
+                    sigma1re = 3.0/2.0;
+                } else if(z > 1) {
+                    sigma1re = (1.5/(z*z)) + 0.75*(1 - 1/((z*z)))*log(fabs((z+1)/(z-1)))/z;
+                } else if(0.01 < z) {
+                    sigma1re = (1.5/(z*z)) + 0.75*(1 - 1/((z*z)))*log(fabs((z+1)/(z-1)))/z;
+                }  else {
+                    sigma1re = 1 + 0.2*z*z;
+                }
+                //sigma1 = 1;
+
+                if(z > 1){
+                    sigma1im = sigma1im -(3*CONST_PI/(4*z))*(1 - 1/(z*z));
+                }
+                CheckNanOrInfinity(sigma1re, "sigma = NaN");
+                CheckNanOrInfinity(sigma1im, "sigma = NaN");
+                sigma2re = sigma1re;
+                sigma2im = -sigma1im;
+
+                double dp = d->p_grid[1] - d->p_grid[0];
+                if(m > 0){
+                    dp = d->p_grid[m] - d->p_grid[m-1];
+                }
+
+                double crflux = sqrt(d->Jkin1[k][j][i][m]*d->Jkin1[k][j][i][m]
+                                     + d->Jkin2[k][j][i][m]*d->Jkin2[k][j][i][m]
+                                     + d->Jkin3[k][j][i][m]*d->Jkin3[k][j][i][m])*dp*(PARTICLES_KIN_E_MC*PARTICLES_KIN_MASS*PARTICLES_KIN_C);
+
+                A1re = A1re + sigma1re*crflux;
+                A1im = A1im + sigma1im*crflux;
+
+                CheckNanOrInfinity(A1re, "A = NaN");
+                CheckNanOrInfinity(A1im, "A = NaN");
+                A2re = A2re + sigma2re*crflux;
+                A2im = A2im + sigma2im*crflux;
+            }
+
+            //Complex complex1 = Complex(1);
+            //Complex delta = complex1 - (A1/J - 1)*(kc/kgrid[k]);
+            double deltare = 1.0 - (A1re/J - 1)*(kc/d->k_turb[l]);
+            double deltaim = 0.0 - (A1im/J)*(kc/d->k_turb[l]);
+
+            //Complex b1 = (complex1 - (A1/J - 1)*(kc/d->k_turb[l]))*POW2(d->k_turb[l]*Va);
+            //Complex b2 = (complex1 + (A2/J - 1)*(kc/kgrid[k]))*POW2(kgrid[k]*Va);
+
+            double b1re = (1.0 - (A1re/J - 1)*(kc/d->k_turb[l]))*POW2(d->k_turb[l]*Va);
+            double b1im = (0.0 - (A1im/J)*(kc/d->k_turb[l]))*POW2(d->k_turb[l]*Va);
+
+            double b2re = (1.0 - (A2re/J - 1)*(kc/d->k_turb[l]))*POW2(d->k_turb[l]*Va);
+            double b2im = (0.0 - (A2im/J)*(kc/d->k_turb[l]))*POW2(d->k_turb[l]*Va);
+            double alpha = 1.5;
+            //double alpha = 0;
+            //Complex d1 = Complex(0, -1)*((A1*0.5/J) + 1.5)*(kgrid[k]*kc)*alpha/(4*pi*middleDensity[i]);
+            //Complex d2 = Complex(0, 1)*((A2*0.5/J) + 1.5)*(kgrid[k]*kc)*alpha/(4*pi*middleDensity[i]);
+
+            double d1im = -((A1re*0.5/J) + 1.5)*(d->k_turb[l]*kc)*alpha/(4*CONST_PI*d->Vc[RHO][k][j][i]);
+            double d1re = (A1im*0.5/J)*(d->k_turb[l]*kc)*alpha/(4*CONST_PI*d->Vc[RHO][k][j][i]);
+
+            double d2im = ((A2re*0.5/J) + 1.5)*(d->k_turb[l]*kc)*alpha/(4*CONST_PI*d->Vc[RHO][k][j][i]);
+            double d2re = -(A2im*0.5/J)*(d->k_turb[l]*kc)*alpha/(4*CONST_PI*d->Vc[RHO][k][j][i]);
+
+            //Complex G1p = (csqrt(d1*d1 +b1*4) - d1)/2;
+            //Complex G1m = (csqrt(d1*d1 +b1*4) + d1)/(-2);
+
+            double D1re, D1im;
+            complexsqrt(d1re*d1re-d1im*d1im +4*b1re, 2*d1re*d1im + 4*b1im, &D1re, &D1im);
+
+            //Complex G2p = (csqrt(d2*d2 +b2*4) - d2)/2;
+            //Complex G2m = (csqrt(d2*d2 +b2*4) + d2)/(-2);
+
+            double D2re, D2im;
+            complexsqrt(d2re*d2re-d2im*d2im +4*b2re, 2*d2re*d2im + 4*b2im, &D2re, &D2im);
+
+            double rate1 = (D1im - d1im)/2.0;
+            double rate3 = (-D1im - d1im)/2.0;
+            double rate2 = (D2im - d2im)/2.0;
+            double rate4 = (-D2im - d2im)/2.0;
+
+
+            double rate = MAX(MAX(rate1, rate2), MAX(rate3, rate4));
+            if(rate > 0){
+                rate *= 2;
+            } else {
+                rate = 0;
+            }
+
+            if((rate != rate) || (0*rate != 0*rate)){
+                printf("rate = NaN\n");
+                exit(0);
+            }
+
+            d->growthRate[k][j][i][l] = rate;
+            CheckNanOrInfinity(rate, "growth_rate = NaN");
+            /*if(rate > 0){
+                printf("%g\n", rate);
+            }*/
+        }
+    }
+}
+
 void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
     int k,j,i;
     //printf("trubulent field\n");
@@ -18,6 +178,8 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
     inv_dt = 1.e-18;
 
     Dts->invDt_magnetic = inv_dt;
+
+    evaluateGrowthRate(d, grid);
 
     TOT_LOOP(k,j,i){
         for(int l = 0; l < NTURB; ++l){
@@ -124,7 +286,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
             double u2 = d->Vc[VX2][k][j][i];
             double u3 = d->Vc[VX3][k][j][i];
 
-            double G = 0;
+            double G = d->growthRate[k][j][i][l];
 
             inv_dt_new = G;
 

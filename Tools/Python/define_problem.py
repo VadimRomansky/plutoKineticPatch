@@ -587,9 +587,6 @@ class DefineProblem(object):
 
     if (parabolic_update):
       self.additional_files.append('parabolic_update.o')
-      
-    self.additional_files += ['turbulent_field_step.o']
-    self.additional_files += ['evaluate_shock.o']
 
       
   def AppendPlutoPathAndFlags(self):

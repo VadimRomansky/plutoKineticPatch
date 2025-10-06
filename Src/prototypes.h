@@ -3,9 +3,6 @@
    ********************************************************************* */
 
 int    AdvanceStep(Data *, timeStep *, Grid *);
-#if TURBULENT_FIELD == YES
-void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid);
-#endif
 void   AdvectFlux (const Sweep *, int, int, Grid *);
 void   AMR_StoreFlux (double **, double **, int, int, int, int, int, Grid *);
 void   Analysis (const Data *, Grid *);

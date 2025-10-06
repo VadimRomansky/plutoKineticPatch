@@ -143,9 +143,9 @@ class MakeProblem(object):
         scrh = pf.LocateString('SRC')
         ipos = scrh[0][0] + 1
         pf.InsertLine('SRC_HO       = $(SRC)/New/High_Order\n', ipos)
-        vpath = ['./','$(SRC_HO)', '$(SRC)', '$(SRC)/Time_Stepping','$(SRC)/States']
+        vpath = ['./','$(SRC_HO)', '$(SRC)', '$(SRC)/Time_Stepping','$(SRC)/States','$(SRC)/TURBULENCE']
       else:
-        vpath = ['./','$(SRC)/New', '$(SRC)', '$(SRC)/Time_Stepping','$(SRC)/States']
+        vpath = ['./','$(SRC)/New', '$(SRC)', '$(SRC)/Time_Stepping','$(SRC)/States','$(SRC)/Turbulence']
 
       pf.ReplaceWord ("VPATH", "VPATH        = "+':'.join(vpath)+'\n', DelOld=True)
 

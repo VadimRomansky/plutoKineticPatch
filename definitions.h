@@ -52,7 +52,7 @@
 #define  P_GRID_MAX                     1E7
 #define  INJECTION_PARAMETER            1E-5
 #define  COMPRESSION_TRESHOLD           2
-#define  TURBULENT_FIELD                NO
+#define  TURBULENT_FIELD                YES
 #define  NTURB                          20
 #define  NMOMENTUM                      100
 #define  MAX_GMRES_ITERATIONS           20
