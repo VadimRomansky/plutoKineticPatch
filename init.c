@@ -207,6 +207,8 @@ void InitDomain (Data *d, Grid *grid)
         d->velocityJump[k][j][i] = 0.0;
         d->upstreamDensity[k][j][i] = d->Vc[RHO][k][j][i];
         d->downstreamDensity[k][j][i] = d->Vc[RHO][k][j][i];
+        d->upstreamPressure[k][j][i] = d->Vc[PRS][k][j][i];
+        d->downstreamPressure[k][j][i] = d->Vc[PRS][k][j][i];
         d->upstreamx1[k][j][i] = grid->x[0][i];
         d->upstreamx2[k][j][i] = grid->x[1][j];
         d->upstreamx3[k][j][i] = grid->x[2][k];

@@ -53,7 +53,7 @@
 #define  INJECTION_PARAMETER            1E-5
 #define  COMPRESSION_TRESHOLD           2
 #define  TURBULENT_FIELD                NO
-#define  NTURB                          10
+#define  NTURB                          20
 #define  NMOMENTUM                      100
 #define  MAX_GMRES_ITERATIONS           20
 #define  WARNING_MESSAGES               NO

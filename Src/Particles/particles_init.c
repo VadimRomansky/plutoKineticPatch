@@ -355,13 +355,89 @@ void Particles_Inject(Data *data, Grid *grid)
     int i,j,k;
     DOM_LOOP(k,j,i){
         if(!(data->flag[k][j][i] & FLAG_ENTROPY)){
+            double us[256];
+            int nv;
+            NVAR_LOOP(nv) us[nv]=data->Vc[nv][k][j][i];
+            us[RHO] = data->downstreamDensity[k][j][i];
+            us[PRS] = data->downstreamPressure[k][j][i];
+            us[VX1] = data->downstreamV1[k][j][i];
+            us[VX2] = data->downstreamV2[k][j][i];
+            us[VX3] = data->downstreamV3[k][j][i];
+            double mu = MeanMolecularWeight(us)*CONST_mp;
+            double T = (data->downstreamPressure[k][j][i]*mu/data->downstreamDensity[k][j][i]);
+
             double compression = data->downstreamDensity[k][j][i]/data->upstreamDensity[k][j][i];
             double injection = 0;
+            double xd, yd, zd;
+            double xu, yu, zu;
+            double nx, ny, nz;
+
+#if GEOMETRY == CARTESIAN
+            xd = data->downstreamx1[k][j][i];
+            yd = data->downstreamx2[k][j][i];
+            zd = data->downstreamx3[k][j][i];
+
+            xu = data->upstreamx1[k][j][i];
+            yu = data->upstreamx2[k][j][i];
+            zu = data->upstreamx3[k][j][i];
+#elif GEOMETRY == CYLINDRICAL
+            xd = data->downstreamx1[k][j][i]*cos(d->downstreamx3[k][j][i]);
+            yd = data->downstreamx1[k][j][i]*sin(d->downstreamx3[k][j][i]);
+            zd = data->downstreamx2[k][j][i];
+
+            xu = data->upstreamx1[k][j][i]*cos(d->upstreamx3[k][j][i]);
+            yu = data->upstreamx1[k][j][i]*sin(d->upstreamx3[k][j][i]);
+            zu = data->upstreamx2[k][j][i];
+
+#elif GEOMETRY == POLAR
+            xd = data->downstreamx1[k][j][i]*cos(d->downstreamx2[k][j][i]);
+            yd = data->downstreamx1[k][j][i]*sin(d->downstreamx2[k][j][i]);
+            zd = data->downstreamx3[k][j][i];
+
+            xu = data->upstreamx1[k][j][i]*cos(d->upstreamx2[k][j][i]);
+            yu = data->upstreamx1[k][j][i]*sin(d->upstreamx2[k][j][i]);
+            zu = data->upstreamx3[k][j][i];
+#elif GEOMETRY == SPHERICAL
+            xd = data->downstreamx1[k][j][i]*sin(d->downstreamx2[k][j][i])*cos(d->downstreamx3[k][j][i]);
+            yd = data->downstreamx1[k][j][i]*sin(d->downstreamx2[k][j][i])*sin(d->downstreamx3[k][j][i]);
+            zd = data->downstreamx1[k][j][i]*cos(d->downstreamx2[k][j][i]);
+
+            xu = data->upstreamx1[k][j][i]*sin(grid->x[1][upstreamj])*cos(d->upstreamx3[k][j][i]);
+            yu = data->upstreamx1[k][j][i]*sin(d->upstreamx2[k][j][i])*sin(d->upstreamx3[k][j][i]);
+            zu = data->upstreamx1[k][j][i]*cos(d->upstreamx2[k][j][i]);
+#else
+#endif
+            nx = (xu - xd)/data->shockWidth[k][j][i];
+            ny = (yu - yd)/data->shockWidth[k][j][i];
+            nz = (zu - zd)/data->shockWidth[k][j][i];
+            double n1, n2, n3;
+#if GEOMETRY == CARTESIAN
+            n1 = nx;
+            n2 = ny;
+            n3 = nz;
+#elif GEOMETRY == CYLINDRICAL
+            n1 = nx*cos(grid->x[2][k]) + ny*sin(grid->x[2][k]);
+            n3 = ny*cos(grid->x[2][k]) - nx*sin(grid->x[2][k]);
+            n2 = nz;
+#elif GEOMETRY == POLAR
+            n1 = nx*cos(grid->x[1][j]) + ny*sin(grid->x[1][j]);
+            n2 = ny*cos(grid->x[1][j]) - nx*sin(grid->x[1][j]);
+            n3 = nz;
+#elif GEOMETRY == SPHERICAL
+            n1 = nx*sin(grid->x[1][j])*cos(grid->x[2][k]) + ny*sin(grid->x[1][j])*sin(grid->x[2][k]) + nz*cos(grid->x[1][j]);
+            n2 = nx*cos(grid->x[1][j])*cos(grid->x[2][k]) + ny*cos(grid->x[1][j])*sin(grid->x[2][k]) - nz*sin(grid->x[1][j]);
+            n3 = -nx*sin(grid->x[2][k]) + ny*cos(grid->x[2][k]);
+#else
+            printLog("wrong geometry/n");
+            QUIT_PLUTO(1);
+#endif
+            //to compensate that there are several cells along shock
+            double localFlux = fabs(n1*grid->A[0][k][j][i]) + fabs(n2*grid->A[1][k][j][i]) + fabs(n3*grid->A[2][k][j][i]);
             if(compression > COMPRESSION_TRESHOLD){
-                injection = INJECTION_PARAMETER*g_dt*(data->downstreamDensity[k][j][i]*data->velocityJump[k][j][i]/(compression - 1.0))/data->shockWidth[k][j][i];
+                injection = INJECTION_PARAMETER*((data->downstreamDensity[k][j][i]/mu)*data->velocityJump[k][j][i]/(compression - 1.0))*(grid->dV[k][j][i]/(localFlux*data->shockWidth[k][j][i]))*data->p_grid[0]/(data->p_grid[1] - data->p_grid[0]);
             }
             CheckNanOrInfinity(injection, "Injection = NaN\n");
-            data->Fkin[k][j][i][0] += injection;
+            data->Fkin[k][j][i][0] += injection*g_dt;
             double E = PARTICLES_KIN_MASS*PARTICLES_KIN_C*PARTICLES_KIN_C*sqrt(1.0 + data->p_grid[0]*data->p_grid[0]);
             data->injectedEnergy[k][j][i] += E*g_dt*injection*grid->dV[k][j][i]*(data->p_grid[1] - data->p_grid[0])/data->p_grid[0];
         }

@@ -478,6 +478,8 @@ void Initialize(Data *data, Runtime *runtime, Grid *grid, cmdLine *cmd_line)
   data->velocityJump = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
   data->upstreamDensity = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
   data->downstreamDensity = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  data->upstreamPressure = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  data->downstreamPressure = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
   data->downstreamx1 = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
   data->downstreamx2 = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
   data->downstreamx3 = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);

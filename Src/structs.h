@@ -581,6 +581,8 @@ typedef struct Data_{
     double*** downstreamV3;
     double*** downstreamDensity;
     double*** upstreamDensity;
+    double*** downstreamPressure;
+    double*** upstreamPressure;
 
 #if PARTICLES == PARTICLES_KIN || TURBULENT_FIELD == YES
     double ****Jkin1; /**< The CR current density momentum distribution */

@@ -29,6 +29,7 @@ typedef struct CellTracerNode_{
     double v2;
     double v3;
     double rho;
+    double pressure;
     double prevgradx;
     double prevgrady;
     double prevgradz;
@@ -37,7 +38,7 @@ typedef struct CellTracerNode_{
     struct CellTracerNode_* prev;
 } CellTracerNode;
 
-CellTracerNode* createTracer(int vrank0, int vi0, int vj0, int vk0, double x1v, double x2v, double x3v, int vi, int vj, int vk, double vv1, double vv2, double vv3, double vrho, double gradx, double grady, double gradz, int vN){
+CellTracerNode* createTracer(int vrank0, int vi0, int vj0, int vk0, double x1v, double x2v, double x3v, int vi, int vj, int vk, double vv1, double vv2, double vv3, double vrho, double vpressure, double gradx, double grady, double gradz, int vN){
     CellTracerNode* tempNode = (CellTracerNode*) malloc(sizeof(CellTracerNode));
     CheckNanOrInfinity(x1v, "x1 = NaN\n");
     CheckNanOrInfinity(x2v, "x2 = NaN\n");
@@ -60,6 +61,7 @@ CellTracerNode* createTracer(int vrank0, int vi0, int vj0, int vk0, double x1v, 
     tempNode->v2 = vv2;
     tempNode->v3 = vv3;
     tempNode->rho = vrho;
+    tempNode->pressure = vpressure;
     tempNode->prevgradx = gradx;
     tempNode->prevgrady = grady;
     tempNode->prevgradz = gradz;
@@ -69,8 +71,8 @@ CellTracerNode* createTracer(int vrank0, int vi0, int vj0, int vk0, double x1v, 
     return tempNode;
 }
 
-CellTracerNode* addElementAfter(CellTracerNode* curNode, int vrank0, int vi0, int vj0, int vk0, double x1v, double x2v, double x3v, int vi, int vj, int vk, double vv1, double vv2, double vv3, double vrho, double gradx, double grady, double gradz, int N){
-    CellTracerNode* tempNode = createTracer(vrank0, vi0, vj0, vk0, x1v, x2v, x3v, vi, vj, vk, vv1, vv2, vv3, vrho, gradx, grady, gradz, N);
+CellTracerNode* addElementAfter(CellTracerNode* curNode, int vrank0, int vi0, int vj0, int vk0, double x1v, double x2v, double x3v, int vi, int vj, int vk, double vv1, double vv2, double vv3, double vrho, double vpressure, double gradx, double grady, double gradz, int N){
+    CellTracerNode* tempNode = createTracer(vrank0, vi0, vj0, vk0, x1v, x2v, x3v, vi, vj, vk, vv1, vv2, vv3, vrho, vpressure, gradx, grady, gradz, N);
     tempNode->next = curNode->next;
     if(curNode->next != NULL){
         curNode->prev = tempNode;
@@ -114,6 +116,8 @@ void putTracerListToArray(CellTracerNode* tracersList, int* outbuf, double* outb
         outbufd[countd] = tracersList->v3;
         countd++;
         outbufd[countd] = tracersList->rho;
+        countd++;
+        outbufd[countd] = tracersList->pressure;
         countd++;
         outbufd[countd] = tracersList->prevgradx;
         countd++;
@@ -166,6 +170,8 @@ CellTracerNode* putArrayToTracerList(int* inbuf, double* inbufd, int Nin){
 		countd++;
 		double rho = inbufd[countd];
 		countd++;
+        double pressure = inbufd[countd];
+        countd++;
         double gradx = inbufd[countd];
         countd++;
         double grady = inbufd[countd];
@@ -173,7 +179,7 @@ CellTracerNode* putArrayToTracerList(int* inbuf, double* inbufd, int Nin){
         double gradz = inbufd[countd];
         countd++;
 		
-        CellTracerNode* temp = createTracer(rank0, i0, j0, k0, x, y, z, i, j, k, vx, vy, vz, rho, gradx, grady, gradz, N);
+        CellTracerNode* temp = createTracer(rank0, i0, j0, k0, x, y, z, i, j, k, vx, vy, vz, rho, pressure, gradx, grady, gradz, N);
 		
 		temp->next = list;
 		if(list != NULL){
@@ -184,7 +190,7 @@ CellTracerNode* putArrayToTracerList(int* inbuf, double* inbufd, int Nin){
 	return list;
 }
 
-void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double*** x2, double*** x3, double*** v1, double*** v2, double*** v3, double*** rho){
+void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double*** x2, double*** x3, double*** v1, double*** v2, double*** v3, double*** rho, double*** pressure){
     register int nd;
     int i, j, k;
     int myrank, nprocs;
@@ -227,7 +233,7 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
     NactiveTracers[0] = 0;
     DOM_LOOP(k,j,i){
         if(!(d->flag[k][j][i] & FLAG_ENTROPY)){
-            CellTracerNode* tempTracer = createTracer(globrank, i,j,k, grid->x[0][i], grid->x[1][j], grid->x[2][k], i,j,k, 0.0, 0.0, 0.0, d->Vc[RHO][k][j][i], 0, 0, 0, 0);
+            CellTracerNode* tempTracer = createTracer(globrank, i,j,k, grid->x[0][i], grid->x[1][j], grid->x[2][k], i,j,k, 0.0, 0.0, 0.0, d->Vc[RHO][k][j][i], d->Vc[RHO][k][j][i], 0, 0, 0, 0);
             if(tracers == NULL){
                 tracers = tempTracer;
             } else {
@@ -503,7 +509,7 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
         double* inbufd;
 
         int intBufCount = 8;
-        int doubleBufCount = 10;
+        int doubleBufCount = 11;
 
 #if INCLUDE_IDIR
         Nout[0] = NtoLeft;
@@ -1015,7 +1021,7 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
     free(rdisplsd);
 }
 
-void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, double*** x3, double*** v1, double*** v2, double*** v3, double*** rho){
+void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, double*** x3, double*** v1, double*** v2, double*** v3, double*** rho, double*** pressure){
     if((direction != 1) && (direction != -1)){
         printf("direction for tracing must be 1 or -1\n");
         printLog("direction for tracing must be 1 or -1\n");
@@ -1025,7 +1031,7 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
     int i, j, k;
 
 #ifdef PARALLEL
-    traceShockParallel(d, grid, direction, x1, x2, x3, v1, v2, v3, rho);
+    traceShockParallel(d, grid, direction, x1, x2, x3, v1, v2, v3, rho, pressure);
 #else
     DOM_LOOP(k,j,i){
         if(!(d->flag[k][j][i] & FLAG_ENTROPY)){
@@ -1138,6 +1144,7 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
                 v3[k][j][i] = d->Vc[VX3][currentk][currentj][currenti];
 
                 rho[k][j][i] = d->Vc[RHO][currentk][currentj][currenti];
+                pressure[k][j][i] = d->Vc[PRS][currentk][currentj][currenti];
 
                 traceNextCell(grid, &x, &y, &z, direction*pgradx/gradnorm, direction*pgrady/gradnorm, direction*pgradz/gradnorm, &currenti, &currentj, &currentk);
             }
@@ -1165,6 +1172,8 @@ void updateShockFront(Data* d, Grid* grid){
         d->velocityJump[k][j][i] = 0.0;
         d->upstreamDensity[k][j][i] = d->Vc[RHO][k][j][i];
         d->downstreamDensity[k][j][i] = d->Vc[RHO][k][j][i];
+        d->upstreamPressure[k][j][i] = d->Vc[PRS][k][j][i];
+        d->downstreamPressure[k][j][i] = d->Vc[PRS][k][j][i];
         d->downstreamV1[k][j][i] = 0.0;
         d->downstreamV2[k][j][i] = 0.0;
         d->downstreamV3[k][j][i] = 0.0;
@@ -1174,8 +1183,8 @@ void updateShockFront(Data* d, Grid* grid){
     }
 
 
-    traceShock(d, grid, -1, d->upstreamx1, d->upstreamx2, d->upstreamx3, d->upstreamV1, d->upstreamV2, d->upstreamV3, d->upstreamDensity);
-    traceShock(d, grid, 1, d->downstreamx1, d->downstreamx2, d->downstreamx3, d->downstreamV1, d->downstreamV2, d->downstreamV3, d->downstreamDensity);
+    traceShock(d, grid, -1, d->upstreamx1, d->upstreamx2, d->upstreamx3, d->upstreamV1, d->upstreamV2, d->upstreamV3, d->upstreamDensity, d->upstreamPressure);
+    traceShock(d, grid, 1, d->downstreamx1, d->downstreamx2, d->downstreamx3, d->downstreamV1, d->downstreamV2, d->downstreamV3, d->downstreamDensity, d->downstreamPressure);
 
     DOM_LOOP(k,j,i){
         if(!(d->flag[k][j][i] & FLAG_ENTROPY)){
