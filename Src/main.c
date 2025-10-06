@@ -790,9 +790,24 @@ void CheckForOutput (Data *d, Runtime *runtime, time_t t0, Grid *grid)
          || output->type == PARTICLES_TAB_OUTPUT
          || output->type == PARTICLES_HDF5_OUTPUT){
         Particles_WriteData(d, output, grid);
-      } else
+      } else {
       #endif
-      WriteData(d, output, grid);
+          #if TURBULENT_FIELD == YES
+          if(output->type == TURBULENCE_DBL_OUTPUT
+                  || output->type == TURBULENCE_FLT_OUTPUT
+                  || output->type == TURBULENCE_VTK_OUTPUT
+                  || output->type == TURBULENCE_TAB_OUTPUT
+                  || output->type == TURBULENCE_HDF5_OUTPUT){
+              Turbulence_WriteData(d, output, grid);
+          } else {
+          #endif
+              WriteData(d, output, grid);
+          #if TURBULENT_FIELD == YES
+          }
+          #endif
+      #if PARTICLES
+      }
+      #endif
 
     /* ----------------------------------------------------------
         save the file number of the dbl and dbl.h5 output format

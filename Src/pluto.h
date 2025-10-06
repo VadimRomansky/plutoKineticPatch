@@ -101,6 +101,12 @@
 #define PARTICLES_TAB_OUTPUT  12
 #define PARTICLES_HDF5_OUTPUT  13
 
+#define TURBULENCE_DBL_OUTPUT 14
+#define TURBULENCE_FLT_OUTPUT 15
+#define TURBULENCE_VTK_OUTPUT 16
+#define TURBULENCE_TAB_OUTPUT 17
+#define TURBULENCE_HDF5_OUTPUT 18
+
 #define VTK_VECTOR  5  /* -- any number but NOT 1  -- */
 
 #define MAX_OUTPUT_TYPES 16    /* The max number of allowed data formats
@@ -874,6 +880,7 @@ typedef double ****Data_Arr;
    ******************************************************** */
 
 #include "eos.h"
+#include "Turbulence/turbulence.h"
 #include "prototypes.h"
 #include "rotate.h"
 

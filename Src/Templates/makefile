@@ -35,7 +35,7 @@ OBJ += bin_io.o colortable.o initialize.o jet_domain.o \
        userdef_output.o write_data.o write_tab.o \
        write_img.o write_vtk.o write_vtk_proc.o
        
-OBJ += evaluate_shock.o turbulent_field_step.o turbulence_write_data.o turbulence_write_bin.o turbulence_write_vtk.o
+OBJ += evaluate_shock.o turbulent_field_step.o turbulence_write_data.o turbulence_write_bin.o turbulence_write_vtk.o turbulence_set_output.o
 
 include $(SRC)/Math_Tools/makefile
 

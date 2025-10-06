@@ -743,6 +743,9 @@ void Initialize(Data *data, Runtime *runtime, Grid *grid, cmdLine *cmd_line)
 #if (PARTICLES != NO)
   Particles_SetOutput(data, runtime);
 #endif
+#if TURBULENT_FIELD == YES
+  Turbulence_SetOutput(data, runtime);
+#endif
   ChangeOutputVar();
 
 /* ----------------------------------------------

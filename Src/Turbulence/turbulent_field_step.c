@@ -1,6 +1,8 @@
 #include "pluto.h"
 #include <stdbool.h>
 
+#include "turbulence.h"
+
 #include "matrixElement.h"
 #include "specialmath.h"
 

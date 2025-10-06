@@ -3,6 +3,13 @@
    ********************************************************************* */
 
 int    AdvanceStep(Data *, timeStep *, Grid *);
+#if TURBULENT_FIELD == YES
+void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid);
+void Turbulence_WriteBinary(Data* data, Grid* grid, double dt_magnetic, Output *output, char *filename);
+void Turbulence_WriteData(Data *d, Output *output, Grid *grid);
+void Turbulence_WriteVTK(Data* data, Grid* grid, Output *output, char filename[256]);
+void Turbulence_WriteTab(Data* data, Grid* grid, char filename[256]);
+#endif
 void   AdvectFlux (const Sweep *, int, int, Grid *);
 void   AMR_StoreFlux (double **, double **, int, int, int, int, int, Grid *);
 void   Analysis (const Data *, Grid *);

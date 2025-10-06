@@ -2,5 +2,4 @@
 #define TURBULENCE_WRITE_BIN_H
 
 
-
 #endif // TURBULENCE_WRITE_BIN_H

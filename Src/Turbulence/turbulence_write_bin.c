@@ -15,7 +15,7 @@
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 
-#if PARTICLES != PARTICLES_LP
+#if TURBULENT_FIELD == YES
 /* ********************************************************************* */
 void Turbulence_WriteBinary(Data* data, Grid* grid, double dt_magnetic,
                            Output *output, char *filename)
@@ -61,9 +61,6 @@ void Turbulence_WriteBinary(Data* data, Grid* grid, double dt_magnetic,
   float   *farr;
   double  *darr, gamma;
 
-#if PARTICLES != PARTICLES_KIN
-  particleNode * CurNode;
-#endif
 
 /* --------------------------------------------------------
    0. Allocate memory for required fields
@@ -78,7 +75,7 @@ void Turbulence_WriteBinary(Data* data, Grid* grid, double dt_magnetic,
       nelem += output->field_dim[nv];
     }
   }
-#if PARTICLES == PARTICLES_KIN
+
   long out_particles = 0;
   DOM_LOOP(k,j,i){
           int ig = i + grid->beg[0] - grid->lbeg[0] - IBEG;
@@ -86,18 +83,18 @@ void Turbulence_WriteBinary(Data* data, Grid* grid, double dt_magnetic,
           int kg = k + grid->beg[2] - grid->lbeg[2] - KBEG;
           int write_p = 1;
 #if INCLUDE_IDIR
-          if( ig % PARTICLES_KIN_OUTPUT_STEP != 0){
+          if( ig % TURBULENCE_OUTPUT_STEP != 0){
               write_p = 0;
           }
 #endif
 
 #if INCLUDE_JDIR
-          if(jg % PARTICLES_KIN_OUTPUT_STEP != 0){
+          if(jg % TURBULENCE_OUTPUT_STEP != 0){
               write_p = 0;
           }
 #endif
 #if INCLUDE_KDIR
-          if(kg % PARTICLES_KIN_OUTPUT_STEP != 0){
+          if(kg % TURBULENCE_OUTPUT_STEP != 0){
               write_p = 0;
           }
 #endif
@@ -112,9 +109,7 @@ void Turbulence_WriteBinary(Data* data, Grid* grid, double dt_magnetic,
   //MPI_Allreduce(nparl, nparg, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
   //out_particles = nparg[0];
 #endif
-#else
-  long out_particles = p_nparticles;
-#endif
+
   darr = ARRAY_1D(nelem*out_particles, double);
   farr = ARRAY_1D(nelem*out_particles, float);
 
@@ -126,65 +121,25 @@ void Turbulence_WriteBinary(Data* data, Grid* grid, double dt_magnetic,
   i  = 0;  /* Array index */
   int iarr = 0;
 
-  #if PARTICLES != PARTICLES_KIN
-  PARTICLES_LOOP(CurNode, data->PHead){
-
-  /* ------------------------------------------------------
-     1b. Map structure members to array.
-         Important: field order should match the order
-         given in Particles_SetOutput().
-         Here nv scan *all* fields (nv <= nfields)
-     ------------------------------------------------------ */
-
-    nv = 0;
-    #if (PARTICLES == PARTICLES_CR) || (PARTICLES == PARTICLES_MC)
-    if (dump_var[nv++]) darr[i++] = CurNode->p.id;
-    if (dump_var[nv++]) darr[i++] = CurNode->p.coord[IDIR];
-    if (dump_var[nv++]) darr[i++] = CurNode->p.coord[JDIR];
-    if (dump_var[nv++]) darr[i++] = CurNode->p.coord[KDIR];
-    if (dump_var[nv++]) darr[i++] = CurNode->p.speed[IDIR];
-    if (dump_var[nv++]) darr[i++] = CurNode->p.speed[JDIR];
-    if (dump_var[nv++]) darr[i++] = CurNode->p.speed[KDIR];
-    if (dump_var[nv++]) darr[i++] = CurNode->p.mass;
-    if (dump_var[nv++]) darr[i++] = CurNode->p.tinj;
-    if (dump_var[nv++]) darr[i++] = CurNode->p.color;
-    #endif
-
-    #if PARTICLES == PARTICLES_DUST
-    if (dump_var[nv++]) darr[i++] = CurNode->p.id;
-    if (dump_var[nv++]) darr[i++] = CurNode->p.coord[IDIR];
-    if (dump_var[nv++]) darr[i++] = CurNode->p.coord[JDIR];
-    if (dump_var[nv++]) darr[i++] = CurNode->p.coord[KDIR];
-    if (dump_var[nv++]) darr[i++] = CurNode->p.speed[IDIR];
-    if (dump_var[nv++]) darr[i++] = CurNode->p.speed[JDIR];
-    if (dump_var[nv++]) darr[i++] = CurNode->p.speed[KDIR];
-    if (dump_var[nv++]) darr[i++] = CurNode->p.mass;
-    if (dump_var[nv++]) darr[i++] = CurNode->p.tau_s;
-    if (dump_var[nv++]) darr[i++] = CurNode->p.tinj;
-    if (dump_var[nv++]) darr[i++] = CurNode->p.color;
-    #endif
-
-  } /* End PARTICLES_LOOP() */
-#else
   DOM_LOOP(k,j,i){
           int ig = i + grid->beg[0] - grid->lbeg[0] - IBEG;
           int jg = j + grid->beg[1] - grid->lbeg[1] - JBEG;
           int kg = k + grid->beg[2] - grid->lbeg[2] - KBEG;
           int write_p = 1;
 #if INCLUDE_IDIR
-          if( ig % PARTICLES_KIN_OUTPUT_STEP != 0){
+          if( ig % TURBULENCE_OUTPUT_STEP != 0){
               write_p = 0;
           }
 #endif
 
 #if INCLUDE_JDIR
-          if(jg % PARTICLES_KIN_OUTPUT_STEP != 0){
+          if(jg % TURBULENCE_OUTPUT_STEP != 0){
               write_p = 0;
           }
 #endif
 
 #if INCLUDE_KDIR
-          if(kg % PARTICLES_KIN_OUTPUT_STEP != 0){
+          if(kg % TURBULENCE_OUTPUT_STEP != 0){
               write_p = 0;
           }
 #endif
@@ -200,16 +155,16 @@ void Turbulence_WriteBinary(Data* data, Grid* grid, double dt_magnetic,
           if (dump_var[nv++]) darr[iarr++] = (k + grid->beg[2] - grid->lbeg[2] - KBEG);
 
           if (dump_var[nv++]) {
-              for(int l = 0; l < NMOMENTUM; ++l){
-                  darr[iarr++] = data->p_grid[l];
+              for(int l = 0; l < NTURB; ++l){
+                  darr[iarr++] = data->k_turb[l];
                   if(darr[iarr-1] != darr[iarr-1]){
                       printf("darr = NaN\n");
                   }
               }
           }
           if (dump_var[nv++]) {
-              for(int l = 0; l < NMOMENTUM; ++l){
-                  darr[iarr++] = data->Fkin[k][j][i][l]/(data->p_grid[l]*data->p_grid[l]*data->p_grid[l]);
+              for(int l = 0; l < NTURB; ++l){
+                  darr[iarr++] = data->Wt[k][j][i][l];
                   if(darr[iarr-1] != darr[iarr-1]){
                       printf("darr = NaN\n");
                   }
@@ -221,15 +176,8 @@ void Turbulence_WriteBinary(Data* data, Grid* grid, double dt_magnetic,
                   printf("darr = NaN\n");
               }
           }
-          if(dump_var[nv++]){
-              darr[iarr++] = data->injectedEnergy[k][j][i];
-              if(darr[iarr-1] != darr[iarr-1]){
-                  printf("darr = NaN\n");
-              }
-          }
       }
   }
-#endif
 
 /* --------------------------------------------------------
    2. Compute the total number of particles and gather
@@ -260,9 +208,9 @@ void Turbulence_WriteBinary(Data* data, Grid* grid, double dt_magnetic,
    3. Write file header section.
    -------------------------------------------------------- */
 
-  sprintf(fheader,"# PLUTO %s binary particle data file\n", PLUTO_VERSION);
+  sprintf(fheader,"# PLUTO %s binary turbulence data file\n", PLUTO_VERSION);
   sprintf(fheader+strlen(fheader),"# dimensions     %d\n",DIMENSIONS);
-  sprintf(fheader+strlen(fheader),"# dt_particles   %12.6e\n",dt_magnetic);
+  sprintf(fheader+strlen(fheader),"# dt_magnetic   %12.6e\n",dt_magnetic);
   if (IsLittleEndian())
       sprintf(fheader+strlen(fheader),"# endianity      little\n");
   else
@@ -338,10 +286,9 @@ if (output->type == PARTICLES_DBL_OUTPUT){
   FreeArray1D(darr);
   FreeArray1D(farr);
 }
-#endif /* PARTICLES != PARTICLES_LP */
 
 /* ********************************************************************* */
-void Particles_WriteTab(Data* data, Grid* grid, char filename[128])
+void Turbulence_WriteTab(Data* data, Grid* grid, char filename[256])
 /*
  * Write particle coordinates, ids and speeds in Tab ASCII format
  * only for *serial* version.
@@ -358,37 +305,17 @@ void Particles_WriteTab(Data* data, Grid* grid, char filename[128])
   int i,j,k;
   FILE *stream;
 
-#if PARTICLES == PARTICLES_KIN
-  long out_particles = NX1*NX2*NX3*NMOMENTUM;
-#else
-  long out_particles = p_nparticles;
-#endif
+
+  long out_particles = NX1*NX2*NX3*NTURB;
 
   stream = fopen(filename, "w");
   fprintf(stream, "# Nparticles: %ld\n", out_particles);
   fprintf(stream, "# Step:       %ld\n", g_stepNumber);
   fprintf(stream, "# Time:       %f\n",  g_time);
 
-#if PARTICLES != PARTICLES_KIN
-  particleNode* CurNode;
 
-  CurNode = data->PHead;
-  while(CurNode != NULL) {
-    fprintf(stream, "%d", CurNode->p.id);
-
-    for (i = 0; i < 3; ++i) {
-      fprintf(stream, "  %lf", CurNode->p.coord[i]);
-    }
-    for (i = 0; i < 3; ++i) {
-      fprintf(stream, "  %lf", CurNode->p.speed[i]);
-    }
-    fprintf(stream, "\n");
-
-    CurNode = CurNode->next;
-  }
-#else
   DOM_LOOP(k,j,i){
-      for(int l = 0; l < NMOMENTUM; ++l){
+      for(int l = 0; l < NTURB; ++l){
           fprintf(stream, "%d", 0);
 
 
@@ -397,16 +324,16 @@ void Particles_WriteTab(Data* data, Grid* grid, char filename[128])
           fprintf(stream, "  %d %d %d", i + grid->beg[0] - grid->lbeg[0], j + grid->beg[1] - grid->lbeg[1], k + grid->beg[2] - grid->lbeg[2]);
 
 
-          fprintf(stream, "  %lf %lf %lf", data->p_grid[l], 0.0, 0.0);
+          fprintf(stream, "  %lf %lf %lf", data->k_turb[l], 0.0, 0.0);
 
-          fprintf(stream, " %lf %lf %lf", data->Fkin[k][j][i], grid->dV[k][j][i], 0.0);
+          fprintf(stream, " %lf %lf %lf", data->Wt[k][j][i][l], grid->dV[k][j][i], 0.0);
 
           fprintf(stream, "\n");
       }
   }
-#endif
   fclose(stream);
-
 #endif
 }
+
+#endif
 
