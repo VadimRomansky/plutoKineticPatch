@@ -48,6 +48,10 @@
 #define  PARTICLES_KIN_OUTPUT_STEP      1
 #define  PARTICLES_KIN_SOLVER           THREE_DIAGONAL
 #define  PARTICLES_KIN_EPS              0.1
+#define  P_GRID_MIN                     100
+#define  P_GRID_MAX                     1E7
+#define  INJECTION_PARAMETER            1E-5
+#define  COMPRESSION_TRESHOLD           2
 #define  TURBULENT_FIELD                NO
 #define  NTURB                          10
 #define  NMOMENTUM                      100

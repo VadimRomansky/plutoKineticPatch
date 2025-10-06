@@ -173,9 +173,9 @@ void InitDomain (Data *d, Grid *grid)
     double emc = PARTICLES_MC_E_MC;
     double c = PARTICLES_MC_C;
     double temp_p_min = 0.01*(grid->dl_min[0]*UNIT_LENGTH)*g_inputParam[B_AMB]*CONST_e/(CONST_mp*CONST_c*CONST_c);
-    p_grid_min = 100;
+    p_grid_min = P_GRID_MIN;
     double ratio = temp_p_min/p_grid_min;
-    p_grid_max = 100000*p_grid_min;
+    p_grid_max = P_GRID_MAX;
     double factor1 = pow(p_grid_max/p_grid_min, 1.0/(NMOMENTUM - 1.0));
     d->p_grid[0] = p_grid_min;
     for(i = 1; i < NMOMENTUM; ++i){
