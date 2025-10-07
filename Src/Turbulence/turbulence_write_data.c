@@ -42,17 +42,17 @@ void Turbulence_WriteData(Data *d, Output *output, Grid *grid)
   if (prank == 0) time(&tbeg);
 #endif
 
-  if (   output->type == PARTICLES_DBL_OUTPUT
-      || output->type == PARTICLES_FLT_OUTPUT) {
+  if (   output->type == TURBULENCE_DBL_OUTPUT
+      || output->type == TURBULENCE_FLT_OUTPUT) {
 
     Turbulence_WriteBinary(d, grid, 1.0/d->Dts->invDt_magnetic,
                           output, filename);
 
-  }else if (output->type == PARTICLES_VTK_OUTPUT) {
+  }else if (output->type == TURBULENCE_VTK_OUTPUT) {
 
     Turbulence_WriteVTK(d, grid, output, filename);
 
-  }else if (output->type == PARTICLES_TAB_OUTPUT) {
+  }else if (output->type == TURBULENCE_TAB_OUTPUT) {
 
     Turbulence_WriteTab(d, grid, filename);
 

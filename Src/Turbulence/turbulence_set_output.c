@@ -39,7 +39,7 @@ void Turbulence_SetOutput (Data *d, Runtime *runtime)
 
     output = runtime->output + k;
 
-    for (i = 0; i < MAX_OUTPUT_VARS; i++) output->field_dim[i] = 1;
+    //for (i = 0; i < MAX_OUTPUT_VARS; i++) output->field_dim[i] = 1;
 
   /* -- 1a. Exclude fluid output types -- */
 
@@ -48,6 +48,8 @@ void Turbulence_SetOutput (Data *d, Runtime *runtime)
            output->type == TURBULENCE_VTK_OUTPUT ||
            output->type == TURBULENCE_TAB_OUTPUT ||
            output->type == TURBULENCE_HDF5_OUTPUT)) continue;
+
+    for (i = 0; i < MAX_OUTPUT_VARS; i++) output->field_dim[i] = 1;
 
   /* ------------------------------------------------------
      1b. Allocate memory for field names.
@@ -88,8 +90,8 @@ void Turbulence_SetOutput (Data *d, Runtime *runtime)
     strcpy(output->var_name[i++], "kturb");
     strcpy(output->var_name[i++], "W");
     strcpy(output->var_name[i++], "dV");
-    output->field_dim[7] = NMOMENTUM;
-    output->field_dim[8] = NMOMENTUM;
+    output->field_dim[7] = NTURB;
+    output->field_dim[8] = NTURB;
 
     output->nvar = i;
     

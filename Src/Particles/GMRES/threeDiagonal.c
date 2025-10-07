@@ -112,7 +112,7 @@ void sequentialThreeDiagonalSolverY(double**** x, double**** rightPart, double**
     //double**** d = create4Darray(Nx, Ny, Nz, Nmomentum);
 
     int rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    //MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     for (int i = 0; i < Nx; ++i) {
         for (int k = 0; k < Nz; ++k) {

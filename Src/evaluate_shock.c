@@ -190,6 +190,8 @@ CellTracerNode* putArrayToTracerList(int* inbuf, double* inbufd, int Nin){
 	return list;
 }
 
+#ifdef PARALLEL
+
 void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double*** x2, double*** x3, double*** v1, double*** v2, double*** v3, double*** rho, double*** pressure){
     register int nd;
     int i, j, k;
@@ -1020,6 +1022,8 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
     free(rdispls);
     free(rdisplsd);
 }
+
+#endif
 
 void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, double*** x3, double*** v1, double*** v2, double*** v3, double*** rho, double*** pressure){
     if((direction != 1) && (direction != -1)){
