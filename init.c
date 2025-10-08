@@ -162,6 +162,10 @@ void InitDomain (Data *d, Grid *grid)
 
     for(int l = 0; l < NTURB; ++l){
         double W = A*pow(d->k_turb[l], -5.0/3.0);
+        if(W < 0){
+            printLog("W turbuelnt < 0, %g\n", W);
+            QUIT_PLUTO(0);
+        }
         TOT_LOOP(k,j,i){
             d->Wt[k][j][i][l] = W;
             d->turbulent_rightPart[k][j][i][l] = W;

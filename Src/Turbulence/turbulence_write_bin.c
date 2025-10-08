@@ -219,9 +219,9 @@ void Turbulence_WriteBinary(Data* data, Grid* grid, double dt_magnetic,
   sprintf(fheader+strlen(fheader),"# nparticles     %ld\n",nparticles_glob);
   sprintf(fheader+strlen(fheader),"# idCounter      %ld\n",p_idCounter);
   sprintf(fheader+strlen(fheader),"# particletype   %d\n",PARTICLES);
-  if (output->type == PARTICLES_FLT_OUTPUT){
+  if (output->type == TURBULENCE_FLT_OUTPUT){
     sprintf(fheader+strlen(fheader),"# precision      float\n");
-  }else if (output->type == PARTICLES_DBL_OUTPUT){
+  }else if (output->type == TURBULENCE_DBL_OUTPUT){
     sprintf(fheader+strlen(fheader),"# precision      double\n");
   }
 

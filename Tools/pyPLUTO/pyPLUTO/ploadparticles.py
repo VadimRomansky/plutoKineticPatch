@@ -5,7 +5,7 @@ import sys
 import numpy as np
 
 class ploadparticles(object):
-	def __init__(self, ns, w_dir=None, datatype=None, ptype=None, chnum=None):
+	def __init__(self, ns, w_dir=None, datatype=None, ptype=None, chnum=None, filename = 'particles'):
 		"""
 		Loads the Particle datafile.
 
@@ -29,9 +29,9 @@ class ploadparticles(object):
 		self.datatype = datatype
 		if ptype == 'LP' and self.datatype in ['dbl', 'flt']:
 			if chnum is None: chnum = 0 #by default it reads first file. 
-			self.fname = self.wdir+"particles.%04d_ch%02d.%s"%(ns, chnum, self.datatype)
+			self.fname = self.wdir+filename+".%04d_ch%02d.%s"%(ns, chnum, self.datatype)
 		else:
-			self.fname = self.wdir+"particles.%04d.%s"%(ns, self.datatype)
+			self.fname = self.wdir+filename+".%04d.%s"%(ns, self.datatype)
 		if self.datatype == 'vtk':
 			Part_dictionary = self.ReadVTKParticleFile()
 		else:

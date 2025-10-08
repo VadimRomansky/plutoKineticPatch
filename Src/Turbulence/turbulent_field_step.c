@@ -683,7 +683,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
                 d->Wt[k][j][i][l] = 0;
             }
             if(d->Wt[k][j][i][l] != d->Wt[k][j][i][l]){
-                print("turbulent field = NaN\n");
+                printLog("turbulent field = NaN\n");
                 QUIT_PLUTO(1);
             }
         }
