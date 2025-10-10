@@ -150,8 +150,8 @@ void InitDomain (Data *d, Grid *grid)
     }
 
 #if TURBULENT_FIELD == YES
-    k_turb_min = 2*CONST_PI/grid->dl_min[0];
-    k_turb_max = 100*k_turb_min;
+    k_turb_min = 50000000*2*CONST_PI/grid->dl_min[0];
+    k_turb_max = 10000000000*k_turb_min;
     double factor = pow(k_turb_max/k_turb_min, 1.0/(NTURB - 1.0));
     d->k_turb[0] = k_turb_min;
     for(int i = 1; i < NTURB; ++i){

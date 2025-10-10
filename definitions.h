@@ -50,11 +50,11 @@
 #define  PARTICLES_KIN_EPS              0.1
 #define  P_GRID_MIN                     100
 #define  P_GRID_MAX                     1E7
-#define  INJECTION_PARAMETER            1E-2
-#define  COMPRESSION_TRESHOLD           2
+#define  INJECTION_PARAMETER            1E-5
+#define  COMPRESSION_TRESHOLD           1.4
 #define  TURBULENT_FIELD                YES
 #define  TURBULENCE_OUTPUT_STEP         1
-#define  NTURB                          20
+#define  NTURB                          50
 #define  NMOMENTUM                      100
 #define  MAX_GMRES_ITERATIONS           20
 #define  WARNING_MESSAGES               NO

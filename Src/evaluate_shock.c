@@ -395,7 +395,7 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
                 }
 #endif
 #if INCLUDE_KDIR
-                if(upstreamk < KBEG){
+                if(currentk < KBEG){
                     CellTracerNode* temp = tracersToBack;
                     tracersToBack = tracers;
                     tracers->k = currentk - KBEG + 1;
@@ -421,7 +421,7 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
                     }
                     break;
                 }
-                if(upstreamk > KEND){
+                if(currentk > KEND){
                     CellTracerNode* temp = tracersToFront;
                     tracersToFront = tracers;
                     tracers->k = currentk - KEND - 1;
@@ -1096,7 +1096,7 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
                 }
 #endif
 #if INCLUDE_KDIR
-                if(upstreamk < KBEG){
+                if(currentk < KBEG){
                     if(grid->lbound[2] == PERIODIC){
                         double L = (grid->xend_glob[2] - grid->xbeg_glob[2]);
                         z = z + L;
@@ -1105,7 +1105,7 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
                         break;
                     }
                 }
-                if(upstreamk > KEND){
+                if(currentk > KEND){
                     if(grid->rbound[2] == PERIODIC){
                         double L = (grid->xend_glob[2] - grid->xbeg_glob[2]);
                         z = z - L;
@@ -1133,7 +1133,7 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
                 pgrady = grid->dx_dl[JDIR][currentj][currenti]*(d->Vc[PRS][currentk][currentj+1][currenti] - d->Vc[PRS][currentk][currentj-1][currenti])/(grid->x[1][currentj+1] - grid->x[1][currentj-1]);
 #endif
 #if INCLUDE_KDIR
-                pgradz = grid->dx_dl[KDIR][upstreamj][upstreami]*(d->Vc[PRS][upstreamk+1][upstreamj][upstreami] - d->Vc[PRS][upstreamk-1][upstreamj][upstreami])/(grid->x[2][upstreamk+1] - grid->x[2][upstreamk-1]);
+                pgradz = grid->dx_dl[KDIR][currentj][currenti]*(d->Vc[PRS][currentk+1][currentj][currneti] - d->Vc[PRS][currentk-1][currentj][currenti])/(grid->x[2][currentk+1] - grid->x[2][currentk-1]);
 #endif
                 double gradnorm = sqrt(pgradx*pgradx+ pgrady*pgrady + pgradz*pgradz);
                 double scalarmult = (prevgradx*pgradx + prevgrady*pgrady + prevgradz*pgradz);
@@ -1251,7 +1251,7 @@ void updateShockFront(Data* d, Grid* grid){
             yd = d->downstreamx1[k][j][i]*sin(d->downstreamx2[k][j][i])*sin(d->downstreamx3[k][j][i]);
             zd = d->downstreamx1[k][j][i]*cos(d->downstreamx2[k][j][i]);
 
-            xu = d->upstreamx1[k][j][i]*sin(grid->x[1][upstreamj])*cos(d->upstreamx3[k][j][i]);
+            xu = d->upstreamx1[k][j][i]*sin(d->upstreamx2[k][j][i]])*cos(d->upstreamx3[k][j][i]);
             yu = d->upstreamx1[k][j][i]*sin(d->upstreamx2[k][j][i])*sin(d->upstreamx3[k][j][i]);
             zu = d->upstreamx1[k][j][i]*cos(d->upstreamx2[k][j][i]);
 
