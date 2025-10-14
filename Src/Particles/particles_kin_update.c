@@ -100,6 +100,7 @@ double evaluateDiffusionCoefficient(Data* data, int i, int j, int k, double u){
     B[KDIR] = data->Vc[BX3][k][j][i];
 #if TURBULENT_FIELD == YES
     double Bmag = evaluateTurbulentField(data,i,j,k, B, u/PARTICLES_KIN_E_MC);
+    //Bmag = sqrt(B[IDIR]*B[IDIR] + B[JDIR]*B[JDIR] + B[KDIR]*B[KDIR]);
 #else
     double Bmag = sqrt(B[IDIR]*B[IDIR] + B[JDIR]*B[JDIR] + B[KDIR]*B[KDIR]);
 #endif

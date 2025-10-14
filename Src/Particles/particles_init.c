@@ -28,6 +28,7 @@ void Particles_Init(Data *d, Grid *grid)
  *
  *********************************************************************** */
 {
+    double UNIT_MASS = UNIT_DENSITY*pow(UNIT_LENGTH, 3.0);
 #if PARTICLES !=  PARTICLES_KIN
   int i,j,k, np, dir, nc;
   int np_glob = RuntimeGet()->Nparticles_glob;
@@ -290,6 +291,7 @@ void Particles_Inject(Data *data, Grid *grid)
  *********************************************************************** */
 {
     static int first_call = 1;
+    double UNIT_MASS = UNIT_DENSITY*pow(UNIT_LENGTH, 3.0);
 
 #if PARTICLES != PARTICLES_KIN
     Particle p;
@@ -363,7 +365,7 @@ void Particles_Inject(Data *data, Grid *grid)
             us[VX1] = data->downstreamV1[k][j][i];
             us[VX2] = data->downstreamV2[k][j][i];
             us[VX3] = data->downstreamV3[k][j][i];
-            double mu = MeanMolecularWeight(us)*CONST_mp;
+            double mu = MeanMolecularWeight(us)*CONST_mp/UNIT_MASS;
             double T = (data->downstreamPressure[k][j][i]*mu/data->downstreamDensity[k][j][i]);
 
             double compression = data->downstreamDensity[k][j][i]/data->upstreamDensity[k][j][i];
@@ -434,7 +436,8 @@ void Particles_Inject(Data *data, Grid *grid)
             //to compensate that there are several cells along shock
             double localFlux = fabs(n1*grid->A[0][k][j][i]) + fabs(n2*grid->A[1][k][j][i]) + fabs(n3*grid->A[2][k][j][i]);
             if(compression > COMPRESSION_TRESHOLD){
-                injection = INJECTION_PARAMETER*((data->downstreamDensity[k][j][i]/mu)*data->velocityJump[k][j][i]/(compression - 1.0))*(grid->dV[k][j][i]/(localFlux*data->shockWidth[k][j][i]))*data->p_grid[0]/(data->p_grid[1] - data->p_grid[0]);
+                //injection = INJECTION_PARAMETER*((data->downstreamDensity[k][j][i]/mu)*data->velocityJump[k][j][i]/(compression - 1.0))*(grid->dV[k][j][i]/(localFlux*data->shockWidth[k][j][i]))*data->p_grid[0]/(data->p_grid[1] - data->p_grid[0]);
+                injection = INJECTION_PARAMETER*((data->downstreamDensity[k][j][i]/mu)*data->velocityJump[k][j][i]/(compression - 1.0))*(1.0/data->shockWidth[k][j][i])*data->p_grid[0]/(data->p_grid[1] - data->p_grid[0]);
             }
             CheckNanOrInfinity(injection, "Injection = NaN\n");
             data->Fkin[k][j][i][0] += injection*g_dt;

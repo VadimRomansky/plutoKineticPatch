@@ -6,7 +6,7 @@
 #include "matrixElement.h"
 #include "specialmath.h"
 
-#if TURBULENT_FIELD == YES
+//#if TURBULENT_FIELD == YES
 
 void complexsqrt(double a, double b, double* c, double* d){
     double rho = sqrt(a*a + b*b);
@@ -38,16 +38,20 @@ void evaluateGrowthRate(Data *d, Grid *grid){
         double J2 = 0;
         double J3 = 0;
 
-        J1 = J1 + d->Jkin1[k][j][i][0]*(d->k_turb[1] - d->k_turb[0]);
-        J2 = J2 + d->Jkin2[k][j][i][0]*(d->k_turb[1] - d->k_turb[0]);
-        J3 = J3 + d->Jkin3[k][j][i][0]*(d->k_turb[1] - d->k_turb[0]);
+        J1 = J1 + d->Jkin1[k][j][i][0]*(d->p_grid[1] - d->p_grid[0]);
+        J2 = J2 + d->Jkin2[k][j][i][0]*(d->p_grid[1] - d->p_grid[0]);
+        J3 = J3 + d->Jkin3[k][j][i][0]*(d->p_grid[1] - d->p_grid[0]);
         for(int m = 1; m < NMOMENTUM; ++m){
-            J1 = J1 + d->Jkin1[k][j][i][m]*(d->k_turb[m] - d->k_turb[m-1]);
-            J2 = J2 + d->Jkin2[k][j][i][m]*(d->k_turb[m] - d->k_turb[m-1]);
-            J3 = J3 + d->Jkin3[k][j][i][m]*(d->k_turb[m] - d->k_turb[m-1]);
+            J1 = J1 + d->Jkin1[k][j][i][m]*(d->p_grid[m] - d->p_grid[m-1]);
+            J2 = J2 + d->Jkin2[k][j][i][m]*(d->p_grid[m] - d->p_grid[m-1]);
+            J3 = J3 + d->Jkin3[k][j][i][m]*(d->p_grid[m] - d->p_grid[m-1]);
         }
 
         double J = sqrt(J1*J1 + J2*J2 + J3*J3)*(PARTICLES_KIN_E_MC*PARTICLES_KIN_MASS*PARTICLES_KIN_C);
+
+        if(J <= 0){
+            continue;
+        }
 
         for(int l = 1; l < NTURB; ++l){
             Bls = sqrt(4*CONST_PI*d->Wt[k][j][i][l]*(d->k_turb[l]-d->k_turb[l-1]) + Bls*Bls);
@@ -117,8 +121,8 @@ void evaluateGrowthRate(Data *d, Grid *grid){
 
             double b2re = (1.0 - (A2re/J - 1)*(kc/d->k_turb[l]))*POW2(d->k_turb[l]*Va);
             double b2im = (0.0 - (A2im/J)*(kc/d->k_turb[l]))*POW2(d->k_turb[l]*Va);
-            double alpha = 1.5;
-            //double alpha = 0;
+            //double alpha = 1.5;
+            double alpha = 0;
             //Complex d1 = Complex(0, -1)*((A1*0.5/J) + 1.5)*(kgrid[k]*kc)*alpha/(4*pi*middleDensity[i]);
             //Complex d2 = Complex(0, 1)*((A2*0.5/J) + 1.5)*(kgrid[k]*kc)*alpha/(4*pi*middleDensity[i]);
 
@@ -690,4 +694,4 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
     }
 //printf("finish turbulent field\n");
 }
-#endif
+//#endif
