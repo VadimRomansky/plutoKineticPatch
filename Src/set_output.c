@@ -86,6 +86,8 @@ if (output->type == TURBULENCE_DBL_OUTPUT ||
     output->type == TURBULENCE_HDF5_OUTPUT) continue;
 #endif
 
+    for (i = 0; i < MAX_OUTPUT_VARS; i++) output->field_dim[i] = 1;
+
   /* --------------------------------------------
      1b. Set default output variable names for
          cell-centered variables.

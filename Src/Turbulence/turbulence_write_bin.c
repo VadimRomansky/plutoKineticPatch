@@ -252,18 +252,18 @@ void Turbulence_WriteBinary(Data* data, Grid* grid, double dt_magnetic,
    4. Write data
    -------------------------------------------------------- */
 
-  if (output->type == PARTICLES_DBL_OUTPUT) size = sizeof(double);
-  if (output->type == PARTICLES_FLT_OUTPUT) size = sizeof(float);
+  if (output->type == TURBULENCE_DBL_OUTPUT) size = sizeof(double);
+  if (output->type == TURBULENCE_FLT_OUTPUT) size = sizeof(float);
 
   offset *= nelem*size; /* Convert offset to bytes */
-  if (output->type == PARTICLES_FLT_OUTPUT){
+  if (output->type == TURBULENCE_FLT_OUTPUT){
     for (i = 0; i < nelem*out_particles; i++) farr[i] = (float)darr[i];
     arr = (void *) farr;
-  }else if (output->type == PARTICLES_DBL_OUTPUT){
+  }else if (output->type == TURBULENCE_DBL_OUTPUT){
     arr = (void *) darr;
   }
 /*
-if (output->type == PARTICLES_DBL_OUTPUT){
+if (output->type == TURBULENCE_DBL_OUTPUT){
   i = 0;
   for (k = 0; k < p_nparticles; k++){
     for (nv = 0; nv < nfields; nv++){

@@ -48,6 +48,7 @@ void Turbulence_SetOutput (Data *d, Runtime *runtime)
            output->type == TURBULENCE_VTK_OUTPUT ||
            output->type == TURBULENCE_TAB_OUTPUT ||
            output->type == TURBULENCE_HDF5_OUTPUT)) continue;
+    //printf("set output for turbulence\n");
 
     for (i = 0; i < MAX_OUTPUT_VARS; i++) output->field_dim[i] = 1;
 

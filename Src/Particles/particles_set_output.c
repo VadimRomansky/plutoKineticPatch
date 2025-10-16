@@ -37,7 +37,7 @@ void Particles_SetOutput (Data *d, Runtime *runtime)
 
     output = runtime->output + k;
 
-    for (i = 0; i < MAX_OUTPUT_VARS; i++) output->field_dim[i] = 1;
+    //for (i = 0; i < MAX_OUTPUT_VARS; i++) output->field_dim[i] = 1;
 
   /* -- 1a. Exclude fluid output types -- */
 
@@ -46,6 +46,8 @@ void Particles_SetOutput (Data *d, Runtime *runtime)
            output->type == PARTICLES_VTK_OUTPUT ||
            output->type == PARTICLES_TAB_OUTPUT ||
            output->type == PARTICLES_HDF5_OUTPUT)) continue;
+
+    for (i = 0; i < MAX_OUTPUT_VARS; i++) output->field_dim[i] = 1;
 
   /* ------------------------------------------------------
      1b. Allocate memory for field names.
