@@ -190,7 +190,7 @@ CellTracerNode* putArrayToTracerList(int* inbuf, double* inbufd, int Nin){
 	return list;
 }
 
-#ifdef PARALLEL
+//#ifdef PARALLEL
 
 void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double*** x2, double*** x3, double*** v1, double*** v2, double*** v3, double*** rho, double*** pressure){
     register int nd;
@@ -288,6 +288,11 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
                 tracers->N = tracers->N + 1;
 #if INCLUDE_IDIR
                 if(currenti < IBEG){
+                    if(s->lrank[0] == 0){
+                        if(!(s->isperiodic[0] == AL_TRUE)){
+                            break;
+                        }
+                    }
                     CellTracerNode* temp = tracersToLeft;
                     tracersToLeft = tracers;
                     tracers->i = currenti - IBEG + 1;
@@ -306,14 +311,16 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
                         if((s->isperiodic[0] == AL_TRUE)){
                             double L = (grid->xend_glob[0] - grid->xbeg_glob[0]);
                             tracersToLeft->x1 = tracersToLeft->x1 + L;
-                        } else {
-                            stopped = true;
-                            NtoLeft = NtoLeft - 1;
                         }
                     }
                     break;
                 }
                 if(currenti > IEND){
+                    if(s->lrank[0] == s->lsize[0] - 1){
+                        if(!(s->isperiodic[0] == AL_TRUE)){
+                            break;
+                        }
+                    }
                     CellTracerNode* temp = tracersToRight;
                     tracersToRight = tracers;
                     tracers->i = currenti - IEND - 1;
@@ -332,9 +339,6 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
                         if((s->isperiodic[0] == AL_TRUE)){
                             double L = (grid->xend_glob[0] - grid->xbeg_glob[0]);
                             tracersToRight->x1 = tracersToRight->x1 - L;
-                        } else {
-                            stopped = true;
-                            NtoRight = NtoRight - 1;
                         }
                     }
                     break;
@@ -342,6 +346,11 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
 #endif
 #if INCLUDE_JDIR
                 if(currentj < JBEG){
+                    if(s->lrank[1] == 0){
+                        if(!(s->isperiodic[1] == AL_TRUE)){
+                            break;
+                        }
+                    }
                     CellTracerNode* temp = tracersToDown;
                     tracersToDown = tracers;
                     tracers->j = currentj - JBEG + 1;
@@ -360,14 +369,16 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
                         if((s->isperiodic[1] == AL_TRUE)){
                             double L = (grid->xend_glob[1] - grid->xbeg_glob[1]);
                             tracersToDown->x2 = tracersToDown->x2 + L;
-                        } else {
-                            stopped = true;
-                            NtoDown = NtoDown - 1;
                         }
                     }
                     break;
                 }
                 if(currentj > JEND){
+                    if(s->lrank[1] == s->lsize[1] - 1){
+                        if(!(s->isperiodic[1] == AL_TRUE)){
+                            break;
+                        }
+                    }
                     CellTracerNode* temp = tracersToUp;
                     tracersToUp = tracers;
                     tracers->j = currentj - JEND - 1;
@@ -396,6 +407,11 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
 #endif
 #if INCLUDE_KDIR
                 if(currentk < KBEG){
+                    if(s->lrank[2] == 0){
+                        if(!(s->isperiodic[2] == AL_TRUE)){
+                            break;
+                        }
+                    }
                     CellTracerNode* temp = tracersToBack;
                     tracersToBack = tracers;
                     tracers->k = currentk - KBEG + 1;
@@ -414,14 +430,16 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
                         if((s->isperiodic[2] == AL_TRUE)){
                             double L = (grid->xend_glob[2] - grid->xbeg_glob[2]);
                             tracersToBack->x3 = tracersToBack->x3 + L;
-                        } else {
-                            stopped = true;
-                            NtoBack = NtoBack - 1;
                         }
                     }
                     break;
                 }
                 if(currentk > KEND){
+                    if(s->lrank[2] == s->lsize[2] - 1){
+                        if(!(s->isperiodic[2] == AL_TRUE)){
+                            break;
+                        }
+                    }
                     CellTracerNode* temp = tracersToFront;
                     tracersToFront = tracers;
                     tracers->k = currentk - KEND - 1;
@@ -440,9 +458,6 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
                         if((s->isperiodic[2] == AL_TRUE)){
                             double L = (grid->xend_glob[2] - grid->xbeg_glob[2]);
                             tracersToFront->x3 = tracersToFront->x3 - L;
-                        } else {
-                            stopped = true;
-                            NtoFront = NtoFront - 1;
                         }
                     }
                     break;
@@ -1023,7 +1038,7 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
     free(rdisplsd);
 }
 
-#endif
+//#endif
 
 void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, double*** x3, double*** v1, double*** v2, double*** v3, double*** rho, double*** pressure){
     if((direction != 1) && (direction != -1)){

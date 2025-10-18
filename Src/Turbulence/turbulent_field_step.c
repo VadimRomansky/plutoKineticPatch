@@ -11,9 +11,9 @@
 void complexsqrt(double a, double b, double* c, double* d){
     double rho = sqrt(a*a + b*b);
     double phi = atan2(b, a);
-    if(phi < 0){
+    /*if(phi < 0){
         phi = phi + 2*CONST_PI;
-    }
+    }*/
     rho = sqrt(rho);
     phi = phi/2;
     (*c) = rho*cos(phi);
@@ -74,16 +74,16 @@ void evaluateGrowthRate(Data *d, Grid *grid){
                 if( fabs(z - 1.0) < 0.00001){
                     sigma1re = 3.0/2.0;
                 } else if(z > 1) {
-                    sigma1re = (1.5/(z*z)) + 0.75*(1 - 1/((z*z)))*log(fabs((z+1)/(z-1)))/z;
+                    sigma1re = (1.5/(z*z)) + 0.75*(1.0 - 1.0/((z*z)))*log(fabs((z+1.0)/(z-1.0)))/z;
                 } else if(0.01 < z) {
-                    sigma1re = (1.5/(z*z)) + 0.75*(1 - 1/((z*z)))*log(fabs((z+1)/(z-1)))/z;
+                    sigma1re = (1.5/(z*z)) + 0.75*(1.0 - 1.0/((z*z)))*log(fabs((z+1.0)/(z-1.0)))/z;
                 }  else {
-                    sigma1re = 1 + 0.2*z*z;
+                    sigma1re = 1.0 + 0.2*z*z;
                 }
                 //sigma1 = 1;
 
-                if(z > 1){
-                    sigma1im = sigma1im -(3*CONST_PI/(4*z))*(1 - 1/(z*z));
+                if(z > 1.0){
+                    sigma1im = sigma1im -(3*CONST_PI/(4*z))*(1.0 - 1.0/(z*z));
                 }
                 CheckNanOrInfinity(sigma1re, "sigma = NaN");
                 CheckNanOrInfinity(sigma1im, "sigma = NaN");
@@ -99,6 +99,10 @@ void evaluateGrowthRate(Data *d, Grid *grid){
                                      + d->Jkin2[k][j][i][m]*d->Jkin2[k][j][i][m]
                                      + d->Jkin3[k][j][i][m]*d->Jkin3[k][j][i][m])*dp*(PARTICLES_KIN_E_MC*PARTICLES_KIN_MASS*PARTICLES_KIN_C);
 
+
+                if(crflux > 0){
+                    int a = 0;
+                }
                 A1re = A1re + sigma1re*crflux;
                 A1im = A1im + sigma1im*crflux;
 
@@ -110,16 +114,16 @@ void evaluateGrowthRate(Data *d, Grid *grid){
 
             //Complex complex1 = Complex(1);
             //Complex delta = complex1 - (A1/J - 1)*(kc/kgrid[k]);
-            double deltare = 1.0 - (A1re/J - 1)*(kc/d->k_turb[l]);
+            double deltare = 1.0 - (A1re/J - 1.0)*(kc/d->k_turb[l]);
             double deltaim = 0.0 - (A1im/J)*(kc/d->k_turb[l]);
 
             //Complex b1 = (complex1 - (A1/J - 1)*(kc/d->k_turb[l]))*POW2(d->k_turb[l]*Va);
             //Complex b2 = (complex1 + (A2/J - 1)*(kc/kgrid[k]))*POW2(kgrid[k]*Va);
 
-            double b1re = (1.0 - (A1re/J - 1)*(kc/d->k_turb[l]))*POW2(d->k_turb[l]*Va);
+            double b1re = (1.0 - (A1re/J - 1.0)*(kc/d->k_turb[l]))*POW2(d->k_turb[l]*Va);
             double b1im = (0.0 - (A1im/J)*(kc/d->k_turb[l]))*POW2(d->k_turb[l]*Va);
 
-            double b2re = (1.0 - (A2re/J - 1)*(kc/d->k_turb[l]))*POW2(d->k_turb[l]*Va);
+            double b2re = (1.0 - (A2re/J - 1.0)*(kc/d->k_turb[l]))*POW2(d->k_turb[l]*Va);
             double b2im = (0.0 - (A2im/J)*(kc/d->k_turb[l]))*POW2(d->k_turb[l]*Va);
             //double alpha = 1.5;
             double alpha = 0;
@@ -135,13 +139,15 @@ void evaluateGrowthRate(Data *d, Grid *grid){
             //Complex G1p = (csqrt(d1*d1 +b1*4) - d1)/2;
             //Complex G1m = (csqrt(d1*d1 +b1*4) + d1)/(-2);
 
-            double D1re, D1im;
+            double D1re = 0;
+            double D1im = 0;
             complexsqrt(d1re*d1re-d1im*d1im +4*b1re, 2*d1re*d1im + 4*b1im, &D1re, &D1im);
 
             //Complex G2p = (csqrt(d2*d2 +b2*4) - d2)/2;
             //Complex G2m = (csqrt(d2*d2 +b2*4) + d2)/(-2);
 
-            double D2re, D2im;
+            double D2re = 0;
+            double D2im = 0;;
             complexsqrt(d2re*d2re-d2im*d2im +4*b2re, 2*d2re*d2im + 4*b2im, &D2re, &D2im);
 
             double rate1 = (D1im - d1im)/2.0;
