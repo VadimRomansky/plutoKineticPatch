@@ -383,30 +383,30 @@ void Particles_Inject(Data *data, Grid *grid)
             yu = data->upstreamx2[k][j][i];
             zu = data->upstreamx3[k][j][i];
 #elif GEOMETRY == CYLINDRICAL
-            xd = data->downstreamx1[k][j][i]*cos(d->downstreamx3[k][j][i]);
-            yd = data->downstreamx1[k][j][i]*sin(d->downstreamx3[k][j][i]);
+            xd = data->downstreamx1[k][j][i]*cos(data->downstreamx3[k][j][i]);
+            yd = data->downstreamx1[k][j][i]*sin(data->downstreamx3[k][j][i]);
             zd = data->downstreamx2[k][j][i];
 
-            xu = data->upstreamx1[k][j][i]*cos(d->upstreamx3[k][j][i]);
-            yu = data->upstreamx1[k][j][i]*sin(d->upstreamx3[k][j][i]);
+            xu = data->upstreamx1[k][j][i]*cos(data->upstreamx3[k][j][i]);
+            yu = data->upstreamx1[k][j][i]*sin(data->upstreamx3[k][j][i]);
             zu = data->upstreamx2[k][j][i];
 
 #elif GEOMETRY == POLAR
-            xd = data->downstreamx1[k][j][i]*cos(d->downstreamx2[k][j][i]);
-            yd = data->downstreamx1[k][j][i]*sin(d->downstreamx2[k][j][i]);
+            xd = data->downstreamx1[k][j][i]*cos(data->downstreamx2[k][j][i]);
+            yd = data->downstreamx1[k][j][i]*sin(data->downstreamx2[k][j][i]);
             zd = data->downstreamx3[k][j][i];
 
-            xu = data->upstreamx1[k][j][i]*cos(d->upstreamx2[k][j][i]);
-            yu = data->upstreamx1[k][j][i]*sin(d->upstreamx2[k][j][i]);
+            xu = data->upstreamx1[k][j][i]*cos(data->upstreamx2[k][j][i]);
+            yu = data->upstreamx1[k][j][i]*sin(data->upstreamx2[k][j][i]);
             zu = data->upstreamx3[k][j][i];
 #elif GEOMETRY == SPHERICAL
-            xd = data->downstreamx1[k][j][i]*sin(d->downstreamx2[k][j][i])*cos(d->downstreamx3[k][j][i]);
-            yd = data->downstreamx1[k][j][i]*sin(d->downstreamx2[k][j][i])*sin(d->downstreamx3[k][j][i]);
-            zd = data->downstreamx1[k][j][i]*cos(d->downstreamx2[k][j][i]);
+            xd = data->downstreamx1[k][j][i]*sin(data->downstreamx2[k][j][i])*cos(data->downstreamx3[k][j][i]);
+            yd = data->downstreamx1[k][j][i]*sin(data->downstreamx2[k][j][i])*sin(data->downstreamx3[k][j][i]);
+            zd = data->downstreamx1[k][j][i]*cos(data->downstreamx2[k][j][i]);
 
-            xu = data->upstreamx1[k][j][i]*sin(grid->x[1][upstreamj])*cos(d->upstreamx3[k][j][i]);
-            yu = data->upstreamx1[k][j][i]*sin(d->upstreamx2[k][j][i])*sin(d->upstreamx3[k][j][i]);
-            zu = data->upstreamx1[k][j][i]*cos(d->upstreamx2[k][j][i]);
+            xu = data->upstreamx1[k][j][i]*sin(data->upstreamx2[k][j][i])*cos(data->upstreamx3[k][j][i]);
+            yu = data->upstreamx1[k][j][i]*sin(data->upstreamx2[k][j][i])*sin(data->upstreamx3[k][j][i]);
+            zu = data->upstreamx1[k][j][i]*cos(data->upstreamx2[k][j][i]);
 #else
 #endif
             nx = (xu - xd)/data->shockWidth[k][j][i];
