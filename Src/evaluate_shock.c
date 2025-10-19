@@ -277,7 +277,7 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
 
             while(!(d->flag[currentk][currentj][currenti] & FLAG_ENTROPY)){
                 countn++;
-                if(tracers->N > 10){
+                if(tracers->N > 20){
                     printf("n traced cells = %d, x = %g, y = %g, z = %g, current i = %d, current j = %d, current k = %d, rank = %d, prevgradx = %g, prevgrady = %g, prevgradz = %g\n", tracers->N, tracers->x1, tracers->x2, tracers->x3, tracers->i, tracers->j, tracers->k, globrank, tracers->prevgradx, tracers->prevgrady, tracers->prevgradz);
                 }
                 if(tracers->N > 1000){
@@ -1310,14 +1310,16 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double v1, do
     double dz;
     if(vx > 0){
         dx = (rx - *x1)/grid->dx_dl[IDIR][*j][*i];
-        if(dx == 0){
+        //if(dx == 0){
+        if(dx < fabs(1E-14*rx)){
             (*i) = (*i) + 1;
             traceNextCell(grid, x1, x2, x3, v1, v2, v3, i, j, k);
             return;
         }
     } else {
         dx = (*x1 - lx)/grid->dx_dl[IDIR][*j][*i];
-        if(dx == 0){
+        //if(dx == 0){
+        if(dx < fabs(1E-14*rx)){
             (*i) = (*i) - 1;
             traceNextCell(grid, x1, x2, x3, v1, v2, v3, i, j, k);
             return;
@@ -1325,14 +1327,16 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double v1, do
     }
     if(vy > 0){
         dy = (ry - *x2)/grid->dx_dl[JDIR][*j][*i];
-        if(dy == 0){
+        //if(dy == 0){
+        if(dy < fabs(1E-14*ry)){
             (*j) = (*j) + 1;
             traceNextCell(grid, x1, x2, x3, v1, v2, v3, i, j, k);
             return;
         }
     } else {
         dy = (*x2 - ly)/grid->dx_dl[JDIR][*j][*i];
-        if(dy == 0){
+        //if(dy == 0){
+        if(dy < fabs(1E-14*ry)){
             (*j) = (*j) - 1;
             traceNextCell(grid, x1, x2, x3, v1, v2, v3, i, j, k);
             return;
@@ -1340,14 +1344,16 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double v1, do
     }
     if(vz > 0){
         dz = (rz - *x3)/grid->dx_dl[KDIR][*j][*i];
-        if(dz == 0){
+        //if(dz == 0){
+        if(dz < fabs(1E-14*rz)){
             (*k) = (*k) + 1;
             traceNextCell(grid, x1, x2, x3, v1, v2, v3, i, j, k);
             return;
         }
     } else {
         dz = (*x3 - lz)/grid->dx_dl[KDIR][*j][*i];
-        if(dz == 0){
+        //if(dz == 0){
+        if(dz < fabs(1E-14*rz)){
             (*k) = (*k) - 1;
             traceNextCell(grid, x1, x2, x3, v1, v2, v3, i, j, k);
             return;
@@ -1730,14 +1736,16 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double v1, do
     double dy;
     if(v1 > 0){
         dx = (rx - (*x1))/grid->dx_dl[IDIR][*j][*i];
-        if(dx == 0){
+        //if(dx == 0){
+        if(dx < fabs(1E-14*rx)){
             (*i) = (*i) + 1;
             traceNextCell(grid, x1, x2, x3, v1, v2, v3, i, j, k);
             return;
         }
     } else {
         dx = ((*x1) - lx)/grid->dx_dl[IDIR][*j][*i];
-        if(dx == 0){
+        //if(dx == 0){
+        if(dx < fabs(1E-14*rx)){
             (*i) = (*i) - 1;
             traceNextCell(grid, x1, x2, x3, v1, v2, v3, i, j, k);
             return;
@@ -1745,14 +1753,16 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double v1, do
     }
     if(v2 > 0){
         dy = (ry - (*x2))/grid->dx_dl[JDIR][*j][*i];
-        if(dy == 0){
+        //if(dy == 0){
+        if(dy < fabs(1E-14*ry)){
             (*j) = (*j) + 1;
             traceNextCell(grid, x1, x2, x3, v1, v2, v3, i, j, k);
             return;
         }
     } else {
         dy = ((*x2) - ly)/grid->dx_dl[JDIR][*j][*i];
-        if(dy == 0){
+        //if(dy == 0){
+        if(dy < fabs(1E-14*ry)){
             (*j) = (*j) - 1;
             traceNextCell(grid, x1, x2, x3, v1, v2, v3, i, j, k);
             return;
