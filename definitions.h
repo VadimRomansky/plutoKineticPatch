@@ -54,6 +54,7 @@
 #define  COMPRESSION_TRESHOLD           1.4
 #define  TURBULENT_FIELD                YES
 #define  TURBULENCE_OUTPUT_STEP         1
+#define  TURBULENCE_SOLVER              THREE_DIAGONAL
 #define  NTURB                          50
 #define  NMOMENTUM                      100
 #define  MAX_GMRES_ITERATIONS           20

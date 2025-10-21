@@ -601,6 +601,25 @@ void Initialize(Data *data, Runtime *runtime, Grid *grid, cmdLine *cmd_line)
   data->turbulentBasis = (LargeVectorBasis*) malloc(1*sizeof(LargeVectorBasis));
   //(*(data->gmresBasis)) = createLargeVectorBasis(5, NX3_TOT, NX2_TOT, NX1_TOT, NMOMENTUM);
   createLargeVectorBasis1(data->turbulentBasis, 5, NX3_TOT, NX2_TOT, NX1_TOT, NTURB);
+
+#if INCLUDE_IDIR
+  data->Wax = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NTURB, double);
+  data->Wbx = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NTURB, double);
+  data->Wcx = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NTURB, double);
+#endif
+#if INCLUDE_JDIR
+  data->Way = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NTURB, double);
+  data->Wby = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NTURB, double);
+  data->Wcy = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NTURB, double);
+#endif
+#if INCLUDE_KDIR
+  data->Waz = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NTURB, double);
+  data->Wbz = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NTURB, double);
+  data->Wcz = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NTURB, double);
+#endif
+  data->Wak = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NTURB, double);
+  data->Wbk = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NTURB, double);
+  data->Wck = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NTURB, double);
 #endif
 
 #ifdef HIGH_ORDER

@@ -6,6 +6,15 @@
 #include "matrixElement.h"
 #include "specialmath.h"
 
+#ifdef PARALLEL
+#include "al_hidden.h"
+#endif
+
+#ifdef PARALLEL
+extern struct SZ *sz_stack[AL_MAX_ARRAYS];
+extern int stack_ptr[AL_MAX_ARRAYS];
+#endif
+
 //#if TURBULENT_FIELD == YES
 
 void complexsqrt(double a, double b, double* c, double* d){
@@ -207,6 +216,25 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
                 curNode->prev = NULL;
                 d->turbulent_rightPart[k][j][i][l] = 0.0;
                 d->turbulent_matrix[k][j][i][l] = curNode;
+
+#if INCLUDE_IDIR
+                d->Wax[k][j][i][l] = 0;
+                d->Wbx[k][j][i][l] = 1.0;
+                d->Wcx[k][j][i][l] = 0;
+#endif
+#if INCLUDE_JDIR
+                d->Way[k][j][i][l] = 0;
+                d->Wby[k][j][i][l] = 1.0;
+                d->Wcy[k][j][i][l] = 0;
+#endif
+#if INCLUDE_KDIR
+                d->Waz[k][j][i][l] = 0;
+                d->Wbz[k][j][i][l] = 1.0;
+                d->Wcz[k][j][i][l] = 0;
+#endif
+                d->Wak[k][j][i][l] = 0;
+                d->Wbk[k][j][i][l] = 1.0;
+                d->Wck[k][j][i][l] = 0;
         }
     }
 
@@ -218,6 +246,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
                 for(int l = 0; l < NTURB; ++l){
                     MatrixElementNode* curNode = d->turbulent_matrix[k][j][i][l];
                     curNode = addElement(curNode, -1.0, k,j,i+1,l);
+                    d->Wcx[k][j][i][l] = -1.0;
                 }
                 continue;
             }
@@ -230,6 +259,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
                 for(int l = 0; l < NTURB; ++l){
                     MatrixElementNode* curNode = d->turbulent_matrix[k][j][i][l];
                     curNode = addElement(curNode, -1.0, k,j,i-1,l);
+                    d->Wax[k][j][i][l] = -1.0;
                 }
                 continue;
             }
@@ -244,6 +274,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
                     for(int l = 0; l < NTURB; ++l){
                         MatrixElementNode* curNode = d->turbulent_matrix[k][j][i][l];
                         curNode = addElement(curNode, -1.0, k,j + 1,i,l);
+                        d->Wcy[k][j][i][l] = -1.0;
                     }
                     continue;
                 }
@@ -256,6 +287,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
                     for(int l = 0; l < NTURB; ++l){
                         MatrixElementNode* curNode = d->turbulent_matrix[k][j][i][l];
                         curNode = addElement(curNode, -1.0, k,j - 1,i,l);
+                        d->Way[k][j][i][l] = -1.0;
                     }
                     continue;
                 }
@@ -270,6 +302,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
                     for(int l = 0; l < NTURB; ++l){
                         MatrixElementNode* curNode = d->turbulent_matrix[k][j][i][l];
                         curNode = addElement(curNode, -1.0, k + 1,j,i,l);
+                        d->Wcz[k][j][i][l] = -1.0;
                     }
                     continue;
                 }
@@ -282,6 +315,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
                     for(int l = 0; l < NTURB; ++l){
                         MatrixElementNode* curNode = d->turbulent_matrix[k][j][i][l];
                         curNode = addElement(curNode, -1.0, k - 1,j,i,l);
+                        d->Waz[k][j][i][l] = -1.0;
                     }
                     continue;
                 }
@@ -305,6 +339,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
             Dts->invDt_magnetic = MAX(Dts->invDt_magnetic, inv_dt_new);
 
             curNode = addElement(curNode, -dt*G, k, j, i, l);
+            d->Wak[k][j][i][l] += -dt*G;
 
 #if GEOMETRY == CARTESIAN
 #if INCLUDE_IDIR
@@ -312,6 +347,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
             if(u1 > 0){
                 value = 1.5 *dt*u1/(grid->x[0][i] - grid->x[0][i-1]) - 0.5*dt*u1/(grid->x[0][i] - grid->x[0][i-1]);
                 curNode = addElement(curNode, value, k, j, i, l);
+                d->Wbx[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("1 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -319,6 +355,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
 
                 value = -1.5*dt*d->Vc[VX1][k][j][i-1]/(grid->x[0][i] - grid->x[0][i-1]) + 0.5*dt*u1/(grid->x[0][i] - grid->x[0][i-1]);
                 curNode = addElement(curNode, value, k, j, i-1, l);
+                d->Wax[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("2 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -327,6 +364,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
             } else {
                 value = 1.5 *dt*d->Vc[VX1][k][j][i+1]/(grid->x[0][i+1] - grid->x[0][i]) - 0.5*dt*u1/(grid->x[0][i+1] - grid->x[0][i]);
                 curNode = addElement(curNode, value, k, j, i+1, l);
+                d->Wcx[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("3 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -334,6 +372,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
 
                 value = -1.5*dt*u1/(grid->x[0][i+1] - grid->x[0][i]) + 0.5*dt*u1/(grid->x[0][i+1] - grid->x[0][i]);
                 curNode = addElement(curNode, value, k, j, i, l);
+                d->Wbx[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("4 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -345,6 +384,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
             if(u2 > 0){
                 value = 1.5 *dt*u2/(grid->x[1][j] - grid->x[1][j-1]) - 0.5*dt*u2/(grid->x[1][j] - grid->x[1][j-1]);
                 curNode = addElement(curNode, value, k, j, i, l);
+                d->Wby[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("5 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -352,6 +392,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
 
                 value = -1.5*dt*d->Vc[VX2][k][j-1][i]/(grid->x[1][j] - grid->x[1][j-1]) + 0.5*dt*u2/(grid->x[1][j] - grid->x[1][j-1]);
                 curNode = addElement(curNode, value, k, j-1, i, l);
+                d->Way[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("6 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -360,6 +401,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
             } else {
                 value = 1.5 *dt*d->Vc[VX2][k][j+1][i]/(grid->x[1][j+1] - grid->x[1][j]) - 0.5*dt*u2/(grid->x[1][j+1] - grid->x[1][j]);
                 curNode = addElement(curNode, value, k, j+1, i, l);
+                d->Wcy[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("7 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -367,6 +409,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
 
                 value = -1.5*dt*u2/(grid->x[1][j+1] - grid->x[1][j]) + 0.5*dt*u2/(grid->x[1][j+1] - grid->x[1][j]);
                 curNode = addElement(curNode, value, k, j, i, l);
+                d->Wby[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("8 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -378,6 +421,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
             if(u3 > 0){
                 value = 1.5 *dt*u3/(grid->x[2][k] - grid->x[2][k-1]) - 0.5*dt*u3/(grid->x[2][k] - grid->x[2][k-1]);
                 curNode = addElement(curNode, value, k, j, i, l);
+                d->Wbz[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("9 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -385,6 +429,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
 
                 value = -1.5*dt*d->Vc[VX3][k-1][j][i]/(grid->x[2][k] - grid->x[2][k-1]) + 0.5*dt*u3/(grid->x[2][k] - grid->x[2][k-1]);
                 curNode = addElement(curNode, value, k-1, j, i, l);
+                d->Waz[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("10 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -393,6 +438,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
             } else {
                 value = 1.5 *dt*d->Vc[VX3][k+1][j][i]/(grid->x[2][k+1] - grid->x[2][k]) - 0.5*dt*u3/(grid->x[2][k+1] - grid->x[2][k]);
                 curNode = addElement(curNode, value, k+1, j, i, l);
+                d->Wcz[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("11 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -400,6 +446,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
 
                 value = -1.5*dt*u3/(grid->x[2][k+1] - grid->x[2][k]) + 0.5*dt*u3/(grid->x[2][k+1] - grid->x[2][k]);
                 curNode = addElement(curNode, value, k, j, i, l);
+                d->Wbz[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("12 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -412,6 +459,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
             if(u1 > 0){
                 value = 1.5 *dt*u1/(grid->x[0][i] - grid->x[0][i-1]) - 0.5*dt*u1/(grid->x[0][i] - grid->x[0][i-1]);
                 curNode = addElement(curNode, value, k, j, i, l);
+                d->Wbx[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("13 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -419,6 +467,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
                 double value1 = -1.5*dt*grid->x[0][i-1]*d->Vc[VX1][k][j][i-1]/(grid->x[0][i]*(grid->x[0][i] - grid->x[0][i-1]));
                 value = -1.5*dt*grid->x[0][i-1]*d->Vc[VX1][k][j][i-1]/(grid->x[0][i]*(grid->x[0][i] - grid->x[0][i-1])) + 0.5*dt*u1/(grid->x[0][i] - grid->x[0][i-1]);
                 curNode = addElement(curNode, value, k, j, i-1, l);
+                d->Wax[k][j][i][l] += value;
                 double value2 = 0.5*dt*u1/(grid->x[0][i] - grid->x[0][i-1]);
                 if((value1 != value1) || (value1*0 != value1*0)){
                     printf("14 turbulent value1 = NaN for (%d %d %d %d) (%d %d %d %d) d->Vc[VX1][k][j][i-1] = %g dr = %g grid->x[0][i] = %g\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l,d->Vc[VX1][k][j][i-1],grid->x[0][i] - grid->x[0][i-1], grid->x[0][i]);
@@ -439,6 +488,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
             } else {
                 value = 1.5 *dt*grid->x[0][i+1]*d->Vc[VX1][k][j][i+1]/(grid->x[0][i]*(grid->x[0][i+1] - grid->x[0][i])) - 0.5*dt*u1/(grid->x[0][i+1] - grid->x[0][i]);
                 curNode = addElement(curNode, value, k, j, i+1, l);
+                d->Wcx[k][j][i] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("15 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -446,6 +496,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
 
                 value = -1.5*dt*u1/(grid->x[0][i+1] - grid->x[0][i]) + 0.5*dt*u1/(grid->x[0][i+1] - grid->x[0][i]);
                 curNode = addElement(curNode, value, k, j, i, l);
+                d->Wbx[k][j][i] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("16 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -457,6 +508,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
             if(u2 > 0){
                 value = 1.5 *dt*u2/(grid->x[1][j] - grid->x[1][j-1]) - 0.5*dt*u2/(grid->x[1][j] - grid->x[1][j-1]);
                 curNode = addElement(curNode, value, k, j, i, l);
+                d->Wby[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("17 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -464,6 +516,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
 
                 value = -1.5*dt*d->Vc[VX2][k][j-1][i]/(grid->x[1][j] - grid->x[1][j-1]) + 0.5*dt*u2/(grid->x[1][j] - grid->x[1][j-1]);
                 curNode = addElement(curNode, value, k, j-1, i, l);
+                d->Way[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("18 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -472,6 +525,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
             } else {
                 value = 1.5 *dt*d->Vc[VX2][k][j+1][i]/(grid->x[1][j+1] - grid->x[1][j]) - 0.5*dt*u2/(grid->x[1][j+1] - grid->x[1][j]);
                 curNode = addElement(curNode, value, k, j+1, i, l);
+                d->Wcy[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("19 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -479,6 +533,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
 
                 value = -1.5*dt*u2/(grid->x[1][j+1] - grid->x[1][j]) + 0.5*dt*u2/(grid->x[1][j+1] - grid->x[1][j]);
                 curNode = addElement(curNode, value, k, j, i, l);
+                d->Wby[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("20 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -490,6 +545,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
             if(u3 > 0){
                 value = 1.5 *dt*u3/(grid->x[0][i]*(grid->x[2][k] - grid->x[2][k-1])) - 0.5*dt*u3/(grid->x[0][i]*(grid->x[2][k] - grid->x[2][k-1]));
                 curNode = addElement(curNode, value, k, j, i, l);
+                d->Wbz[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("21 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -497,6 +553,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
 
                 value = -1.5*dt*d->Vc[VX3][k-1][j][i]/(grid->x[0][i]*(grid->x[2][k] - grid->x[2][k-1])) + 0.5*dt*u3/(grid->x[0][i]*(grid->x[2][k] - grid->x[2][k-1]));
                 curNode = addElement(curNode, value, k-1, j, i, l);
+                d->Waz[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("22 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -505,6 +562,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
             } else {
                 value = 1.5 *dt*d->Vc[VX3][k+1][j][i]/(grid->x[0][i]*(grid->x[2][k+1] - grid->x[2][k])) - 0.5*dt*u3/(grid->x[0][i]*(grid->x[2][k+1] - grid->x[2][k]));
                 curNode = addElement(curNode, value, k+1, j, i, l);
+                d->Wcz[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("23 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -512,6 +570,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
 
                 value = -1.5*dt*u3/(grid->x[0][i]*(grid->x[2][k+1] - grid->x[2][k])) + 0.5*dt*u3/(grid->x[0][i]*(grid->x[2][k+1] - grid->x[2][k]));
                 curNode = addElement(curNode, value, k, j, i, l);
+                d->Wbz[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("24 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -524,6 +583,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
             if(u1 > 0){
                 value = 1.5 *dt*u1/(grid->x[0][i] - grid->x[0][i-1]) - 0.5*dt*u1/(grid->x[0][i] - grid->x[0][i-1]);
                 curNode = addElement(curNode, value, k, j, i, l);
+                d->Wbx[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("25 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -531,6 +591,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
 
                 value = -1.5*dt*grid->x[0][i-1]*d->Vc[VX1][k][j][i-1]/(grid->x[0][i]*(grid->x[0][i] - grid->x[0][i-1])) + 0.5*dt*u1/(grid->x[0][i] - grid->x[0][i-1]);
                 curNode = addElement(curNode, value, k, j, i-1, l);
+                d->Wax[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("26 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -539,6 +600,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
             } else {
                 value = 1.5 *dt*grid->x[0][i+1]*d->Vc[VX1][k][j][i+1]/(grid->x[0][i]*(grid->x[0][i+1] - grid->x[0][i])) - 0.5*dt*u1/(grid->x[0][i+1] - grid->x[0][i]);
                 curNode = addElement(curNode, value, k, j, i+1, l);
+                d->Wcx[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("27 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -546,6 +608,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
 
                 value = -1.5*dt*u1/(grid->x[0][i+1] - grid->x[0][i]) + 0.5*dt*u1/(grid->x[0][i+1] - grid->x[0][i]);
                 curNode = addElement(curNode, value, k, j, i, l);
+                d->Wbx[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("28 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -557,6 +620,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
             if(u2 > 0){
                 value = 1.5 *dt*u2/(grid->x[0][i]*(grid->x[1][j] - grid->x[1][j-1])) - 0.5*dt*u2/(grid->x[0][i]*(grid->x[1][j] - grid->x[1][j-1]));
                 curNode = addElement(curNode, value, k, j, i, l);
+                d->Wby[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("29 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -564,6 +628,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
 
                 value = -1.5*dt*d->Vc[VX2][k][j-1][i]/(grid->x[0][i]*(grid->x[1][j] - grid->x[1][j-1])) + 0.5*dt*u2/(grid->x[0][i]*(grid->x[1][j] - grid->x[1][j-1]));
                 curNode = addElement(curNode, value, k, j-1, i, l);
+                d->Way[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("30 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -572,6 +637,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
             } else {
                 value = 1.5 *dt*d->Vc[VX2][k][j+1][i]/(grid->x[0][i]*(grid->x[1][j+1] - grid->x[1][j])) - 0.5*dt*u2/(grid->x[0][i]*(grid->x[1][j+1] - grid->x[1][j]));
                 curNode = addElement(curNode, value, k, j+1, i, l);
+                d->Wcy[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("31 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -579,6 +645,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
 
                 value = -1.5*dt*u2/(grid->x[0][i]*(grid->x[1][j+1] - grid->x[1][j])) + 0.5*dt*u2/(grid->x[0][i]*(grid->x[1][j+1] - grid->x[1][j]));
                 curNode = addElement(curNode, value, k, j, i, l);
+                d->Wby[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("32 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -590,6 +657,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
             if(u3 > 0){
                 value = 1.5 *dt*u3/(grid->x[2][k] - grid->x[2][k-1]) - 0.5*dt*u3/(grid->x[2][k] - grid->x[2][k-1]);
                 curNode = addElement(curNode, value, k, j, i, l);
+                d->Wbz[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("33 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -597,6 +665,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
 
                 value = -1.5*dt*d->Vc[VX3][k-1][j][i]/(grid->x[2][k] - grid->x[2][k-1]) + 0.5*dt*u3/(grid->x[2][k] - grid->x[2][k-1]);
                 curNode = addElement(curNode, value, k-1, j, i, l);
+                d->Waz[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("34 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -605,6 +674,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
             } else {
                 value = 1.5 *dt*d->Vc[VX3][k+1][j][i]/(grid->x[2][k+1] - grid->x[2][k]) - 0.5*dt*u3/(grid->x[2][k+1] - grid->x[2][k]);
                 curNode = addElement(curNode, value, k+1, j, i, l);
+                d->Wcz[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("35 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -612,6 +682,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
 
                 value = -1.5*dt*u3/(grid->x[2][k+1] - grid->x[2][k]) + 0.5*dt*u3/(grid->x[2][k+1] - grid->x[2][k]);
                 curNode = addElement(curNode, value, k, j, i, l);
+                d->Wbz[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("36 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -624,6 +695,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
             if(u1 > 0){
                 value = 1.5 *dt*u1/(grid->x[0][i] - grid->x[0][i-1]) - 0.5*dt*u1/(grid->x[0][i] - grid->x[0][i-1]);
                 curNode = addElement(curNode, value, k, j, i, l);
+                d->Wbx[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("37 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -631,6 +703,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
 
                 value = -1.5*dt*grid->x[0][i-1]*grid->x[0][i-1]*d->Vc[VX1][k][j][i-1]/(grid->x[0][i]*grid->x[0][i]*(grid->x[0][i] - grid->x[0][i-1])) + 0.5*dt*u1/(grid->x[0][i] - grid->x[0][i-1]);
                 curNode = addElement(curNode, value, k, j, i-1, l);
+                d->Wax[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("38 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -639,6 +712,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
             } else {
                 value = 1.5 *dt*grid->x[0][i+1]*grid->x[0][i+1]*d->Vc[VX1][k][j][i+1]/(grid->x[0][i]*grid->x[0][i]*(grid->x[0][i+1] - grid->x[0][i])) - 0.5*dt*u1/(grid->x[0][i+1] - grid->x[0][i]);
                 curNode = addElement(curNode, value, k, j, i+1, l);
+                d->Wcx[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("39 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -646,6 +720,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
 
                 value = -1.5*dt*u1/(grid->x[0][i+1] - grid->x[0][i]) + 0.5*dt*u1/(grid->x[0][i+1] - grid->x[0][i]);
                 curNode = addElement(curNode, value, k, j, i, l);
+                d->Wbx[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("40 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -657,6 +732,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
             if(u2 > 0){
                 value = 1.5 *dt*u2/(grid->x[0][i]*(grid->x[1][j] - grid->x[1][j-1])) - 0.5*dt*u2/(grid->x[0][i]*(grid->x[1][j] - grid->x[1][j-1]));
                 curNode = addElement(curNode, value, k, j, i, l);
+                d->Wby[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("41 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -664,6 +740,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
 
                 value = -1.5*dt*sin(grid->x[1][j-1])*d->Vc[VX2][k][j-1][i]/(grid->x[0][i]*sin(grid->x[1][j])*(grid->x[1][j] - grid->x[1][j-1])) + 0.5*dt*u2/(grid->x[0][i]*(grid->x[1][j] - grid->x[1][j-1]));
                 curNode = addElement(curNode, value, k, j-1, i, l);
+                d->Way[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("42 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -672,6 +749,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
             } else {
                 value = 1.5 *dt*sin(grid->x[1][j+1])*d->Vc[VX2][k][j+1][i]/(grid->x[0][i]*sin(grid->x[1][j])*(grid->x[1][j+1] - grid->x[1][j])) - 0.5*dt*u2/(grid->x[0][i]*(grid->x[1][j+1] - grid->x[1][j]));
                 curNode = addElement(curNode, value, k, j+1, i, l);
+                d->Wcy[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("43 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -679,6 +757,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
 
                 value = -1.5*dt*u2/(grid->x[0][i]*(grid->x[1][j+1] - grid->x[1][j])) + 0.5*dt*u2/(grid->x[0][i]*(grid->x[1][j+1] - grid->x[1][j]));
                 curNode = addElement(curNode, value, k, j, i, l);
+                d->Wby[k][j][i][l] += value;
                 if((value != value) || (value*0 != value*0)){
                     printf("44 turbulent value = NaN for (%d %d %d %d) (%d %d %d %d)\n", k,j,i,l, curNode->element.k, curNode->element.j, curNode->element.i, curNode->element.l);
                     QUIT_PLUTO(1);
@@ -695,9 +774,170 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
     }
 
 //printf("finish creating turbulent matrix\n");
+#if TURBULENCE_SOLVER == THREE_DIAGONAL
+#ifdef PARALLEL
+    register int nd;
+    int myrank, nproc;
+    int ndim, gp, nleft, nright, tag1, tag2;
+    int sendb, recvb;
+    MPI_Datatype itype;
+    MPI_Comm comm;
+    MPI_Status status;
+    struct szz *s;
+
+    s = sz_stack[SZ_stagx];
+
+    int  par_dim[3] = {0, 0, 0};
+    DIM_EXPAND(par_dim[0] = grid->nproc[IDIR] > 1;  ,
+               par_dim[1] = grid->nproc[JDIR] > 1;  ,
+               par_dim[2] = grid->nproc[KDIR] > 1;)
+
+
+#if INCLUDE_IDIR
+    comm = s->oned_comm[0];
+    myrank = s->lrank[0];
+    nproc = s->lsize[0];
+
+    int globrank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &globrank);
+    int globcartrank;
+    MPI_Comm_rank(s->cart_comm, &globcartrank);
+    int cartrank;
+    MPI_Comm_rank(comm, &cartrank);
+    //printf("globrank = %d, globcartrank = %d, cartrank = %d\n", globrank, globcartrank, cartrank);
+    ndim = s->ndim;
+    //printf("parallel solver x\n");
+    if(par_dim[0] != 0){
+    parallelThreeDiagonalSolverX(d->Wt, d->turbulent_rightPart, d->Wax, d->Wbx, d->Wcx, NTURB, nproc, myrank, comm);
+    } else {
+    noparallelThreeDiagonalSolverX(d->Wt, d->turbulent_rightPart, d->Wax, d->Wbx, d->Wcx, NTURB);
+    }
+    TOT_LOOP(k,j,i){
+        for(int l = 0; l < NTURB; ++l){
+            if((d->Wt[k][j][i][l] != d->Wt[k][j][i][l]) || (0*d->Wt[k][j][i][l] != 0*d->Wt[k][j][i][l])){
+                printf("Wt = NaN 1 k = %d, j = %d, i = %d, l = %d rank = %d\n", k, j, i, l, myrank);
+                exit(0);
+            }
+        }
+    }
+    exchangeLargeVector(d->Wt, NTURB, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
+    TOT_LOOP(k,j,i){
+        for(int l = 0; l < NTURB; ++l){
+            d->turbulent_rightPart[k][j][i][l] = d->Wt[k][j][i][l];
+        }
+    }
+    //setBoundaryRightPartToZero(data, grid);
+
+    TOT_LOOP(k,j,i){
+        for(int l = 0; l < NTURB; ++l){
+            if((d->Wt[k][j][i][l] != d->Wt[k][j][i][l]) || (0*d->Wt[k][j][i][l] != 0*d->Wt[k][j][i][l])){
+                printf("Wt = NaN 2 k = %d, j = %d, i = %d, l = %d, rank = %d\n", k, j, i, l, myrank);
+                exit(0);
+            }
+        }
+    }
+#endif
+#if INCLUDE_JDIR
+    comm = s->oned_comm[1];
+    myrank = s->lrank[1];
+    nproc = s->lsize[1];
+    ndim = s->ndim;
+    //printf("parallel solver y\n");
+    if(par_dim[1] != 0){
+    parallelThreeDiagonalSolverY(d->Wt, d->turbulent_rightPart, d->Way, d->Wby, d->Wcy, NTURB, nproc, myrank, comm);
+    } else {
+    noparallelThreeDiagonalSolverY(d->Wt, d->turbulent_rightPart, d->Way, d->Wby, d->Wcy, NTURB);
+    }
+    exchangeLargeVector(d->Wt, NTURB, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
+    TOT_LOOP(k,j,i){
+        for(int l = 0; l < NTURB; ++l){
+            d->turbulent_rightPart[k][j][i][l] = d->Wt[k][j][i][l];
+        }
+    }
+    //setBoundaryRightPartToZero(data, grid);
+#endif
+#if INCLUDE_KDIR
+    comm = s->oned_comm[2];
+    myrank = s->lrank[2];
+    nproc = s->lsize[2];
+    ndim = s->ndim;
+    //printf("parallel solver z\n");
+    if(par_dim[2] != 0){
+    parallelThreeDiagonalSolverZ(d->Wt, d->turbulent_rightPart, d->Waz, d->Wbz, d->Wcz, NTURB, nproc, myrank, comm);
+    } else {
+    noparallelThreeDiagonalSolverZ(d->Wt, d->turbulent_rightPart, d->Waz, d->Wbz, d->Wcz, NTURB);
+    }
+    exchangeLargeVector(d->Wt, NTURB, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
+    TOT_LOOP(k,j,i){
+        for(int l = 0; l < NTURB; ++l){
+            d->turbulent_rightPart[k][j][i][l] = d->Wt[k][j][i][l];
+        }
+    }
+    //setBoundaryRightPartToZero(data, grid);
+#endif
+    //printf("noparallel solver p\n");
+    noparallelThreeDiagonalSolverP(d->Wt, d->turbulent_rightPart, d->Wak, d->Wbk, d->Wck, NTURB);
+    exchangeLargeVector(d->Wt, NTURB, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
+    TOT_LOOP(k,j,i){
+        for(int l = 0; l < NTURB; ++l){
+            d->turbulent_rightPart[k][j][i][l] = d->Wt[k][j][i][l];
+        }
+    }
+
+
+#else
+
+#if INCLUDE_IDIR
+    //printf("noparallel solver x\n");
+    noparallelThreeDiagonalSolverX(d->Wt, d->turbulent_rightPart, d->Wax, d->Wbx, d->Wcx, NTURB);
+    exchangeLargeVector(d->Wt, NTURB, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
+    DOM_LOOP(k,j,i){
+        for(int l = 0; l < NTURB; ++l){
+            d->turbulent_rightPart[k][j][i][l] = d->Wt[k][j][i][l];
+        }
+    }
+    //setBoundaryRightPartToZero(data, grid);
+#endif
+
+#if INCLUDE_JDIR
+    //printf("noparallel solver y\n");
+    noparallelThreeDiagonalSolverY(d->Wt, d->turbulent_rightPart, d->Way, d->Wby, d->Wcy, NTURB);
+    exchangeLargeVector(d->Wt, NTURB, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
+    DOM_LOOP(k,j,i){
+        for(int l = 0; l < NTURB; ++l){
+            d->turbulent_rightPart[k][j][i][l] = d->Wt[k][j][i][l];
+        }
+    }
+    //setBoundaryRightPartToZero(data, grid);
+#endif
+
+
+#if INCLUDE_KDIR
+    //printf("noparallel solver z\n");
+    noparallelThreeDiagonalSolverZ(d->Wt, d->turbulent_rightPart, d->Waz, d->Wbz, d->Wcz, NMOMENTUM);
+    exchangeLargeVector(d->Wt, NTURB, par_dim, SZ_stagx);
+    DOM_LOOP(k,j,i){
+        for(int l = 0; l < NTURB; ++l){
+            d->turbulent_rightPart[k][j][i][l] = d->Wt[k][j][i][l];
+        }
+    }
+    //setBoundaryRightPartToZero(data, grid);
+#endif
+    //printf("noparallel solver p\n");
+    noparallelThreeDiagonalSolverP(d->Wt, d->turbulent_rightPart, d->Wak, d->Wbk, d->Wck, NTURB);
+    exchangeLargeVector(d->Wt, NTURB, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
+    DOM_LOOP(k,j,i){
+        for(int l = 0; l < NTURB; ++l){
+            d->turbulent_rightPart[k][j][i][l] = d->Wt[k][j][i][l];
+        }
+    }
+
+#endif
+#else
 
     generalizedMinimalResidualMethod1(grid, d->turbulent_matrix, d->turbulent_rightPart, d->Wt, d->turbulentBasis, NTURB, 1E-5, MAX_GMRES_ITERATIONS, 1, periodicX, periodicY, periodicZ);
 
+#endif
     DOM_LOOP(k,j,i){
         for(int l = 0; l < NTURB; ++l){
             if(d->Wt[k][j][i][l] < 0){

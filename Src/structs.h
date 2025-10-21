@@ -598,6 +598,25 @@ typedef struct Data_{
   double *k_turb; /**< Array of turbulent k grid */
   struct MatrixElementNode***** turbulent_matrix;
   struct LargeVectorBasis* turbulentBasis;
+
+#if INCLUDE_IDIR
+    double**** Wax;
+    double**** Wbx;
+    double**** Wcx;
+#endif
+#if INCLUDE_JDIR
+    double**** Way;
+    double**** Wby;
+    double**** Wcy;
+#endif
+#if INCLUDE_KDIR
+    double**** Waz;
+    double**** Wbz;
+    double**** Wcz;
+#endif
+    double**** Wak;
+    double**** Wbk;
+    double**** Wck;
 #endif
   double ****Vc;    /**< The main four-index data array used for cell-centered
                         primitive variables. The index order is
