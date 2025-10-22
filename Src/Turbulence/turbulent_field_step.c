@@ -62,6 +62,13 @@ void evaluateGrowthRate(Data *d, Grid *grid){
             continue;
         }
 
+        double localFlux[NMOMENTUM];
+        for(int m = 0; m < NMOMENTUM; ++m){
+            localFlux[m] sqrt(d->Jkin1[k][j][i][m]*d->Jkin1[k][j][i][m]
+                                     + d->Jkin2[k][j][i][m]*d->Jkin2[k][j][i][m]
+                                     + d->Jkin3[k][j][i][m]*d->Jkin3[k][j][i][m])*dp*(PARTICLES_KIN_E_MC*PARTICLES_KIN_MASS*PARTICLES_KIN_C);
+        }
+
         for(int l = 1; l < NTURB; ++l){
             Bls = sqrt(4*CONST_PI*d->Wt[k][j][i][l]*(d->k_turb[l]-d->k_turb[l-1]) + Bls*Bls);
             CheckNanOrInfinity(Bls, "Bls = NaN");
@@ -75,6 +82,7 @@ void evaluateGrowthRate(Data *d, Grid *grid){
             double A2im = 0;
             for(int m = 0; m < NMOMENTUM; ++m){
                 double z = d->k_turb[l]*d->p_grid[m]/(PARTICLES_KIN_E_MC*Bls);
+                double z2 = z*z;
                 CheckNanOrInfinity(z, "z = NaN");
                 double sigma1re = 0;
                 double sigma1im = 0;
@@ -83,16 +91,18 @@ void evaluateGrowthRate(Data *d, Grid *grid){
                 if( fabs(z - 1.0) < 0.00001){
                     sigma1re = 3.0/2.0;
                 } else if(z > 1) {
-                    sigma1re = (1.5/(z*z)) + 0.75*(1.0 - 1.0/((z*z)))*log(fabs((z+1.0)/(z-1.0)))/z;
+                    sigma1re = (1.5/z2) + 0.75*(1.0 - 1.0/(z2))*log(fabs((z+1.0)/(z-1.0)))/z;
                 } else if(0.01 < z) {
-                    sigma1re = (1.5/(z*z)) + 0.75*(1.0 - 1.0/((z*z)))*log(fabs((z+1.0)/(z-1.0)))/z;
+                    sigma1re = (1.5/z2) + 0.75*(1.0 - 1.0/(z2))*log(fabs((z+1.0)/(z-1.0)))/z;
+                } else if(z > 1000.0){
+                    sigma1re = 1.5/z2;
                 }  else {
-                    sigma1re = 1.0 + 0.2*z*z;
+                    sigma1re = 1.0 + 0.2*z2;
                 }
                 //sigma1 = 1;
 
                 if(z > 1.0){
-                    sigma1im = sigma1im -(3*CONST_PI/(4*z))*(1.0 - 1.0/(z*z));
+                    sigma1im = sigma1im -(3*CONST_PI/(4*z))*(1.0 - 1.0/z2);
                 }
                 CheckNanOrInfinity(sigma1re, "sigma = NaN");
                 CheckNanOrInfinity(sigma1im, "sigma = NaN");
@@ -104,9 +114,7 @@ void evaluateGrowthRate(Data *d, Grid *grid){
                     dp = d->p_grid[m] - d->p_grid[m-1];
                 }
 
-                double crflux = sqrt(d->Jkin1[k][j][i][m]*d->Jkin1[k][j][i][m]
-                                     + d->Jkin2[k][j][i][m]*d->Jkin2[k][j][i][m]
-                                     + d->Jkin3[k][j][i][m]*d->Jkin3[k][j][i][m])*dp*(PARTICLES_KIN_E_MC*PARTICLES_KIN_MASS*PARTICLES_KIN_C);
+                double crflux = localFlux[m];
 
 
                 if(crflux > 0){
