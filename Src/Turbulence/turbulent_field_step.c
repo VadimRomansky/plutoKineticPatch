@@ -64,7 +64,12 @@ void evaluateGrowthRate(Data *d, Grid *grid){
 
         double localFlux[NMOMENTUM];
         for(int m = 0; m < NMOMENTUM; ++m){
-            localFlux[m] sqrt(d->Jkin1[k][j][i][m]*d->Jkin1[k][j][i][m]
+            double dp = d->p_grid[1] - d->p_grid[0];
+                if(m > 0){
+                    dp = d->p_grid[m] - d->p_grid[m-1];
+                }
+
+            localFlux[m] = sqrt(d->Jkin1[k][j][i][m]*d->Jkin1[k][j][i][m]
                                      + d->Jkin2[k][j][i][m]*d->Jkin2[k][j][i][m]
                                      + d->Jkin3[k][j][i][m]*d->Jkin3[k][j][i][m])*dp*(PARTICLES_KIN_E_MC*PARTICLES_KIN_MASS*PARTICLES_KIN_C);
         }
@@ -108,11 +113,6 @@ void evaluateGrowthRate(Data *d, Grid *grid){
                 CheckNanOrInfinity(sigma1im, "sigma = NaN");
                 sigma2re = sigma1re;
                 sigma2im = -sigma1im;
-
-                double dp = d->p_grid[1] - d->p_grid[0];
-                if(m > 0){
-                    dp = d->p_grid[m] - d->p_grid[m-1];
-                }
 
                 double crflux = localFlux[m];
 
@@ -332,6 +332,22 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
 
 #endif
         double value;
+        double Bturb2 = 0;
+        for(int l = 0; l < NTURB; ++l){
+            double dk = 0;
+            if(l == 0){
+                dk = d->k_turb[1] - d->k_turb[0];
+            } else {
+                dk = d->k_turb[l] - d->k_turb[l-1];
+            }
+            Bturb2 = Bturb2 + d->Wt[k][j][i][l]*dk;
+        }
+        double B1 = d->Vc[BX1][k][j][i];
+        double B2 = d->Vc[BX2][k][j][i];
+        double B3 = d->Vc[BX3][k][j][i];
+        double B0 = B1*B1 + B2*B2 + B3*B3;
+        double fraction = Bturb/(B0 + Bturb);
+
         for(int l = 0; l < NTURB; ++l){
             d->turbulent_rightPart[k][j][i][l] = d->Wt[k][j][i][l];
             MatrixElementNode* curNode = d->turbulent_matrix[k][j][i][l];
@@ -342,12 +358,12 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
 
             double G = d->growthRate[k][j][i][l];
 
-            inv_dt_new = G;
+            inv_dt_new = G*fraction;
 
             Dts->invDt_magnetic = MAX(Dts->invDt_magnetic, inv_dt_new);
 
             curNode = addElement(curNode, -dt*G, k, j, i, l);
-            d->Wak[k][j][i][l] += -dt*G;
+            d->Wbk[k][j][i][l] += -dt*G;
 
 #if GEOMETRY == CARTESIAN
 #if INCLUDE_IDIR
@@ -884,7 +900,12 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
     //setBoundaryRightPartToZero(data, grid);
 #endif
     //printf("noparallel solver p\n");
-    noparallelThreeDiagonalSolverP(d->Wt, d->turbulent_rightPart, d->Wak, d->Wbk, d->Wck, NTURB);
+    //noparallelThreeDiagonalSolverP(d->Wt, d->turbulent_rightPart, d->Wak, d->Wbk, d->Wck, NTURB);
+    DOM_LOOP(k,j,i){
+        for(int l = 0; l < NTURB; ++l){
+            d->Wt[k][j][i][l] = d->Wt[k][j][i][l]*exp(1.0 - d->Wbk[k][j][i][l]);
+        }
+    }
     exchangeLargeVector(d->Wt, NTURB, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
     TOT_LOOP(k,j,i){
         for(int l = 0; l < NTURB; ++l){
