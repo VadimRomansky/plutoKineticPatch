@@ -1297,6 +1297,7 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double v1, do
         printLog("v = 0 in traceNextCell\n");
         QUIT_PLUTO(1);
     }
+    double factor = 1E-11;
 #if INCLUDE_KDIR
     double lx = grid->xl[0][*i];
     double rx = grid->xr[0][*i];
@@ -1311,7 +1312,7 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double v1, do
     if(vx > 0){
         dx = (rx - *x1)/grid->dx_dl[IDIR][*j][*i];
         //if(dx == 0){
-        if(dx < fabs(1E-14*rx)){
+        if(dx < fabs(factor*rx)){
             (*i) = (*i) + 1;
             traceNextCell(grid, x1, x2, x3, v1, v2, v3, i, j, k);
             return;
@@ -1319,7 +1320,7 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double v1, do
     } else {
         dx = (*x1 - lx)/grid->dx_dl[IDIR][*j][*i];
         //if(dx == 0){
-        if(dx < fabs(1E-14*rx)){
+        if(dx < fabs(factor*rx)){
             (*i) = (*i) - 1;
             traceNextCell(grid, x1, x2, x3, v1, v2, v3, i, j, k);
             return;
@@ -1328,7 +1329,7 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double v1, do
     if(vy > 0){
         dy = (ry - *x2)/grid->dx_dl[JDIR][*j][*i];
         //if(dy == 0){
-        if(dy < fabs(1E-14*ry)){
+        if(dy < fabs(factor*ry)){
             (*j) = (*j) + 1;
             traceNextCell(grid, x1, x2, x3, v1, v2, v3, i, j, k);
             return;
@@ -1336,7 +1337,7 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double v1, do
     } else {
         dy = (*x2 - ly)/grid->dx_dl[JDIR][*j][*i];
         //if(dy == 0){
-        if(dy < fabs(1E-14*ry)){
+        if(dy < fabs(factor*ry)){
             (*j) = (*j) - 1;
             traceNextCell(grid, x1, x2, x3, v1, v2, v3, i, j, k);
             return;
@@ -1345,7 +1346,7 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double v1, do
     if(vz > 0){
         dz = (rz - *x3)/grid->dx_dl[KDIR][*j][*i];
         //if(dz == 0){
-        if(dz < fabs(1E-14*rz)){
+        if(dz < fabs(factor*rz)){
             (*k) = (*k) + 1;
             traceNextCell(grid, x1, x2, x3, v1, v2, v3, i, j, k);
             return;
@@ -1353,7 +1354,7 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double v1, do
     } else {
         dz = (*x3 - lz)/grid->dx_dl[KDIR][*j][*i];
         //if(dz == 0){
-        if(dz < fabs(1E-14*rz)){
+        if(dz < fabs(factor*rz)){
             (*k) = (*k) - 1;
             traceNextCell(grid, x1, x2, x3, v1, v2, v3, i, j, k);
             return;
@@ -1737,7 +1738,7 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double v1, do
     if(v1 > 0){
         dx = (rx - (*x1))/grid->dx_dl[IDIR][*j][*i];
         //if(dx == 0){
-        if(dx < fabs(1E-14*rx)){
+        if(dx < fabs(factor*rx)){
             (*i) = (*i) + 1;
             traceNextCell(grid, x1, x2, x3, v1, v2, v3, i, j, k);
             return;
@@ -1745,7 +1746,7 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double v1, do
     } else {
         dx = ((*x1) - lx)/grid->dx_dl[IDIR][*j][*i];
         //if(dx == 0){
-        if(dx < fabs(1E-14*rx)){
+        if(dx < fabs(factor*rx)){
             (*i) = (*i) - 1;
             traceNextCell(grid, x1, x2, x3, v1, v2, v3, i, j, k);
             return;
@@ -1754,7 +1755,7 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double v1, do
     if(v2 > 0){
         dy = (ry - (*x2))/grid->dx_dl[JDIR][*j][*i];
         //if(dy == 0){
-        if(dy < fabs(1E-14*ry)){
+        if(dy < fabs(factor*ry)){
             (*j) = (*j) + 1;
             traceNextCell(grid, x1, x2, x3, v1, v2, v3, i, j, k);
             return;
@@ -1762,7 +1763,7 @@ void traceNextCell(Grid* grid, double* x1, double* x2, double* x3, double v1, do
     } else {
         dy = ((*x2) - ly)/grid->dx_dl[JDIR][*j][*i];
         //if(dy == 0){
-        if(dy < fabs(1E-14*ry)){
+        if(dy < fabs(factor*ry)){
             (*j) = (*j) - 1;
             traceNextCell(grid, x1, x2, x3, v1, v2, v3, i, j, k);
             return;
