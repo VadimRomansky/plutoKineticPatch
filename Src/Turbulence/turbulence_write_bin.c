@@ -158,7 +158,7 @@ void Turbulence_WriteBinary(Data* data, Grid* grid, double dt_magnetic,
               for(int l = 0; l < NTURB; ++l){
                   darr[iarr++] = data->k_turb[l];
                   if(darr[iarr-1] != darr[iarr-1]){
-                      printf("darr = NaN\n");
+                      printf("k_turb in output = NaN\n");
                   }
               }
           }
@@ -166,14 +166,22 @@ void Turbulence_WriteBinary(Data* data, Grid* grid, double dt_magnetic,
               for(int l = 0; l < NTURB; ++l){
                   darr[iarr++] = data->Wt[k][j][i][l];
                   if(darr[iarr-1] != darr[iarr-1]){
-                      printf("darr = NaN\n");
+                      printf("Wt in utput = NaN\n");
                   }
               }
           }
           if (dump_var[nv++]) {
               darr[iarr++] = grid->dV[k][j][i];
               if(darr[iarr-1] != darr[iarr-1]){
-                  printf("darr = NaN\n");
+                  printf("dV in output = NaN\n");
+              }
+          }
+          if (dump_var[nv++]) {
+              for(int l = 0; l < NTURB; ++l){
+                  darr[iarr++] = data->growthRate[k][j][i][l];
+                  if(darr[iarr-1] != darr[iarr-1]){
+                      printf("growthRate in output = NaN\n");
+                  }
               }
           }
       }

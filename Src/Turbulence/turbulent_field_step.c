@@ -346,7 +346,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
         double B2 = d->Vc[BX2][k][j][i];
         double B3 = d->Vc[BX3][k][j][i];
         double B0 = B1*B1 + B2*B2 + B3*B3;
-        double fraction = Bturb/(B0 + Bturb);
+        double fraction = Bturb2/(B0 + Bturb2);
 
         for(int l = 0; l < NTURB; ++l){
             d->turbulent_rightPart[k][j][i][l] = d->Wt[k][j][i][l];

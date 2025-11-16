@@ -63,6 +63,8 @@ from plot_gamma_animated_window import plot_gamma_animated_window
 from plot_gamma_rtheta import plot_gamma_rtheta
 from plot_gamma_rtheta_animated import plot_gamma_rtheta_animated
 from plot_gamma_window import plot_gamma_window
+from plot_growth_rate import plot_growth_rate
+from plot_growth_rate_animated import plot_growth_rate_animated
 from plot_kinetic_distribution import plot_kinetic_distribution
 from plot_kinetic_distribution_animated import plot_kinetic_distribution_animated
 from plot_kinetic_distribution_animated_at_p_along_axis import plot_kinetic_distribution_animated_at_p_along_axis
@@ -158,7 +160,7 @@ UNIT_DENSITY=1.672E-24;
 UNIT_LENGTH=3.086E17;
 UNIT_VELOCITY=2.998E10;
 datatype = 'dbl'
-ntot = 10
+ntot = 3
 
 out_dir = w_dir
 
@@ -349,8 +351,8 @@ plot_kinetic_distribution_animated(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_
 #plot_shock_wave(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, out_dir = out_dir)
 #plot_reverse_shock_wave(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, out_dir = out_dir)
 #plot_energy(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, out_dir = out_dir)
-#plot_Fkin(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, out_dir = out_dir)
-#plot_Fkin_animated(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, out_dir = out_dir)
+plot_Fkin(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, out_dir = out_dir)
+plot_Fkin_animated(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, out_dir = out_dir)
 #plot_Fkin_1d(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, out_dir = out_dir)
 #plot_Fkin_animated_1d(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, out_dir = out_dir)
 
@@ -378,6 +380,9 @@ plot_turbulence_spectrum(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, 
 plot_turbulence_spectrum_animated(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, out_dir=out_dir)
 #plot_turbulence_spectrum_window(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, 0.0, 1E19, 0.0, 6E19, datatype, out_dir=out_dir)
 #plot_turbulence_spectrum_animated_window(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, 0.0, 1E19, 0.0, 6E19, datatype, out_dir=out_dir)
+
+plot_growth_rate(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, out_dir=out_dir)
+plot_growth_rate_animated(ntot, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, out_dir=out_dir)
 
 ######## writedata
 ### 1 because change to concentration

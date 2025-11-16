@@ -91,8 +91,10 @@ void Turbulence_SetOutput (Data *d, Runtime *runtime)
     strcpy(output->var_name[i++], "kturb");
     strcpy(output->var_name[i++], "W");
     strcpy(output->var_name[i++], "dV");
+    strcpy(output->var_name[i++], "growth");
     output->field_dim[7] = NTURB;
     output->field_dim[8] = NTURB;
+    output->field_dim[10] = NTURB;
 
     output->nvar = i;
     

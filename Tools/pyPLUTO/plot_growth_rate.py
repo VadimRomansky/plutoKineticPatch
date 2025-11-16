@@ -3,7 +3,7 @@ from pylab import *
 import pyPLUTO.pload as pp # importing the pyPLUTO pload module.
 import pyPLUTO.ploadparticles as pr # importing the pyPLUTO ploadparticles module.
 import sklearn.linear_model
-def plot_turbulence_spectrum(ns, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, file_name = 'turbulence_spectrum.png', out_dir = ""):
+def plot_growth_rate(ns, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY, datatype, file_name = 'growth_rate.png', out_dir = ""):
     plt.rcParams.update({'font.size': 15})
     #plt.rcParams['text.usetex'] = True
     f1 = plt.figure(figsize=[6,6])
@@ -18,7 +18,7 @@ def plot_turbulence_spectrum(ns, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY
 
     for i in range(len(P.id)):
         for j in range(Nmomentum):
-            F[j] = F[j] + P.W[i][j]*P.dV[i]
+            F[j] = F[j] + P.growth[i][j]*P.dV[i]
             V = V + P.dV[i]
 
     #for j in range(Nmomentum):
@@ -39,16 +39,9 @@ def plot_turbulence_spectrum(ns, w_dir, UNIT_DENSITY, UNIT_LENGTH, UNIT_VELOCITY
 
     #labelp = 'p^{' + str(reg.coef_[0])+ '}'
 
-    Fa = np.zeros([Nmomentum])
-
-    Fa[0] = F[0];
-
-    for i in range(Nmomentum):
-        #Fa[i] = F[0]
-        Fa[i] = F[0]*(p[0]/p[i])**(5.0/3.0)
 
     plt.plot(p, F, label = 'numerical')
-    plt.plot(p, Fa, label = 'k^{-5/3}')
+    #plt.plot(p, Fa, label = 'k^{-5/3}')
     #plt.plot(pp1, Fp1, label = labelp)
     plt.xscale('log')
     plt.yscale('log')

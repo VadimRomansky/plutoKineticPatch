@@ -580,6 +580,14 @@ void Initialize(Data *data, Runtime *runtime, Grid *grid, cmdLine *cmd_line)
   data->turbulent_rightPart = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NTURB, double);
   data->k_turb = ARRAY_1D(NTURB, double);
 
+  TOT_LOOP(k,j,i){
+      for(int l = 0; l < NTURB; ++l){
+          data->Wt[k][j][i][l] = 0;
+          data->growthRate[k][j][i][l] = 0;
+          data->turbulent_rightPart[k][j][i][l] = 0;
+      }
+  }
+
   double factor = pow(k_turb_max/k_turb_min, 1.0/(NTURB-1));
   data->k_turb[0] = k_turb_min;
   for(int i = 1; i < NTURB; ++i){
