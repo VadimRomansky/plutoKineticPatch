@@ -585,7 +585,7 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
 /* ****************************************************************** */
 void BodyForceVector (double *v, 
                  double *g,
-                 double x1, double x2, double x3)
+                 double x1, double x2, double x3, int i, int j, int k, Grid* grid, Data* data)
 /*
  *
  *  PURPOSE

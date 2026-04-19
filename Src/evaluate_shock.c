@@ -190,7 +190,7 @@ CellTracerNode* putArrayToTracerList(int* inbuf, double* inbufd, int Nin){
 	return list;
 }
 
-//#ifdef PARALLEL
+#ifdef PARALLEL
 
 void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double*** x2, double*** x3, double*** v1, double*** v2, double*** v3, double*** rho, double*** pressure){
     register int nd;
@@ -1038,7 +1038,7 @@ void traceShockParallel(Data* d, Grid* grid, int direction, double*** x1, double
     free(rdisplsd);
 }
 
-//#endif
+#endif
 
 void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, double*** x3, double*** v1, double*** v2, double*** v3, double*** rho, double*** pressure){
     if((direction != 1) && (direction != -1)){
@@ -1266,7 +1266,7 @@ void updateShockFront(Data* d, Grid* grid){
             yd = d->downstreamx1[k][j][i]*sin(d->downstreamx2[k][j][i])*sin(d->downstreamx3[k][j][i]);
             zd = d->downstreamx1[k][j][i]*cos(d->downstreamx2[k][j][i]);
 
-            xu = d->upstreamx1[k][j][i]*sin(d->upstreamx2[k][j][i]])*cos(d->upstreamx3[k][j][i]);
+            xu = d->upstreamx1[k][j][i]*sin(d->upstreamx2[k][j][i])*cos(d->upstreamx3[k][j][i]);
             yu = d->upstreamx1[k][j][i]*sin(d->upstreamx2[k][j][i])*sin(d->upstreamx3[k][j][i]);
             zu = d->upstreamx1[k][j][i]*cos(d->upstreamx2[k][j][i]);
 

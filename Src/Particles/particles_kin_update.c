@@ -390,7 +390,7 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 #endif
 #elif GEOMETRY == SPHERICAL
 #if INCLUDE_IDIR
-        divu += (grid->x[0][i+1]*grid->x[0][i+1]*data->Vc[VX1][k][j][i+1] - grid->x[0][i-1]*grid->x[0][i-1]*data->Vc[VX1][k][j][i-1])/(grid->x[0][i]*grid->x[0][i]*(grid->x[0][i+1] - grid[0][i-1]));
+        divu += (grid->x[0][i+1]*grid->x[0][i+1]*data->Vc[VX1][k][j][i+1] - grid->x[0][i-1]*grid->x[0][i-1]*data->Vc[VX1][k][j][i-1])/(grid->x[0][i]*grid->x[0][i]*(grid->x[0][i+1] - grid->x[0][i-1]));
         if((divu != divu) || (0*divu != 0*divu)){
             printf("divu = NaN\n");
             QUIT_PLUTO(1);
@@ -1263,7 +1263,7 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 
             } else {
                 value = -factor*dt*grid->x[0][i]*grid->x[0][i]*data->Vc[VX1][k][j][i]/(grid->x[0][i]*grid->x[0][i]*(grid->x[0][i+1] - grid->x[0][i]));
-                curNode = addElement(curNode, value, k,j,l);
+                curNode = addElement(curNode, value, k,j,i,l);
                 data->bx[k][j][i][l] += value;
                 curNode2 = addElement(curNode2, -value, k,j,i,l);
                 if((value != value) || (value*0 != value*0)){

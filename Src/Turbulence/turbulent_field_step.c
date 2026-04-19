@@ -3,6 +3,8 @@
 
 #include "turbulence.h"
 
+#if TURBULENT_FIELD == YES
+
 #include "matrixElement.h"
 #include "specialmath.h"
 
@@ -15,7 +17,7 @@ extern struct SZ *sz_stack[AL_MAX_ARRAYS];
 extern int stack_ptr[AL_MAX_ARRAYS];
 #endif
 
-//#if TURBULENT_FIELD == YES
+
 
 void complexsqrt(double a, double b, double* c, double* d){
     double rho = sqrt(a*a + b*b);
@@ -799,6 +801,7 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
 
 //printf("finish creating turbulent matrix\n");
 #if TURBULENCE_SOLVER == THREE_DIAGONAL
+    int  par_dim[3] = {0, 0, 0};
 #ifdef PARALLEL
     register int nd;
     int myrank, nproc;
@@ -811,7 +814,6 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
 
     s = sz_stack[SZ_stagx];
 
-    int  par_dim[3] = {0, 0, 0};
     DIM_EXPAND(par_dim[0] = grid->nproc[IDIR] > 1;  ,
                par_dim[1] = grid->nproc[JDIR] > 1;  ,
                par_dim[2] = grid->nproc[KDIR] > 1;)
@@ -981,4 +983,4 @@ void AdvanceTurbulentField(Data *d, timeStep *Dts, double dt, Grid *grid){
     }
 //printf("finish turbulent field\n");
 }
-//#endif
+#endif

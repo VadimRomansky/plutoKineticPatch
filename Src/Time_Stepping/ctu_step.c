@@ -398,7 +398,7 @@ int AdvanceStep (Data *data, timeStep *Dts, Grid *grid)
       #ifdef STAGGERED_MHD
       CT_StoreUpwindEMF (&sweep, data->emf, nbeg-1, nend, grid);
       #endif
-      RightHandSide (&sweep, Dts, nbeg, nend, dt2, grid);
+      RightHandSide (&sweep, Dts, nbeg, nend, dt2, grid, d);
       #if CTU_MHD_SOURCE == YES
       CTU_CT_Source (&sweep, nbeg-1, nend+1, dt2_dx, grid);
       #endif
@@ -679,7 +679,7 @@ int AdvanceStep (Data *data, timeStep *Dts, Grid *grid)
       #ifdef SHEARINGBOX
       SB_SaveFluxes(&sweep, grid);
       #endif
-      RightHandSide (&sweep, Dts, nbeg, nend, g_dt, grid);
+      RightHandSide (&sweep, Dts, nbeg, nend, g_dt, grid, d);
 
     /* -- Update solution array -- */
 

@@ -67,7 +67,7 @@
 #include"pluto.h"
 
 #ifndef EPS_PSHOCK_FLATTEN
- #define EPS_PSHOCK_FLATTEN  5.0
+ #define EPS_PSHOCK_FLATTEN  50.0
 #endif
 
 #ifndef EPS_PSHOCK_ENTROPY

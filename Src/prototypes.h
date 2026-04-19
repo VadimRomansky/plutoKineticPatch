@@ -27,8 +27,8 @@ void   ArrayReconstruct(double ***, uint16_t *, int, int, int, int,
 void ShowMemoryInfo();
 void FreeAll();
 
-double BodyForcePotential(double, double, double);
-void   BodyForceVector(double *, double *, double, double, double);
+double BodyForcePotential(double, double, double, int, int, int, const Grid*, const Data*);
+void   BodyForceVector(double *, double *, double, double, double, int, int, int, const Grid*, const Data*);
 void   Boundary    (const Data *, int, Grid *);
 void   BoundaryConservative (const Data *, Grid *);
 
@@ -172,9 +172,9 @@ void   RestartFromFile (const Data *, Runtime *, int, int, Grid *);
 void   RestartDump     (Runtime *);
 void   RestartGet      (Runtime *, int, int, int);
 
-void   RightHandSide (const Sweep *, timeStep *, int, int, double, Grid *);
+void   RightHandSide (const Sweep *, timeStep *, int, int, double, Grid *, Data* data);
 void   RightHandSideSource (const Sweep *, timeStep *, int, int, double,
-                           double *, Grid *);
+                           double *, Grid *, Data* );
 
 #if RING_AVERAGE > 1
 void RingAverageCons(Data *, Grid *);
