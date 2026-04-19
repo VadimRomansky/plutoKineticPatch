@@ -12,7 +12,6 @@ void BodyForceVector(double *v, double *g,
     g[IDIR] = 0;
     g[JDIR] = 0;
     g[KDIR] = 0;
-    return;
 #if PARTICLES == PARTICLES_KIN
 #if GEOMETRY == CARTESIAN
 #if INCLUDE_IDIR
@@ -56,6 +55,9 @@ void BodyForceVector(double *v, double *g,
 #endif
 #endif
 #endif
+    g[IDIR] = g[IDIR]/v[RHO];
+    g[JDIR] = g[JDIR]/v[RHO];
+    g[KDIR] = g[KDIR]/v[RHO];
 }
 
 void convertIntToString(char* result, int a) {

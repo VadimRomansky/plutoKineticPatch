@@ -53,7 +53,7 @@
 #define  PARTICLES_KIN_EPS              0.2
 #define  P_GRID_MIN                     1000
 #define  P_GRID_MAX                     1E9
-#define  INJECTION_PARAMETER            1E-8
+#define  INJECTION_PARAMETER            1E-5
 #define  COMPRESSION_TRESHOLD           1.4
 #define  TURBULENT_FIELD                NO
 #define  TURBULENCE_OUTPUT_STEP         8
