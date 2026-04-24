@@ -12,7 +12,7 @@ void BodyForceVector(double *v, double *g,
     g[IDIR] = 0;
     g[JDIR] = 0;
     g[KDIR] = 0;
-    return;
+    //printf("body force\n");
 #if PARTICLES == PARTICLES_KIN
 #if GEOMETRY == CARTESIAN
 #if INCLUDE_IDIR
@@ -56,6 +56,9 @@ void BodyForceVector(double *v, double *g,
 #endif
 #endif
 #endif
+    g[IDIR] = g[IDIR]/v[RHO];
+    g[JDIR] = g[JDIR]/v[RHO];
+    g[KDIR] = g[KDIR]/v[RHO];
 }
 
 void convertIntToString(char* result, int a) {
@@ -395,7 +398,7 @@ void InitPower (double *us, double x1, double x2, double x3)
         //SetWind(us, r, 4*M_Star_WR, T_effv_WR, L_Star_WR, 5*M_Loss_WR, OmegaS_WR, Gedd_WR);
     }
 #endif
-    us[BX1] = 0.0;
+    us[BX1] = B_amb;
     us[BX2] = 0.0;
     us[BX3] = 0.0;
 }

@@ -1049,9 +1049,9 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
 
     int i, j, k;
 
-#ifdef PARALLEL
-    traceShockParallel(d, grid, direction, x1, x2, x3, v1, v2, v3, rho, pressure);
-#else
+//#ifdef PARALLEL
+//    traceShockParallel(d, grid, direction, x1, x2, x3, v1, v2, v3, rho, pressure);
+//#else
     DOM_LOOP(k,j,i){
         if(!(d->flag[k][j][i] & FLAG_ENTROPY)){
 
@@ -1179,11 +1179,12 @@ void traceShock(Data* d, Grid* grid, int direction, double*** x1, double*** x2, 
             rho[k][j][i] = d->Vc[RHO][currentk][currentj][currenti];*/
         }
     }
-#endif
+//#endif
 }
 
 void updateShockFront(Data* d, Grid* grid){
     int i,j,k;
+    //return;
     //printf("evaluating shock\n");
     FlagShock(d, grid);
     TOT_LOOP(k,j,i){

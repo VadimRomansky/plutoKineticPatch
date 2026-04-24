@@ -52,18 +52,17 @@
 #define  PARTICLES_KIN_SOLVER           THREE_DIAGONAL
 #define  PARTICLES_KIN_EPS              0.2
 #define  P_GRID_MIN                     1000
-#define  P_GRID_MAX                     1E9
-#define  INJECTION_PARAMETER            1E-8
+#define  P_GRID_MAX                     1E5
+#define  INJECTION_PARAMETER            1E-5
 #define  COMPRESSION_TRESHOLD           1.4
 #define  TURBULENT_FIELD                NO
 #define  TURBULENCE_OUTPUT_STEP         8
 #define  TURBULENCE_SOLVER              THREE_DIAGONAL
 #define  NTURB                          10
-#define  NMOMENTUM                      100
+#define  NMOMENTUM                      20
 #define  MAX_GMRES_ITERATIONS           20
 #define  WARNING_MESSAGES               NO
 #define  MULTIPLE_LOG_FILES             NO
 #define  CONST_Year                     3.15E7
-#define  BODY_FORCE                     VECTOR
 
 /* [End] user-defined constants (do not change this line) */

@@ -452,3 +452,278 @@ void exchangeLargeVector(double**** vector, int lnumber, int *dims, int sz_ptr, 
 #endif
 }
 
+void exchangeArray(double*** vector, int *dims, int sz_ptr, bool periodicX, bool periodicY, bool periodicZ){
+    int i,j,k;
+#ifdef PARALLEL
+    register int nd;
+    int myrank, nprocs;
+    int globrank;
+    int ndim, gp, nleft, nright, tag1, tag2;
+    int sendb, recvb;
+    MPI_Datatype itype;
+    MPI_Comm comm;
+    MPI_Status status;
+    struct szz *s;
+
+    s = sz_stack[sz_ptr];
+
+    ndim = s->ndim;
+    globrank = s->rank;
+    comm = s->comm;
+
+    //printf("ndim = %d\n", ndim);
+
+    for(nd=0;nd<ndim;nd++){
+        gp = s->bg[nd];
+
+        /* If gp=0, do nothing */
+        if( gp > 0){
+            if(dims[nd] != 0 ){
+                bool isperiodic = (s->isperiodic[nd] == AL_TRUE);
+                nleft = s->left[nd];
+                nright = s->right[nd];
+                myrank = s->lrank[nd];
+                nprocs = s->lsize[nd];
+
+                /*if(isperiodic){
+                    printf("nd = %d, globalrank = %d, periodic\n", nd, globrank);
+                } else {
+                    printf("nd = %d, globrank = %d, not periodic\n", nd, globrank);
+                }*/
+
+
+                //printf("nd = %d, globrank = %d, nleft = %d, nright = %d, myrank = %d, nprocs = %d\n", nd, globrank, nleft, nright, myrank, nprocs);
+                MPI_Barrier(MPI_COMM_WORLD);
+                itype = s->type_rl[nd];
+                tag1 = s->tag1[nd];
+
+                sendb = s->sendb1[nd];
+                recvb = s->recvb1[nd];
+
+                double* outBuffer;
+                double* inBuffer;
+
+                int send_count;
+
+                if(nd == 0){
+                    send_count = gp*NX2_TOT*NX3_TOT;
+                    outBuffer = (double*) malloc(sizeof(double)*send_count);
+                    inBuffer = (double*) malloc(sizeof(double)*send_count);
+                    int count = 0;
+                    KTOT_LOOP(k){
+                        JTOT_LOOP(j){
+                            for(i = 0; i < IBEG; ++i){
+                                    outBuffer[count] = vector[k][j][IBEG + i];
+                                    count++;
+                            }
+                        }
+                    }
+                } else if (nd == 1){
+                    send_count = gp*NX1_TOT*NX3_TOT;
+                    outBuffer = (double*) malloc(sizeof(double)*send_count);
+                    inBuffer = (double*) malloc(sizeof(double)*send_count);
+                    int count = 0;
+                    KTOT_LOOP(k){
+                        for(j = 0; j < JBEG; ++j){
+                            ITOT_LOOP(i){
+                                    outBuffer[count] = vector[k][JBEG + j][i];
+                                    count++;
+                            }
+                        }
+                    }
+                } else if (nd == 2){
+                    send_count = gp*NX1_TOT*NX2_TOT;
+                    outBuffer = (double*) malloc(sizeof(double)*send_count);
+                    inBuffer = (double*) malloc(sizeof(double)*send_count);
+                    int count = 0;
+                    for(k = 0; k < KBEG; ++k){
+                        JTOT_LOOP(j){
+                            ITOT_LOOP(i){
+                                    outBuffer[count] = vector[KBEG + k][j][i];
+                                    count++;
+                            }
+                        }
+                    }
+                }
+
+
+                MPI_Sendrecv(outBuffer, send_count, MPI_DOUBLE, nleft, tag1,
+                             inBuffer, send_count, MPI_DOUBLE, nright,tag1,
+                             comm, &status);
+
+                if(nd == 0){
+                    int count = 0;
+                    KTOT_LOOP(k){
+                        JTOT_LOOP(j){
+                            for(i = 0; i < IBEG; ++i){
+                                    if((myrank < nprocs-1) || isperiodic){
+                                    vector[k][j][IEND + i + 1] = inBuffer[count];
+                                    }
+                                    outBuffer[count] = vector[k][j][IEND - IBEG + i + 1];
+                                    count++;
+                            }
+                        }
+                    }
+                } else if(nd == 1){
+                    int count = 0;
+                    KTOT_LOOP(k){
+                        for(j = 0; j < JBEG; ++j){
+                            ITOT_LOOP(i){
+                                    if((myrank < nprocs-1) || isperiodic){
+                                    vector[k][JEND + j + 1][i] = inBuffer[count];
+                                    }
+                                    outBuffer[count] = vector[k][JEND - JBEG + j + 1][i];
+                                    count++;
+                            }
+                        }
+                    }
+                } else if(nd == 2){
+                    int count = 0;
+                    for(k = 0; k < KBEG; ++k){
+                        JTOT_LOOP(j){
+                            ITOT_LOOP(i){
+                                    if((myrank < nprocs-1) || isperiodic){
+                                    vector[KEND + k + 1][j][i] = inBuffer[count];
+                                    }
+                                    outBuffer[count] = vector[KEND - KBEG + k + 1][j][i];
+                                    count++;
+                            }
+                        }
+                    }
+                }
+
+                nleft = s->left[nd];
+                nright = s->right[nd];
+                itype = s->type_lr[nd];
+                tag2 = s->tag2[nd];
+
+
+                sendb = s->sendb2[nd];
+                recvb = s->recvb2[nd];
+
+                MPI_Sendrecv(outBuffer, send_count, MPI_DOUBLE, nright, tag2,
+                             inBuffer, send_count, MPI_DOUBLE, nleft,tag2,
+                             comm, &status);
+
+                if(nd == 0){
+                    int count = 0;
+                    if((myrank > 0) || isperiodic){
+                    KTOT_LOOP(k){
+                        JTOT_LOOP(j){
+                            for(i = 0; i < IBEG; ++i){
+                                    vector[k][j][i] = inBuffer[count];
+                                    count++;
+                            }
+                        }
+                    }
+                    }
+                } else if(nd == 1){
+                    int count = 0;
+                    if((myrank > 0) || isperiodic){
+                    KTOT_LOOP(k){
+                        for(j = 0; j < JBEG; ++j){
+                            ITOT_LOOP(i){
+                                    vector[k][j][i] = inBuffer[count];
+                                    count++;
+                            }
+                        }
+                    }
+                    }
+                } else if(nd == 2){
+                    int count = 0;
+                    if((myrank > 0) || isperiodic){
+                    for(k = 0; k < KBEG; ++k){
+                        JTOT_LOOP(j){
+                            ITOT_LOOP(i){
+                                    vector[k][j][i] = inBuffer[count];
+                                    count++;
+                            }
+                        }
+                    }
+                    }
+                }
+
+                free(outBuffer);
+                free(inBuffer);
+            } else {
+                if(nd == 0){
+                    if(periodicX){
+                    KTOT_LOOP(k){
+                        JTOT_LOOP(j){
+                            for(i = 0; i < IBEG; ++i){
+                                    vector[k][j][IEND + i + 1] = vector[k][j][IBEG + i];
+                                    vector[k][j][i] = vector[k][j][IEND - IBEG + i + 1];
+                            }
+                        }
+                    }
+                    }
+                } else if(nd == 1){
+                    if(periodicY){
+                    //printf("noparallel exchange y\n");
+                    KTOT_LOOP(k){
+                        for(j = 0; j < JBEG; ++j){
+                            ITOT_LOOP(i){
+                                    vector[k][JEND + j + 1][i] = vector[k][JBEG + j][i];
+                                    vector[k][j][i] = vector[k][JEND - JBEG + j + 1][i];
+                            }
+                        }
+                    }
+                    }
+                } else if(nd == 2){
+                    if(periodicZ){
+                    for(k = 0; k < KBEG; ++k){
+                        JTOT_LOOP(j){
+                            ITOT_LOOP(i){
+                                    vector[KEND + k + 1][j][i] = vector[KBEG + k][j][i];
+                                    vector[k][j][i] = vector[KEND - KBEG + k + 1][j][i];
+                            }
+                        }
+                    }
+                    }
+                }
+            }
+        }
+    }
+#else
+#if INCLUDE_IDIR
+    if(periodicX){
+    KTOT_LOOP(k){
+        JTOT_LOOP(j){
+            for(i = 0; i < IBEG; ++i){
+                    vector[k][j][IEND + i + 1] = vector[k][j][IBEG + i];
+                    vector[k][j][i] = vector[k][j][IEND - IBEG + i + 1];
+            }
+        }
+    }
+    }
+#endif
+
+#if INCLUDE_JDIR
+    if(periodicY){
+    KTOT_LOOP(k){
+        for(j = 0; j < JBEG; ++j){
+            ITOT_LOOP(i){
+                    vector[k][JEND + j + 1][i] = vector[k][JBEG + j][i];
+                    vector[k][j][i] = vector[k][JEND - JBEG + j + 1][i];
+            }
+        }
+    }
+    }
+#endif
+
+#if INCLUDE_KDIR
+    if(periodicZ){
+    for(k = 0; k < KBEG; ++k){
+        JTOT_LOOP(j){
+            ITOT_LOOP(i){
+                    vector[KEND + k + 1][j][i] = vector[KBEG + k][j][i];
+                    vector[k][j][i] = vector[KEND - KBEG + k + 1][j][i];
+            }
+        }
+    }
+    }
+#endif
+
+#endif
+}
+

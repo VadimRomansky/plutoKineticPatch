@@ -1448,6 +1448,7 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
             }
         }
     }
+    //return;
     //crank-nickelson
     setBoundaryRightPartToZero(data, grid);
     int  par_dim[3] = {0, 0, 0};
@@ -1461,6 +1462,8 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
            data->rightPart[k][j][i][l] = data->Fkin[k][j][i][l];
        }
     }*/
+
+    //return;
 
     TOT_LOOP(k,j,i){
         for(int l = 0; l < NMOMENTUM; ++l){
@@ -1485,6 +1488,7 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 
 
 #if INCLUDE_IDIR
+    //printf("aaa\n");
     comm = s->oned_comm[0];
     myrank = s->lrank[0];
     nproc = s->lsize[0];
@@ -1579,7 +1583,8 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
 #else
 
 #if INCLUDE_IDIR
-    //printf("noparallel solver x\n");
+    //printf("aaa\n");
+    printf("noparallel solver x\n");
     noparallelThreeDiagonalSolverX(data->Fkin, data->rightPart, data->ax, data->bx, data->cx, NMOMENTUM);
     exchangeLargeVector(data->Fkin, NMOMENTUM, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
     DOM_LOOP(k,j,i){
@@ -1739,6 +1744,10 @@ void Particles_KIN_Update(Data *data, timeStep *Dts, double dt, Grid *grid)
         }
     }
 
+    exchangeLargeVector(data->Jkin1, NMOMENTUM, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
+    exchangeLargeVector(data->Jkin2, NMOMENTUM, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
+    exchangeLargeVector(data->Jkin3, NMOMENTUM, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
+    exchangeArray(data->Pkin, par_dim, SZ_stagx, periodicX, periodicY, periodicZ);
     DEBUG_FUNC_END ("KIN_Update");
 }
 

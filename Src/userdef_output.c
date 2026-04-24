@@ -50,10 +50,10 @@ void ComputeUserVar (const Data *d, Grid *grid)
   //Vdy = GetUserVar("Vdy");
   //Vuy = GetUserVar("Vuy");
 
-#if TURBULENT_FIELD == YES
+//#if TURBULENT_FIELD == YES
   Bturb = GetUserVar("Bturb");
   Jmc = GetUserVar("Jmc");
-#endif
+//#endif
 
   rho = d->Vc[RHO];
   prs = d->Vc[PRS];
@@ -128,9 +128,13 @@ void ChangeOutputVar ()
     SetOutputVar ("T", VTK_OUTPUT, YES);
     SetOutputVar ("Shock", VTK_OUTPUT, YES);
     SetOutputVar ("Bturb", VTK_OUTPUT, YES);
-    SetOutputVar ("Fkin", VTK_OUTPUT, YES);
+
     SetOutputVar ("Jmc", VTK_OUTPUT, YES);
+
     SetOutputVar ("Pkin", VTK_OUTPUT, YES);
+    SetOutputVar ("Fkin", VTK_OUTPUT, YES);
+    SetOutputVar ("Vjump", VTK_OUTPUT, YES);
+    SetOutputVar ("Comp", VTK_OUTPUT, YES);
   Image *image;
 
 #if PARTICLES

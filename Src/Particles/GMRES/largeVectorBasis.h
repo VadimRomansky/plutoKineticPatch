@@ -20,5 +20,6 @@ void resize(LargeVectorBasis* basis, int capacityv);
 void clear(LargeVectorBasis* basis);
 
 void exchangeLargeVector(double**** vector, int lnumber, int *dims, int sz_ptr, bool periodicX, bool preiodicY, bool periodicZ);
+void exchangeArray(double*** vector, int *dims, int sz_ptr, bool periodicX, bool periodicY, bool periodicZ);
 
 #endif

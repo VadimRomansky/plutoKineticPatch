@@ -352,9 +352,19 @@ void Particles_Inject(Data *data, Grid *grid)
         }
     }
 #else
-    updateShockFront(data, grid);
-    FlagShock(data, grid);
     int i,j,k;
+    DOM_LOOP(k,j,i){
+        //if(i == IBEG){
+            //data->Fkin[k][j][i][0] += 1E50*sin(1.0*i+g_time)*g_dt;
+        //}
+    }
+
+    //return;
+
+    updateShockFront(data, grid);
+
+    FlagShock(data, grid);
+
     DOM_LOOP(k,j,i){
         if(!(data->flag[k][j][i] & FLAG_ENTROPY)){
             double us[256];
@@ -439,12 +449,14 @@ void Particles_Inject(Data *data, Grid *grid)
                 //injection = INJECTION_PARAMETER*((data->downstreamDensity[k][j][i]/mu)*data->velocityJump[k][j][i]/(compression - 1.0))*(grid->dV[k][j][i]/(localFlux*data->shockWidth[k][j][i]))*data->p_grid[0]/(data->p_grid[1] - data->p_grid[0]);
                 injection = INJECTION_PARAMETER*((data->downstreamDensity[k][j][i]/mu)*data->velocityJump[k][j][i]/(compression - 1.0))*(1.0/data->shockWidth[k][j][i])*data->p_grid[0]/(data->p_grid[1] - data->p_grid[0]);
             }
+            //printf("injetion = %g\n", injection);
             CheckNanOrInfinity(injection, "Injection = NaN\n");
-            data->Fkin[k][j][i][0] += injection*g_dt;
+            data->Fkin[k][j][i][0] = data->Fkin[k][j][i][0] + injection*g_dt;
             double E = PARTICLES_KIN_MASS*PARTICLES_KIN_C*PARTICLES_KIN_C*sqrt(1.0 + data->p_grid[0]*data->p_grid[0]);
             data->injectedEnergy[k][j][i] += E*g_dt*injection*grid->dV[k][j][i]*(data->p_grid[1] - data->p_grid[0])/data->p_grid[0];
         }
     }
+
 #endif
 }
 
