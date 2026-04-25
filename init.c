@@ -192,7 +192,7 @@ void Init (double *us, double x1, double x2, double x3)
     //InitPower(us, x1, x2, x3);
 }
 
-void InitZirackashviliDomain (Data *d, Grid *grid)
+void InitZirakashviliDomain (Data *d, Grid *grid)
 /*! 
  * Zirakashvili 2011
  *
@@ -262,6 +262,9 @@ void InitZirackashviliDomain (Data *d, Grid *grid)
             d->Vc[VX3][k][j][i] = 0;
 
         }
+        if(d->Vc[RHO][k][j][i] < 0){
+            printf("aaa\n");
+        }
         d->Vc[BX1][k][j][i] = B_amb;
         d->Vc[BX2][k][j][i] = 0.0;
         d->Vc[BX3][k][j][i] = 0.0;
@@ -291,6 +294,8 @@ void InitDomain (Data *d, Grid *grid)
     double UNIT_TIME = UNIT_LENGTH/UNIT_VELOCITY;
     double UNIT_MASS = UNIT_DENSITY*UNIT_LENGTH*UNIT_LENGTH*UNIT_LENGTH;
     double UNIT_ENERGY = UNIT_MASS*UNIT_VELOCITY*UNIT_VELOCITY;
+
+    InitZirakashviliDomain(d, grid);
 
 
 double B_amb   = g_inputParam[B_AMB]/UNIT_MFIELD;
