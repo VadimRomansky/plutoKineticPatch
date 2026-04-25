@@ -248,14 +248,14 @@ void InitZirakashviliDomain (Data *d, Grid *grid)
             d->Vc[VX3][k][j][i] = 0;
 
         } else if (r > Rej){
-            d->Vc[RHO][k][j][i] = rho_amb*pow(r/Rb, power);
+            d->Vc[RHO][k][j][i] = rho_amb/pow(r/Rb, power);
             d->Vc[PRS][k][j][i] = 0.01*p_amb;
             d->Vc[VX1][k][j][i] = 1.5*V_f*r/Rb;
             d->Vc[VX2][k][j][i] = 0;
             d->Vc[VX3][k][j][i] = 0;
 
         } else {
-            d->Vc[RHO][k][j][i] = rho_amb*pow(Rej/Rb, power);
+            d->Vc[RHO][k][j][i] = rho_amb/pow(Rej/Rb, power);
             d->Vc[PRS][k][j][i] = 0.01*p_amb;
             d->Vc[VX1][k][j][i] = 1.5*V_f*r/Rb;
             d->Vc[VX2][k][j][i] = 0;
