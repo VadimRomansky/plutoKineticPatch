@@ -189,218 +189,86 @@ void Init (double *us, double x1, double x2, double x3)
  *********************************************************************** */
 {
     //InitLazzati(us, x1, x2, x3);
-    InitPower(us, x1, x2, x3);
+    //InitPower(us, x1, x2, x3);
 }
 
-/* ********************************************************************* */
-void InitLazzati (double *us, double x1, double x2, double x3)
-/*
+void InitZirackashviliDomain (Data *d, Grid *grid)
+/*! 
+ * Zirakashvili 2011
+ *
+ *
  *********************************************************************** */
 {
-    double T_amb, cs_amb, rho_amb, V_amb, mu;
-    mu = MeanMolecularWeight(us);
-    g_usersTemporal = MeanMolecularWeight(us);
-    double UNIT_MASS = UNIT_DENSITY*pow(UNIT_LENGTH, 3.0);
+    int i,j, k;
+
+    double UNIT_MFIELD = UNIT_VELOCITY*sqrt(4.0*CONST_PI*UNIT_DENSITY);
+    double UNIT_PRS    = UNIT_DENSITY*UNIT_VELOCITY*UNIT_VELOCITY;
     double UNIT_TIME = UNIT_LENGTH/UNIT_VELOCITY;
+    double UNIT_MASS = UNIT_DENSITY*UNIT_LENGTH*UNIT_LENGTH*UNIT_LENGTH;
     double UNIT_ENERGY = UNIT_MASS*UNIT_VELOCITY*UNIT_VELOCITY;
 
-    T_amb   = g_inputParam[T_AMB];
-    double m_dot = ((g_inputParam[M_dot] * CONST_Msun / CONST_YrSec) / UNIT_MASS) * UNIT_TIME;
-    V_amb   = g_inputParam[V_AMB]   / UNIT_VELOCITY;
-    cs_amb  = sqrt(g_gamma*CONST_kB*T_amb/(mu*CONST_mp)) / UNIT_VELOCITY;
-    double rho_ism   = g_inputParam[RHO_ISM]; //interstellar medium density
-
-    /* 'n' and 's1' - SNR type parameters. 'r_max' and 'v_max' - SNR blastwave initial radius and top speed respectively */
-    //double UNIT_FC = UNIT_DENSITY*pow(UNIT_LENGTH/UNIT_VELOCITY,3.0);
+    double R_f, Rb, V_f, Rej, Vej;
+    double power = 7.0;
+    double T_amb, cs_amb, rho_amb, mu, B_amb;
+    double us[256];
+    mu = MeanMolecularWeight(us);
+    g_usersTemporal = MeanMolecularWeight(us);
 
     double Mej    = g_inputParam[M_COR] * CONST_Msun /UNIT_MASS;       /* Units [g*s3/cm3], Defines SNR's core density at time 't' */
     double Eej = g_inputParam[E_COR] / UNIT_ENERGY; /* SNR core's velocity at its outer boundary */
 
-    double lazzatiMaxBeta = lazzatiMaxGB/sqrt(1 + lazzatiMaxGB*lazzatiMaxGB);
-    double v_max = lazzatiMaxBeta*CONST_c/UNIT_VELOCITY;
 
-    double Eej_k, Eej_t, r_max = 0.03;
-
-    double t = r_max / v_max; // Time since SN explosion
-
-    rho_amb = m_dot/(4*CONST_PI*V_amb*r_max*r_max);
-
-    Eej_k = Eej;
-
-    //printf("Energy = %g\n", Eej_k*UNIT_VELOCITY*UNIT_VELOCITY*UNIT_MASS);
-    Eej_t = 0.01*Eej_k/0.99;
-
-    //new
-    //double rmax = 0.003;
-    //double rhocor = Mej/(4*CONST_PI*rmax*rmax*rmax);
-    //only if unit_velocity = c
-    //double gam = 1.0/sqrt(1.0 - v_cor*v_cor);
-    //double Eej = Mej*(gam - 1);
-    //double Eej_t = 0.01*Eej/0.99;
-
-    double M_Star_O   = 30.0;
-    double M_Star_WR  = 18.0;
-    double M_Star_YSG = 29.0;
-    double M_Star_RSG = 22.0;
-
-    double T_effv_O   = 36.0;
-    double T_effv_WR  = 50.0;
-    double T_effv_YSG = 7.50;
-    double T_effv_RSG = 3.90;
-
-    double L_Star_O   = 220000.0;
-    double L_Star_WR  = 510000.0;
-    double L_Star_YSG = 720000.0;
-    double L_Star_RSG = 260000.0;
-
-    double M_Loss_O   = 5.35e-6;
-    double M_Loss_WR  = 6.50e-5;
-    double M_Loss_YSG = 2.30e-4;
-    double M_Loss_RSG = 1.75e-4;
-
-    double OmegaS_O   = 2.75e-5;
-    double OmegaS_WR  = 6.60e-7;
-    double OmegaS_YSG = 1.00e-10;
-    double OmegaS_RSG = 4.50e-11;
-
-    double Gedd_O   = 0.1800;
-    double Gedd_WR  = 0.4780;
-    double Gedd_YSG = 0.5480;
-    double Gedd_RSG = 0.3500;
-    // todo how to get dr
-    double dr = 2.5/100000;
-
-    double lazzatiMassKoef = 225;
-    double lazzatiMass03 = 0.09;
-
-#if DIMENSIONS == 1 /* Suitable for 1D spherical geometry */
-    double r = x1;
-    if (r <= r_max){
-    us[VX1] = r/t;
-    double beta = us[VX1]*UNIT_VELOCITY/CONST_c;
-    double gam = 1.0/sqrt(1.0 - beta*beta);
-    double energy = Eej_k*getLazzatiDistribution(beta)/t;
-
-        us[RHO] = energy/(4*CONST_PI*r*r*(gam-1.0)*(CONST_c/UNIT_VELOCITY)*(CONST_c/UNIT_VELOCITY));
-        us[PRS] = us[RHO]*(g_gamma-1.0)*Eej_t/Mej;
-    }else{ /* Initialization of the progenitor's CSM */
-        us[RHO] = m_dot/(4*CONST_PI*V_amb*r*r);
-        us[PRS] = us[RHO]*cs_amb*cs_amb/g_gamma;
-        us[VX1] = V_amb;
-        //SetWind(us, r, 4*M_Star_WR, T_effv_WR, L_Star_WR, 5*M_Loss_WR, OmegaS_WR, Gedd_WR);
-    }
-#endif
-}
-
-/* ********************************************************************* */
-void InitPower (double *us, double x1, double x2, double x3)
-/*
- *********************************************************************** */
-{
-    double T_amb, cs_amb, rho_amb, V_amb, mu, B_amb;
-    mu = MeanMolecularWeight(us);
-    g_usersTemporal = MeanMolecularWeight(us);
-    double UNIT_MASS = UNIT_DENSITY*pow(UNIT_LENGTH, 3.0);
-    double UNIT_TIME = UNIT_LENGTH/UNIT_VELOCITY;
-    double UNIT_ENERGY = UNIT_MASS*UNIT_VELOCITY*UNIT_VELOCITY;
-    double UNIT_MFIELD = UNIT_VELOCITY*sqrt(4.0*CONST_PI*UNIT_DENSITY);
-
+    R_f   = g_inputParam[Rf]/UNIT_LENGTH;
+    //Rb   = g_inputParam[Rb]/UNIT_LENGTH;
+    Rb = 0.9*Rf;
+    //Rej   = g_inputParam[Rej]/UNIT_LENGTH;
+    V_f   = g_inputParam[Vf]/UNIT_VELOCITY;
+    //Vej = Vf/4;
+    Vej = sqrt(10.0*(power - 5)*Eej/(3*(power - 3)*Mej));
+    Rej = 2*Vej*Rb/(3.0*V_f);
     T_amb   = g_inputParam[T_AMB];
-    double m_dot = ((g_inputParam[M_dot] * CONST_Msun / CONST_YrSec) / UNIT_MASS) * UNIT_TIME;
-    V_amb   = g_inputParam[V_AMB]   / UNIT_VELOCITY;
     cs_amb  = sqrt(g_gamma*CONST_kB*T_amb/(mu*CONST_mp)) / UNIT_VELOCITY;
-    double rho_ism   = g_inputParam[RHO_ISM]; //interstellar medium density
+    rho_amb = g_inputParam[RHO_ISM]; //interstellar medium density
+    double p_amb = rho_amb*cs_amb*cs_amb/g_gamma;
     B_amb   = g_inputParam[B_AMB]/UNIT_MFIELD;
 
-    /* 'n' and 's1' - SNR type parameters. 'r_max' and 'v_max' - SNR blastwave initial radius and top speed respectively */
-    //double UNIT_FC = UNIT_DENSITY*pow(UNIT_LENGTH/UNIT_VELOCITY,3.0);
+    DOM_LOOP(k,j,i){
+        double r = grid->x[0][i];
+        if(r > R_f){
+            d->Vc[RHO][k][j][i] = rho_amb;
+            d->Vc[PRS][k][j][i] = p_amb;
+            d->Vc[VX1][k][j][i] = 0;
+            d->Vc[VX2][k][j][i] = 0;
+            d->Vc[VX3][k][j][i] = 0;
+        } else if (r > Rb){
+            d->Vc[RHO][k][j][i] = 4*rho_amb;
+            d->Vc[PRS][k][j][i] = 0.75*rho_amb*V_f*V_f;
+            d->Vc[VX1][k][j][i] = 0.75*V_f;
+            d->Vc[VX2][k][j][i] = 0;
+            d->Vc[VX3][k][j][i] = 0;
 
-    double Mej    = g_inputParam[M_COR] * CONST_Msun /UNIT_MASS;       /* Units [g*s3/cm3], Defines SNR's core density at time 't' */
-    double Eej = g_inputParam[E_COR] / UNIT_ENERGY; /* SNR core's velocity at its outer boundary */
+        } else if (r > Rej){
+            d->Vc[RHO][k][j][i] = rho_amb*pow(r/Rb, power);
+            d->Vc[PRS][k][j][i] = 0.01*p_amb;
+            d->Vc[VX1][k][j][i] = 1.5*V_f*r/Rb;
+            d->Vc[VX2][k][j][i] = 0;
+            d->Vc[VX3][k][j][i] = 0;
 
-    double powerMaxBeta = 0.99;
-    double v_max = powerMaxBeta*CONST_c/UNIT_VELOCITY;
+        } else {
+            d->Vc[RHO][k][j][i] = rho_amb*pow(Rej/Rb, power);
+            d->Vc[PRS][k][j][i] = 0.01*p_amb;
+            d->Vc[VX1][k][j][i] = 1.5*V_f*r/Rb;
+            d->Vc[VX2][k][j][i] = 0;
+            d->Vc[VX3][k][j][i] = 0;
 
-    double Eej_k, Eej_t, r_max = 0.03;
+        }
+        d->Vc[BX1][k][j][i] = B_amb;
+        d->Vc[BX2][k][j][i] = 0.0;
+        d->Vc[BX3][k][j][i] = 0.0;
 
-    double t = r_max / v_max; // Time since SN explosion
-
-    rho_amb = m_dot/(4*CONST_PI*V_amb*r_max*r_max);
-
-    Eej_k = Eej;
-
-    //printf("Energy = %g\n", Eej_k*UNIT_VELOCITY*UNIT_VELOCITY*UNIT_MASS);
-    Eej_t = 0.01*Eej_k/0.99;
-
-    //new
-    //double rmax = 0.003;
-    //double rhocor = Mej/(4*CONST_PI*rmax*rmax*rmax);
-    //only if unit_velocity = c
-    //double gam = 1.0/sqrt(1.0 - v_cor*v_cor);
-    //double Eej = Mej*(gam - 1);
-    //double Eej_t = 0.01*Eej/0.99;
-
-    double M_Star_O   = 30.0;
-    double M_Star_WR  = 18.0;
-    double M_Star_YSG = 29.0;
-    double M_Star_RSG = 22.0;
-
-    double T_effv_O   = 36.0;
-    double T_effv_WR  = 50.0;
-    double T_effv_YSG = 7.50;
-    double T_effv_RSG = 3.90;
-
-    double L_Star_O   = 220000.0;
-    double L_Star_WR  = 510000.0;
-    double L_Star_YSG = 720000.0;
-    double L_Star_RSG = 260000.0;
-
-    double M_Loss_O   = 5.35e-6;
-    double M_Loss_WR  = 6.50e-5;
-    double M_Loss_YSG = 2.30e-4;
-    double M_Loss_RSG = 1.75e-4;
-
-    double OmegaS_O   = 2.75e-5;
-    double OmegaS_WR  = 6.60e-7;
-    double OmegaS_YSG = 1.00e-10;
-    double OmegaS_RSG = 4.50e-11;
-
-    double Gedd_O   = 0.1800;
-    double Gedd_WR  = 0.4780;
-    double Gedd_YSG = 0.5480;
-    double Gedd_RSG = 0.3500;
-    // todo how to get dr
-    double dr = 2.5/100000;
-
-    double powerIndex = 1.5;
-
-#if DIMENSIONS == 1 /* Suitable for 1D spherical geometry */
-    double gambeta0 = 0.1;
-    double A = Eej_k*(powerIndex - 1.0)/(powerIndex*gambeta0);
-    double r = x1;
-    if (r <= r_max){
-    us[VX1] = r/t;
-    double beta = us[VX1]*UNIT_VELOCITY/CONST_c;
-    double gam = 1.0/sqrt(1.0 - beta*beta);
-    double energy;
-    if (gam*beta < gambeta0){
-        energy = A*(1 + beta/pow(1-beta*beta,1.5))/t;
-    } else {
-        energy = A*((1 + beta/pow(1-beta*beta, 1.5))/(pow(gam*beta/gambeta0, powerIndex)))/t;
     }
 
-        us[RHO] = energy/(4*CONST_PI*r*r*(gam-1.0)*(CONST_c/UNIT_VELOCITY)*(CONST_c/UNIT_VELOCITY));
-        us[PRS] = us[RHO]*(g_gamma-1.0)*Eej_t/Mej;
-    }else{ /* Initialization of the progenitor's CSM */
-        us[RHO] = m_dot/(4*CONST_PI*V_amb*r*r);
-        us[PRS] = us[RHO]*cs_amb*cs_amb/g_gamma;
-        us[VX1] = V_amb;
-        //SetWind(us, r, 4*M_Star_WR, T_effv_WR, L_Star_WR, 5*M_Loss_WR, OmegaS_WR, Gedd_WR);
-    }
-#endif
-    us[BX1] = B_amb;
-    us[BX2] = 0.0;
-    us[BX3] = 0.0;
+
 }
 
 

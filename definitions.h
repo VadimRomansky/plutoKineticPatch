@@ -20,9 +20,9 @@
 
 #define  M_COR                          0
 #define  E_COR                          1
-#define  M_dot                          2
+#define  Rf                             2
 #define  T_AMB                          3
-#define  V_AMB                          4
+#define  Vf                             4
 #define  RHO_ISM                        5
 #define  B_AMB                          6
 

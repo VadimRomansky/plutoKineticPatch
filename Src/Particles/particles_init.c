@@ -443,17 +443,30 @@ void Particles_Inject(Data *data, Grid *grid)
             printLog("wrong geometry/n");
             QUIT_PLUTO(1);
 #endif
+            double beta = data->velocityJump[k][j][i]/(CONST_c/UNIT_VELOCITY);
+            double injectionMomentum = 2*beta/(1-beta*beta);
+            int injectionIndex = 0;
+            for(int l = 1; l < NMOMENTUM; ++l){
+                if(data->p_grid[l] > injectionMomentum){
+                    injectionIndex = l-1;
+                    break;
+                }
+            }
+            if(injectionMomentum > data->p_grid[NMOMENTUM-1]){
+                //printf("injection momentum > pmax\n");
+                printLog("injection momentum > pmax\n");
+            }
             //to compensate that there are several cells along shock
             double localFlux = fabs(n1*grid->A[0][k][j][i]) + fabs(n2*grid->A[1][k][j][i]) + fabs(n3*grid->A[2][k][j][i]);
             if(compression > COMPRESSION_TRESHOLD){
                 //injection = INJECTION_PARAMETER*((data->downstreamDensity[k][j][i]/mu)*data->velocityJump[k][j][i]/(compression - 1.0))*(grid->dV[k][j][i]/(localFlux*data->shockWidth[k][j][i]))*data->p_grid[0]/(data->p_grid[1] - data->p_grid[0]);
-                injection = INJECTION_PARAMETER*((data->downstreamDensity[k][j][i]/mu)*data->velocityJump[k][j][i]/(compression - 1.0))*(1.0/data->shockWidth[k][j][i])*data->p_grid[0]/(data->p_grid[1] - data->p_grid[0]);
+                injection = INJECTION_PARAMETER*((data->downstreamDensity[k][j][i]/mu)*data->velocityJump[k][j][i]/(compression - 1.0))*(1.0/data->shockWidth[k][j][i])*data->p_grid[injectionIndex]/(data->p_grid[injectionIndex+1] - data->p_grid[injectionIndex]);
             }
             //printf("injetion = %g\n", injection);
             CheckNanOrInfinity(injection, "Injection = NaN\n");
-            data->Fkin[k][j][i][0] = data->Fkin[k][j][i][0] + injection*g_dt;
-            double E = PARTICLES_KIN_MASS*PARTICLES_KIN_C*PARTICLES_KIN_C*sqrt(1.0 + data->p_grid[0]*data->p_grid[0]);
-            data->injectedEnergy[k][j][i] += E*g_dt*injection*grid->dV[k][j][i]*(data->p_grid[1] - data->p_grid[0])/data->p_grid[0];
+            data->Fkin[k][j][i][injectionIndex] = data->Fkin[k][j][i][injectionIndex] + injection*g_dt;
+            double E = PARTICLES_KIN_MASS*PARTICLES_KIN_C*PARTICLES_KIN_C*sqrt(1.0 + data->p_grid[injectionIndex]*data->p_grid[injectionIndex]);
+            data->injectedEnergy[k][j][i] += E*g_dt*injection*grid->dV[k][j][i]*(data->p_grid[injectionIndex+1] - data->p_grid[injectionIndex])/data->p_grid[injectionIndex];
         }
     }
 
